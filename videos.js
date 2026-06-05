@@ -12,7 +12,7 @@ window.SPMI_VIDEOS = {
   "dft_fft":           "https://youtu.be/hnWYJxfcgGY",
   "z_transform":       "https://youtu.be/FeUG2Z77EF4",
   "radio":             "https://youtu.be/v67ZfkS61q4",
-  "spectrogram2":      "https://youtu.be/19mdBvRdQIY",
+  "spectrogram2":      "https://youtu.be/eMnqAwODtPw",
   "dct":               "https://youtu.be/AsCMsvtC-H0",
   "hht":               "https://youtu.be/BKewiSUd7OQ",
   "fractional-fourier": "https://youtu.be/eN2i8tQiXXM"
