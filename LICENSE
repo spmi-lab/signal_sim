@@ -1,0 +1,189 @@
+# Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+# (CC BY-NC-SA 4.0)
+
+Copyright (c) 2026
+**SPMI Lab — Signal Processing & Machine Intelligence Lab**
+İstanbul Medeniyet Üniversitesi · Mühendislik ve Doğa Bilimleri Fakültesi
+*(Istanbul Medeniyet University · Faculty of Engineering and Natural Sciences)*
+
+**Maintainer / Düzenleyen:** Nurullah ÇALIK
+**E-mail:** ncalik.imu@gmail.com · imu.spmi@gmail.com
+**Google Scholar:** <https://scholar.google.com.tr/citations?hl=tr&user=lKCeK5IAAAAJ&view_op=list_works>
+**Lab GitHub:** <https://github.com/spmi-lab>
+
+---
+
+## Project
+
+**"Signals & Systems — Interactive Simulation Platform"**
+*(Sinyaller ve Sistemler — Etkileşimli Simülasyon Platformu)*
+
+A collection of 16 browser-based interactive simulations developed for
+undergraduate Signals & Systems education at İstanbul Medeniyet
+University, maintained by **SPMI Lab — Signal Processing & Machine
+Intelligence Laboratory**.
+
+This work — including all HTML, CSS, JavaScript source code, KaTeX-
+rendered mathematical content, simulation logic, visual designs, bilingual
+written explanations (Turkish and English), and accompanying media — is
+hereby licensed under the **Creative Commons Attribution-NonCommercial-
+ShareAlike 4.0 International License (CC BY-NC-SA 4.0)**.
+
+* Full legal code: <https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode>
+* Human-readable summary: <https://creativecommons.org/licenses/by-nc-sa/4.0/>
+
+---
+
+## You are FREE to
+
+* **Share** — copy and redistribute the material in any medium or format.
+* **Adapt** — remix, transform, and build upon the material.
+
+The licensor cannot revoke these freedoms as long as you follow the
+license terms below.
+
+---
+
+## Under the following TERMS
+
+### 1. Attribution (BY) — *Required*
+
+You **must** give appropriate credit, provide a link to the license, and
+indicate if changes were made. You may do so in any reasonable manner,
+but not in any way that suggests the licensor endorses you or your use.
+
+**Required attribution for any use, redistribution, or derivative work:**
+
+> "Signals & Systems — Interactive Simulation Platform"
+> © 2026 SPMI Lab (Signal Processing & Machine Intelligence Lab),
+> İstanbul Medeniyet University. Maintained by Nurullah ÇALIK.
+> Licensed under CC BY-NC-SA 4.0.
+> Source: <https://github.com/spmi-lab>
+
+**Academic citation (recommended format):**
+
+> ÇALIK, N. & SPMI Lab (2026). *Signals & Systems — Interactive
+> Simulation Platform* [Open-source educational software, v0.0.1].
+> Signal Processing & Machine Intelligence Laboratory,
+> İstanbul Medeniyet University.
+> <https://github.com/spmi-lab>
+
+A `CITATION.cff` file is provided in the repository root for automated
+citation tooling (BibTeX / RIS / APA).
+
+### 2. NonCommercial (NC) — *Required*
+
+You **may NOT** use the material for **commercial purposes**.
+
+A "commercial purpose" is any use primarily intended for or directed
+toward commercial advantage or monetary compensation. This includes,
+but is not limited to:
+
+* Selling the platform, its source code, or any derivative work.
+* Bundling it into paid software, paid courses, paid textbooks, or paid
+  online programs / boot camps.
+* Using it as part of for-profit consulting deliverables.
+* Hosting it behind a paywall or with paid subscriptions.
+* Monetized YouTube channels, paid video courses, or other revenue-
+  generating media in which this platform is the central material.
+* Advertisement-monetized contexts where the platform itself is the
+  primary draw of the host site.
+
+**Permitted non-commercial uses include:**
+
+* Use in publicly funded universities, schools, and non-profit
+  educational institutions for teaching, classroom demonstrations,
+  assignments, and academic research.
+* Personal study, theses, and dissertations by individual students.
+* Free, non-monetized blog posts, tutorials, or educational videos
+  (with proper attribution).
+* Publicly funded research with open-access publication.
+
+If you are unsure whether your intended use qualifies as non-commercial,
+please contact **ncalik.imu@gmail.com** or **imu.spmi@gmail.com** for
+written clarification or to request a separate commercial license.
+
+### 3. ShareAlike (SA) — *Required*
+
+If you remix, transform, or build upon the material, you **must
+distribute your contributions under the same license** as the original
+(CC BY-NC-SA 4.0). You may not impose stricter or incompatible terms.
+
+This means any derivative work — translations, adaptations, ports to
+other platforms, integrations into larger educational repositories —
+must also be licensed under CC BY-NC-SA 4.0 and must remain freely
+available for non-commercial use under attribution.
+
+### 4. No additional restrictions
+
+You may not apply legal terms or technological measures (e.g., DRM)
+that legally restrict others from doing anything the license permits.
+
+---
+
+## Notices
+
+* No warranties are given. The license may not give you all of the
+  permissions necessary for your intended use. Other rights such as
+  publicity, privacy, or moral rights may limit how you use the
+  material.
+* This work is provided **"AS IS"**, without warranty of any kind,
+  express or implied, including but not limited to the warranties of
+  merchantability, fitness for a particular purpose, and non-
+  infringement.
+* In no event shall the authors, SPMI Lab, Nurullah ÇALIK, İstanbul
+  Medeniyet University, or any contributing institution be liable for
+  any claim, damages, or other liability arising from the use of this
+  software.
+
+---
+
+## Educational-Use Disclaimer
+
+This platform is provided **for educational purposes only**. It is not
+a medical, diagnostic, scientific measurement, or engineering-grade
+tool. The simulations are pedagogical demonstrations of signal-
+processing concepts and **must not be used** for clinical, safety-
+critical, certification, or production decision-making.
+
+---
+
+## AI-Assisted Development Notice
+
+A substantial portion of the source code in this project was produced
+with the assistance of large language model (LLM) tooling
+(**Claude Code · Anthropic**) and subsequently reviewed and edited by
+the maintainer. Residual minor inaccuracies (mathematical, linguistic,
+or implementation-level) may remain despite human review. Bug reports
+and corrections are sincerely welcomed at the GitHub repository.
+
+---
+
+## Third-Party Components
+
+This project uses the following third-party libraries via CDN, each
+under their own license:
+
+* **KaTeX** — MIT License — <https://katex.org>
+* **Google Fonts** (Saira, Saira Condensed, Fira Code) — Open Font
+  License
+
+These components are *not* relicensed by this project; they remain
+under their original licenses.
+
+---
+
+## Commercial Licensing
+
+For commercial use, white-labeling, integration into paid products, or
+any use **not permitted under CC BY-NC-SA 4.0**, please contact:
+
+**SPMI Lab — Signal Processing & Machine Intelligence Lab**
+Nurullah ÇALIK · ncalik.imu@gmail.com
+imu.spmi@gmail.com · <https://github.com/spmi-lab>
+
+A separate commercial license can be granted on mutually agreed terms.
+
+---
+
+*Version 0.0.1 · Last updated: 2026-06-04*

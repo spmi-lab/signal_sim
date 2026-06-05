@@ -1,0 +1,286 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ayrık Zaman Fourier Dönüşümü (DTFT)</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== DTFT yerleşim ===== */
+    .dtft-grid {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0 0.8rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 0.55rem;
+      position: relative; z-index: 2;
+    }
+    .dtft-grid .graph-container { padding: 0.5rem 0.7rem 0.6rem; }
+    .dtft-grid canvas {
+      width: 100%; height: 220px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    /* Birim çember 3D paneli daha yüksek */
+    #cvUC { height: 360px !important; }
+    .panel-xn  { color: var(--color-x); }
+    .panel-uc  { color: #ffd166; }
+    .panel-mag { color: var(--color-h); }
+    .panel-pha { color: var(--color-y); }
+
+    .dtft-grid .spans-wide { grid-column: 1 / span 2; }
+    #cvUC { cursor: crosshair; }
+    #cvMag { cursor: ew-resize; }
+    .draw-active { cursor: crosshair; }
+
+    .dtft-marker-read {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-marker);
+      background: rgba(255,79,154,0.08);
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+    }
+    @media (max-width: 900px) {
+      .dtft-grid { grid-template-columns: 1fr; }
+      .dtft-grid .spans-wide { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">𝓕*</span> Ayrık Zaman Fourier Dönüşümü (DTFT) <span class="title-icon">e^{jω}</span>
+    </h1>
+    <p class="site-subtitle">$X(e^{j\omega})$ · 2π Periyodik · Birim Çember</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d active" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <!-- Kontroller (yukarıya alındı) -->
+  <div class="controls-wrapper">
+    <!-- Sinyal -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> x[n] Sinyal</h3>
+
+      <div class="control-group">
+        <label>İşaret:</label>
+        <select id="signalType" class="glass-select">
+          <option value="delta">Dirac $\delta[n]$</option>
+          <option value="rect" selected>Kare darbe (rect)</option>
+          <option value="triangle">Üçgen darbe</option>
+          <option value="step">Birim basamak (sonlu)</option>
+          <option value="expDec">Üstel $a^n u[n]$ (kararlı)</option>
+          <option value="cosine">Kosinüs $\cos(\omega_0 n)$</option>
+          <option value="sine">Sinüs $\sin(\omega_0 n)$</option>
+          <option value="modCos">Modüle kosinüs · pencere</option>
+          <option value="sinc">sinc darbesi (bant-sınırlı)</option>
+          <option value="freehand">✏️ Serbest Çizim</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Genlik A: <span id="ampVal" class="val-display">1.00</span></label>
+        <input type="range" id="ampSlider" min="0.1" max="3" step="0.05" value="1" />
+      </div>
+
+      <div class="control-group" id="widthGroup">
+        <label>Genişlik / yarı-uzunluk M: <span id="widthVal" class="val-display">5</span></label>
+        <input type="range" id="widthSlider" min="1" max="40" step="1" value="5" />
+      </div>
+
+      <div class="control-group" id="aGroup" style="display:none;">
+        <label>Üstel a (|a|<1): <span id="aVal" class="val-display">0.80</span></label>
+        <input type="range" id="aSlider" min="-0.99" max="0.99" step="0.01" value="0.8" />
+      </div>
+
+      <div class="control-group" id="omega0Group" style="display:none;">
+        <label>$\omega_0$ (rad/sample): <span id="omega0Val" class="val-display">0.50π</span></label>
+        <input type="range" id="omega0Slider" min="0" max="3.14159" step="0.01" value="1.57079" />
+      </div>
+
+      <div class="freehand-controls" id="freehandControls" style="display:none;">
+        <p class="freehand-info">x[n] grafiğinde fare ile çiz; örnek başına 1 adım.</p>
+        <button class="glass-btn" id="drawClear">Temizle</button>
+        <button class="glass-btn" id="drawSmooth">Düzgünleştir</button>
+        <button class="glass-btn" id="drawNormalize">Normalize</button>
+      </div>
+    </div>
+
+    <!-- Aralık -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-h"></span> Aralık & ω Ekseni</h3>
+
+      <div class="inline-group">
+        <label>n min:</label>
+        <input type="number" id="nMinInput" class="num-input" value="-20" />
+        <label>n max:</label>
+        <input type="number" id="nMaxInput" class="num-input" value="20" />
+        <button class="glass-btn" id="applyN">Uygula</button>
+      </div>
+
+      <div class="control-group">
+        <label>ω ekseni genişliği (π katı): <span id="omRangeVal" class="val-display">±2π</span></label>
+        <input type="range" id="omRangeSlider" min="1" max="4" step="0.5" value="2" />
+      </div>
+
+      <div class="control-group">
+        <label>ω çözünürlüğü (örnek): <span id="omSampVal" class="val-display">1024</span></label>
+        <input type="range" id="omSampSlider" min="256" max="4096" step="128" value="1024" />
+      </div>
+
+      <div class="periodic-row">
+        <span>Periyodikliği vurgula:</span>
+        <label class="toggle-switch"><input type="checkbox" id="periodHL" checked /><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Görüntü -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-settings"></span> Görüntü</h3>
+
+      <div class="control-group">
+        <label>Genlik gösterim:</label>
+        <select id="magMode" class="glass-select">
+          <option value="linear" selected>Lineer |X|</option>
+          <option value="db">dB (20·log₁₀|X|)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>İmleç ω (rad): <span id="markerVal" class="val-display">0.00</span></label>
+        <input type="range" id="markerSlider" min="-6.28319" max="6.28319" step="0.01" value="0" />
+      </div>
+
+      <div class="control-group">
+        <label>Grid Opaklık: <span id="gridAlphaVal" class="val-display">0.16</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.5" step="0.01" value="0.16" />
+      </div>
+
+      <div class="control-group">
+        <label>Canvas Yükseklik: <span id="canvasHeightVal" class="val-display">220</span>px</label>
+        <input type="range" id="canvasHeight" min="150" max="400" step="10" value="220" />
+      </div>
+    </div>
+  </div>
+
+  <div class="dtft-grid">
+    <!-- Sol: x[n] -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-xn">x[n] — Ayrık işaret</span>
+        <span class="instant-value" id="nRangeRO">n ∈ [-20, 20]</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$x[n]$ → seriler / stem plot</span>
+        <span class="drag-hint" id="xnHint">✏️ panel üstünde çizebilirsin</span>
+      </div>
+      <canvas id="cvXn"></canvas>
+    </div>
+
+    <!-- Sağ: Birim çember — DTFT'nin "evi" -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-uc">$e^{j\omega}$ — Birim Çember (z = $e^{j\omega}$)</span>
+        <span class="dtft-marker-read" id="markerRO">ω = 0.000 · |X| = —</span>
+        <button class="glass-btn anim-toggle" id="animToggle" title="play/stop animasyon"
+          style="margin-left:auto; font-size:0.7rem; padding:0.22rem 0.55rem;">⏸ Stop</button>
+        <button class="glass-btn anim-reset" id="animReset" title="3D görünümü sıfırla"
+          style="font-size:0.7rem; padding:0.22rem 0.55rem;">⟳</button>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$X(e^{j\omega})=\sum_n x[n]\,e^{-j\omega n}$</span>
+        <span class="drag-hint" id="ucHint">Stop iken sürükle: 3D döndür</span>
+      </div>
+      <canvas id="cvUC"></canvas>
+    </div>
+
+    <!-- Geniş: |X(e^{jω})| magnitude (multi-period showing periodicity) -->
+    <div class="graph-container glass-panel spans-wide">
+      <div class="graph-header">
+        <span class="graph-label panel-mag">|X(e^{jω})| — Genlik (ω ekseni 2π periyodik)</span>
+        <span class="instant-value" id="magRO">|X(0)| = —</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$|X(e^{j(\omega+2\pi k)})| = |X(e^{j\omega})| \ \forall k\in\mathbb{Z}$</span>
+        <span class="drag-hint">imleç sürükle / sağ panelde çember senkronize</span>
+      </div>
+      <canvas id="cvMag"></canvas>
+    </div>
+  </div>
+
+  <!-- Eğitim -->
+  <div class="edu-card glass-panel">
+    <h2 class="edu-title">DTFT — Ayrık Zaman Fourier Dönüşümü</h2>
+    <p class="edu-text">
+      Ayrık zamanlı bir $x[n]$ işareti için Ayrık-Zaman Fourier Dönüşümü (DTFT)
+      $$X(e^{j\omega})=\sum_{n=-\infty}^{\infty} x[n]\,e^{-j\omega n}$$
+      bağıntısıyla tanımlanmaktadır. Elde edilen sonuç $\omega$ değişkeninin sürekli ve <strong>$2\pi$-periyodik</strong> bir fonksiyonu olup $X(e^{j(\omega+2\pi)})=X(e^{j\omega})$ eşitliğini sağlar. Bu periyodiklik $e^{-j(\omega+2\pi)n}=e^{-j\omega n}\,e^{-j2\pi n}$ ifadesinin tüm tam sayı $n$ değerleri için $e^{-j2\pi n}=1$ koşulundan kaynaklanmaktadır.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Temel DTFT çiftleri:</strong>
+      <br>$\delta[n]\;\leftrightarrow\;1$
+      <br>$a^n\,u[n], \; |a|<1\;\leftrightarrow\;\dfrac{1}{1-a\,e^{-j\omega}}$
+      <br>$\text{rect}_M[n] \;\leftrightarrow\;\dfrac{\sin(\omega(2M+1)/2)}{\sin(\omega/2)}$ (Dirichlet çekirdeği)
+      <br>$\cos(\omega_0 n)\;\leftrightarrow\;\pi\!\sum_k\!\big[\delta(\omega-\omega_0+2\pi k)+\delta(\omega+\omega_0+2\pi k)\big]$
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Geometrik yorum:</strong> $z = e^{j\omega}$ ataması yapıldığında DTFT, Z-dönüşümünün <em>birim çember üzerinde değerlendirilmesine</em> karşılık gelmektedir. Sağdaki çember üzerindeki nokta sürüklendikçe $\omega$ değeri değişmekte, alttaki grafiklerde yer alan kırmızı imleç ise eşzamanlı olarak hareket etmektedir. Çember üzerinde tamamlanan $2\pi$'lik bir tur, frekans ekseninde tam bir periyoda karşılık gelir.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Yorum:</strong> imleç bulunduğu $\omega$ noktasında $|X(e^{j\omega})|$ genlik ve $\angle X(e^{j\omega})$ faz değerlerini okumaktadır. Periyodiklik vurgusu etkin durumdayken $\pm 2\pi$ konumundaki spektrum kopyaları farklı bir tonda gösterilmekte; bu görselleştirme, DTFT'nin sürekli zamanlı Fourier dönüşümünden en belirgin biçimde ayrıldığı özelliği vurgular.
+    </p>
+
+    <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.2rem;font-size:0.95rem;letter-spacing:0.04em;">📍 Uygulama Alanları</h3>
+    <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+      <li><strong>Süzgeç tasarımı:</strong> FIR ve IIR süzgeçlerin frekans yanıtı $H(e^{j\omega})$ DTFT üzerinden tanımlanmaktadır.</li>
+      <li><strong>Sayısal işaret çözümlemesi:</strong> ayrık örneklerden elde edilen "ideal" spektrum kestirimi (sonsuz pencere) bu çerçevede ele alınır.</li>
+      <li><strong>DFT/FFT ile ilişki:</strong> bilgisayar ortamında hesaplanan DFT, DTFT'nin $\omega = 2\pi k/N$ noktalarında örneklenmiş hâline karşılık gelmektedir.</li>
+      <li><strong>Z-dönüşümü ile bağlantı:</strong> Z-dönüşümünün yakınsama bölgesi (ROC) birim çemberi içermek koşuluyla DTFT yakınsar.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Sinyal İşleme Eğitim Simülasyonu — DTFT Modülü</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/dtft.js"></script>
+</body>
+</html>

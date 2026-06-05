@@ -1,0 +1,352 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Discrete Fourier Transform (DFT/FFT) — Digital Spectrum</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    .dft-grid {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0 0.8rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 0.55rem;
+      position: relative; z-index: 2;
+    }
+    .dft-grid .graph-container { padding: 0.5rem 0.7rem 0.6rem; }
+    .dft-grid canvas {
+      width: 100%; height: 215px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    .dft-grid .spans-wide { grid-column: 1 / span 2; }
+    #cvSpec { cursor: ew-resize; }
+    .draw-active { cursor: crosshair; }
+
+    .panel-xn   { color: var(--color-x); }
+    .panel-win  { color: #ffd166; }
+    .panel-spec { color: var(--color-h); }
+    .panel-tim  { color: var(--color-y); }
+
+    .timing-card {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0.7rem 1.2rem;
+      display: flex; flex-wrap: wrap; gap: 1rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      align-items: center;
+      position: relative; z-index: 2;
+    }
+    .timing-card .badge {
+      padding: 0.22rem 0.6rem; border-radius: 4px;
+      background: rgba(57,255,133,0.10);
+      color: var(--accent-1);
+      border: 1px solid rgba(57,255,133,0.35);
+    }
+    .timing-card .badge.slow {
+      background: rgba(255,79,154,0.10);
+      color: var(--color-marker);
+      border-color: rgba(255,79,154,0.4);
+    }
+    .timing-card .label { color: var(--text-secondary); }
+    .timing-card .val   { color: var(--text-primary); }
+
+    @media (max-width: 900px) {
+      .dft-grid { grid-template-columns: 1fr; }
+      .dft-grid .spans-wide { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">⏃</span> Discrete Fourier Transform (DFT/FFT) — Digital Spectrum <span class="title-icon">⚙</span>
+    </h1>
+    <p class="site-subtitle">N-Point DFT · Zero-Padding · Leakage · DTFT Comparison</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d active" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <div class="dft-grid">
+    <!-- x[n] -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-xn">x[n] — Input signal (N samples)</span>
+        <span class="instant-value" id="NRO">N = 32</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$n = 0, 1, ..., N-1$</span>
+        <span class="drag-hint" id="xnHint">preset · signal type selected</span>
+      </div>
+      <canvas id="cvXn"></canvas>
+    </div>
+
+    <!-- Windowed x[n] · w[n] -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-win">x[n]·w[n] — Windowed + zero-padding</span>
+        <span class="instant-value" id="NzpRO">N_fft = 32</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$\tilde x[n] = w[n]\,x[n]$, then zero-pad</span>
+        <span class="drag-hint">orange: window · green: windowed x</span>
+      </div>
+      <canvas id="cvWin"></canvas>
+    </div>
+
+    <!-- |X[k]| spectrum (side by side - left) -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-spec">|X[k]| — DFT (stem) · DTFT (continuous background)</span>
+        <span class="instant-value" id="binRO">cursor bin: k = —</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$X[k]=\sum_{n=0}^{N-1} x[n]\,e^{-j2\pi kn/N}$</span>
+        <span class="drag-hint">DFT $=$ sampling of DTFT at $\omega_k$</span>
+      </div>
+      <canvas id="cvSpec"></canvas>
+    </div>
+
+    <!-- IDFT reconstruction (side by side - right) -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-tim">IDFT$(X[k])$ — Reconstruction (first M bins)</span>
+        <span class="instant-value" id="rmseRO">RMSE = —</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$\hat x[n]=\tfrac{1}{N}\sum_{k=0}^{N-1} X_M[k]\,e^{j2\pi kn/N}$</span>
+        <span class="drag-hint">light: original · dark: reconstruction</span>
+      </div>
+      <canvas id="cvIDFT"></canvas>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-wrapper">
+    <!-- Signal -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> Signal</h3>
+
+      <div class="control-group">
+        <label>Signal:</label>
+        <select id="signalType" class="glass-select">
+          <option value="cosine" selected>Cosine $\cos(2\pi k_0 n/N)$</option>
+          <option value="sumcos">Sum of Two Cosines</option>
+          <option value="cosNonInt">Cosine (non-integer k₀) → leakage</option>
+          <option value="chirp">Linear Chirp</option>
+          <option value="rect">Rectangular pulse</option>
+          <option value="delta">Dirac $\delta[n-n_0]$</option>
+          <option value="gauss">Gaussian</option>
+          <option value="noise">White noise (random)</option>
+          <option value="freehand">✏️ Freehand Drawing</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Bin frequency $k_0$ (sample): <span id="k0Val" class="val-display">4.0</span></label>
+        <input type="range" id="k0Slider" min="0" max="16" step="0.05" value="4" />
+      </div>
+
+      <div class="control-group" id="k1Group" style="display:none;">
+        <label>2nd bin $k_1$: <span id="k1Val" class="val-display">10.0</span></label>
+        <input type="range" id="k1Slider" min="0" max="32" step="0.05" value="10" />
+      </div>
+
+      <div class="control-group">
+        <label>Amplitude A: <span id="ampVal" class="val-display">1.00</span></label>
+        <input type="range" id="ampSlider" min="0.1" max="3" step="0.05" value="1" />
+      </div>
+
+      <div class="control-group" id="n0Group" style="display:none;">
+        <label>$n_0$ (delta position / center): <span id="n0Val" class="val-display">8</span></label>
+        <input type="range" id="n0Slider" min="0" max="64" step="1" value="8" />
+      </div>
+
+      <div class="freehand-controls" id="freehandControls" style="display:none;">
+        <p class="freehand-info">Draw with the mouse on the x[n] graph.</p>
+        <button class="glass-btn" id="drawClear">Clear</button>
+        <button class="glass-btn" id="drawSmooth">Smooth</button>
+        <button class="glass-btn" id="drawNormalize">Normalize</button>
+      </div>
+    </div>
+
+    <!-- DFT Parameters -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-h"></span> DFT</h3>
+
+      <div class="control-group">
+        <label>Signal length N: <span id="NVal" class="val-display">32</span></label>
+        <input type="range" id="NSlider" min="8" max="256" step="1" value="32" />
+      </div>
+
+      <div class="control-group">
+        <label>FFT length $N_{fft}$ (zero-padding · power of 2):</label>
+        <select id="NzpSlider" class="glass-select">
+          <option value="32" selected>32</option>
+          <option value="64">64</option>
+          <option value="128">128</option>
+          <option value="256">256</option>
+          <option value="512">512</option>
+          <option value="1024">1024</option>
+          <option value="2048">2048</option>
+          <option value="4096">4096</option>
+          <option value="8192">8192</option>
+        </select>
+        <span id="NzpVal" class="val-display" style="display:none;">32</span>
+      </div>
+
+      <div class="control-group">
+        <label>Window $w[n]$:</label>
+        <select id="windowType" class="glass-select">
+          <option value="rect" selected>Rectangular (none)</option>
+          <option value="hann">Hann</option>
+          <option value="hamming">Hamming</option>
+          <option value="blackman">Blackman</option>
+          <option value="flattop">Flat-top</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>IDFT reconstruction: keep first M bins <span id="MVal" class="val-display">16</span></label>
+        <input type="range" id="MSlider" min="1" max="64" step="1" value="16" />
+      </div>
+
+      <div class="periodic-row">
+        <span>Draw DTFT in background:</span>
+        <label class="toggle-switch"><input type="checkbox" id="dtftOverlay" checked /><span class="toggle-slider"></span></label>
+      </div>
+
+      <div class="periodic-row">
+        <span>Two-sided spectrum ($-N/2..N/2$):</span>
+        <label class="toggle-switch"><input type="checkbox" id="twoSided" /><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Display -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-settings"></span> Display</h3>
+
+      <div class="control-group">
+        <label>Spectrum display:</label>
+        <select id="specMode" class="glass-select">
+          <option value="linear" selected>Linear |X|</option>
+          <option value="db">dB (20·log₁₀|X|)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>X axis:</label>
+        <select id="xAxisMode" class="glass-select">
+          <option value="bin" selected>Bin index k</option>
+          <option value="omega">ω = 2πk/N (rad)</option>
+          <option value="cps">f = k/N (cyc/sample)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Grid Opacity: <span id="gridAlphaVal" class="val-display">0.16</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.5" step="0.01" value="0.16" />
+      </div>
+
+      <div class="control-group">
+        <label>Canvas Height: <span id="canvasHeightVal" class="val-display">215</span>px</label>
+        <input type="range" id="canvasHeight" min="150" max="380" step="10" value="215" />
+      </div>
+
+      <div class="control-group">
+        <label>Stem dot size: <span id="dotSizeVal" class="val-display">3.0</span></label>
+        <input type="range" id="dotSize" min="1.5" max="6" step="0.5" value="3" />
+      </div>
+    </div>
+  </div>
+
+  <!-- DFT vs FFT N-shot benchmark -->
+  <div class="timing-card glass-panel">
+    <span class="badge" id="fftBadge">FFT μ±σ: — </span>
+    <span class="badge slow" id="dftBadge">DFT μ±σ: — </span>
+    <span class="label">speedup:</span><span class="val" id="speedup">— ×</span>
+    <span class="label">|</span>
+    <span class="label">complexity:</span>
+    <span class="val">FFT $O(N\log N)$ · DFT $O(N^2)$</span>
+    <div style="margin-left:auto; display:flex; gap:0.45rem; align-items:center;">
+      <label class="label" for="benchN">Iterations:</label>
+      <input type="number" id="benchN" class="num-input" min="3" max="500" value="10" style="width:70px;" />
+      <button class="glass-btn" id="benchBtn">🏃 N-shot Benchmark</button>
+    </div>
+  </div>
+
+  <!-- Education -->
+  <div class="edu-card glass-panel">
+    <h2 class="edu-title">DFT / FFT — Digital Spectrum Analysis</h2>
+    <p class="edu-text">
+      The <strong>Discrete Fourier Transform (DFT)</strong> of a discrete-time sequence of $N$ samples is defined by
+      $$X[k]=\sum_{n=0}^{N-1} x[n]\,e^{-j2\pi kn/N},\quad k=0,1,\dots,N-1$$
+      together with its inverse (IDFT)
+      $$x[n]=\dfrac{1}{N}\sum_{k=0}^{N-1} X[k]\,e^{+j2\pi kn/N}.$$
+      The DFT corresponds to the DTFT sampled at the points $\omega_k = 2\pi k/N$, so that $X[k] = X(e^{j\omega_k})$.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Zero-padding:</strong> when the sequence $x[n]$ is extended with zeros so that $N_{\text{fft}} > N$, the DFT samples the DTFT more densely. The procedure introduces no additional frequency information; it merely increases the apparent resolution of the displayed spectrum.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Spectral leakage:</strong> when $x[n]$ is not exactly periodic over the length $N$, the DFT fails to recover the ideal $\delta$ components of the spectrum of the underlying continuous sinusoid; the signal energy spreads to neighbouring frequency bins. Window functions such as Hann or Hamming smooth the discontinuities at the frame boundaries, thereby reducing the side-lobe level at the cost of a broadened main lobe.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      The <strong>FFT</strong> (Cooley–Tukey algorithm) computes the DFT with complexity $\mathcal{O}(N\log N)$, in contrast with the $\mathcal{O}(N^2)$ complexity of the direct formula. In the panel above, both methods are timed simultaneously at each update; as $N$ grows, the difference in execution time becomes increasingly pronounced.
+    </p>
+
+    <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.2rem;font-size:0.95rem;letter-spacing:0.04em;">📍 Application Areas</h3>
+    <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+      <li><strong>Audio and music:</strong> equalisation, pitch shifting and vocoder operations are performed through the short-time FFT (STFT).</li>
+      <li><strong>Image processing:</strong> the two-dimensional FFT serves as the fundamental tool for filtering, compression and pattern analysis.</li>
+      <li><strong>Telecommunications:</strong> the modulation of OFDM symbols (Wi-Fi, 5G) is carried out directly through IFFT/FFT operations.</li>
+      <li><strong>Science and engineering:</strong> pulsar period estimation in astronomy, k-space analysis in MRI, and vibration/acoustic analyses are based on this transform.</li>
+      <li><strong>Machine learning:</strong> spectrogram and mel-spectrogram representations as well as FFT-based fast-convolution implementations make extensive use of the DFT/FFT.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Signal Processing Educational Simulation — DFT/FFT Module</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/dft_fft.js"></script>
+</body>
+</html>

@@ -1,0 +1,405 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sampling Theorem and Aliasing</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== Sampling page specific ===== */
+    .smp-grid {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0 0.8rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: auto auto;
+      gap: 0.55rem;
+      position: relative; z-index: 2;
+    }
+    .smp-grid .graph-container { padding: 0.5rem 0.7rem 0.6rem; }
+    .smp-grid canvas {
+      width: 100%; height: 180px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    .smp-grid .draw-active { cursor: crosshair; }
+
+    .row-tag {
+      grid-column: 1 / span 3;
+      display: flex; align-items: center; gap: 0.6rem;
+      font-family: 'Saira Condensed', sans-serif;
+      font-size: 0.78rem; letter-spacing: 0.12em;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin: 0.3rem 0 -0.15rem;
+    }
+    .row-tag::before {
+      content: ""; flex: 0 0 4px; height: 1em;
+      background: linear-gradient(180deg, var(--accent-1), var(--color-y));
+      border-radius: 2px;
+    }
+    .row-tag .sep { flex: 1; height: 1px;
+      background: linear-gradient(90deg, var(--border-glow), transparent);
+    }
+
+    .alias-flag {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem; font-weight: 700;
+      padding: 0.18rem 0.55rem;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+    .alias-flag.ok {
+      background: rgba(57,255,133,0.10);
+      color: var(--accent-1);
+      border: 1px solid rgba(57,255,133,0.35);
+    }
+    .alias-flag.bad {
+      background: rgba(255,79,154,0.10);
+      color: var(--color-marker);
+      border: 1px solid rgba(255,79,154,0.45);
+      animation: aliasPulse 1.6s ease-in-out infinite;
+    }
+    @keyframes aliasPulse {
+      0%, 100% { box-shadow: 0 0 6px rgba(255,79,154,0.2); }
+      50%      { box-shadow: 0 0 14px rgba(255,79,154,0.55); }
+    }
+
+    .panel-label-x { color: #39ff85; }
+    .panel-label-p { color: #ff8c42; }
+    .panel-label-xs { color: #b490ff; }
+    .panel-label-X  { color: #39ff85; }
+    .panel-label-P  { color: #ff8c42; }
+    .panel-label-Xs { color: #b490ff; }
+
+    .badge-mode {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem; border-radius: 4px;
+      background: rgba(100,160,255,0.08);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-glow);
+    }
+    @media (max-width: 1100px) {
+      .smp-grid { grid-template-columns: 1fr 1fr; }
+      .row-tag { grid-column: 1 / span 2; }
+    }
+    @media (max-width: 720px) {
+      .smp-grid { grid-template-columns: 1fr; }
+      .row-tag  { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">&#127769;</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">&#x2207;</span> Sampling Theorem and Aliasing <span class="title-icon">&#x21AF;</span>
+    </h1>
+    <p class="site-subtitle">Multiplication by &#916; in Time &middot; Convolution with &#916; in Frequency &middot; Aliasing</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">&#127968; Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">&#x223F; Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{&middot;} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">&#x222B; Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">&#x1D4D5; Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">&#x2112; Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">&#x03A3; Conv. Discrete</a>
+    <a class="nav-tab group-d active" href="sampling.html">&#x21AF; Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">&#x1D4D5;* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">&#x23C3; DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">&#x1D4B5; Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">&#x1D49F; DCT</a>
+    <a class="nav-tab group-o" href="hht.html">&#x210B; HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">&#x1D4D5;<sup>&alpha;</sup> FrFT</a>
+  </nav>
+
+  <!-- 2x3 graph grid -->
+  <div class="smp-grid">
+
+    <!-- --- TIME ROW LABEL --- -->
+    <div class="row-tag">
+      <span>Time Domain &middot; $x(t)\cdot p(t)$</span>
+      <span class="sep"></span>
+      <span class="badge-mode" id="modeBadge">preset &middot; cosine</span>
+    </div>
+
+    <!-- 1: x(t) -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-label-x">x(t) — Continuous (fine grid, $\Delta t$)</span>
+        <span class="instant-value" id="readoutT">T = 1.024 s</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$\Delta t = $ <span id="dtRO">1.00 ms</span> &middot; $F_{fine}=1/\Delta t$</span>
+        <span class="drag-hint" id="drawHintX">&#9999;&#65039; select to draw</span>
+      </div>
+      <canvas id="cvX"></canvas>
+    </div>
+
+    <!-- 2: p(t) impulse train -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-label-p">p(t) — &#916; train (interval $T_s$)</span>
+        <span class="instant-value" id="readoutTs">T_s = 40.0 ms</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$p(t)=\displaystyle\sum_k \delta(t-kT_s)$</span>
+        <span class="drag-hint">$F_s = 1/T_s$ = <span id="fsRO">25.0 Hz</span></span>
+      </div>
+      <canvas id="cvP"></canvas>
+    </div>
+
+    <!-- 3: x_s(t) -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-label-xs">$x_s(t) = x(t)\cdot p(t)$ — sampled</span>
+        <span class="instant-value" id="readoutN">N_s = 26 samples</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$x_s(t)=\sum_n x(nT_s)\,\delta(t-nT_s)$</span>
+        <span class="drag-hint">background: reconstruction</span>
+      </div>
+      <canvas id="cvXs"></canvas>
+    </div>
+
+    <!-- --- FREQUENCY ROW LABEL --- -->
+    <div class="row-tag">
+      <span>Frequency Domain &middot; $X(F)*P(F)$</span>
+      <span class="sep"></span>
+      <span class="alias-flag ok" id="aliasFlag">&#10003; Nyquist satisfied</span>
+    </div>
+
+    <!-- 4: X(F) -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-label-X">|X(F)| — Spectrum of the continuous signal</span>
+        <span class="instant-value" id="readoutB">B &asymp; &mdash; Hz</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$X(F)=\mathcal{F}\{x(t)\}$</span>
+        <span class="drag-hint">continuous-time Fourier</span>
+      </div>
+      <canvas id="cvXf"></canvas>
+    </div>
+
+    <!-- 5: P(F) frequency impulse train -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-label-P">|P(F)| — &#916; train in frequency</span>
+        <span class="instant-value">interval: $F_s$</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$P(F)=F_s\!\sum_k \delta(F-kF_s)$</span>
+        <span class="drag-hint">multiples of the sampling frequency</span>
+      </div>
+      <canvas id="cvPf"></canvas>
+    </div>
+
+    <!-- 6: X_s(F) -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-label-Xs">$|X_s(F)| = |X(F)*P(F)|$ — periodic</span>
+        <span class="instant-value" id="readoutAlias">overlap: none</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$X_s(F)=F_s\!\sum_k X(F-kF_s)$</span>
+        <span class="drag-hint">copies of $X(F)$ spaced $F_s$ apart</span>
+      </div>
+      <canvas id="cvXsf"></canvas>
+    </div>
+
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-wrapper">
+
+    <!-- Signal -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> Signal $x(t)$</h3>
+
+      <div class="control-group">
+        <label>Signal Type:</label>
+        <select id="signalType" class="glass-select">
+          <option value="cosine">Cosine $\cos(2\pi f_0 t)$</option>
+          <option value="sine">Sine $\sin(2\pi f_0 t)$</option>
+          <option value="sumcos">Sum of Two Cosines</option>
+          <option value="chirp">Linear Chirp (swept f)</option>
+          <option value="gauss">Gaussian Pulse</option>
+          <option value="sinc">Sinc Pulse (band-limited)</option>
+          <option value="rect">Rectangular Pulse (not band-limited!)</option>
+          <option value="damped">Damped Sinusoid</option>
+          <option value="freehand">&#9999;&#65039; Freehand Drawing</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>$f_0$ (Hz): <span id="f0Val" class="val-display">5.0</span></label>
+        <input type="range" id="f0Slider" min="0.5" max="120" step="0.5" value="5" />
+      </div>
+
+      <div class="control-group" id="f1Group" style="display:none;">
+        <label>$f_1$ (Hz, 2nd component): <span id="f1Val" class="val-display">17.0</span></label>
+        <input type="range" id="f1Slider" min="0.5" max="200" step="0.5" value="17" />
+      </div>
+
+      <div class="control-group">
+        <label>Amplitude A: <span id="ampVal" class="val-display">1.00</span></label>
+        <input type="range" id="ampSlider" min="0.1" max="3" step="0.05" value="1" />
+      </div>
+
+      <div class="control-group" id="widthGroup">
+        <label>Width / &#963; (s): <span id="widthVal" class="val-display">0.20</span></label>
+        <input type="range" id="widthSlider" min="0.01" max="1" step="0.005" value="0.2" />
+      </div>
+
+      <div class="freehand-controls" id="freehandControls" style="display:none;">
+        <p class="freehand-info">Draw on the x(t) graph with the mouse — at $\Delta t$ intervals.</p>
+        <button class="glass-btn" id="drawClear">Clear</button>
+        <button class="glass-btn" id="drawSmooth">Smooth</button>
+        <button class="glass-btn" id="drawNormalize">Normalize</button>
+      </div>
+
+      <div class="control-group" style="margin-top:0.6rem; padding-top:0.5rem; border-top: 1px dashed var(--border-glow);">
+        <label>Window function $w(t)$ (before FFT):</label>
+        <select id="windowFn" class="glass-select">
+          <option value="rect" selected>Rectangular (raw — sinc side lobes)</option>
+          <option value="hann">Hann (smooth — low side lobes)</option>
+          <option value="hamming">Hamming</option>
+          <option value="blackman">Blackman (lowest side lobes)</option>
+          <option value="tukey">Tukey (&alpha;=0.5 — compromise)</option>
+        </select>
+        <span style="font-size:0.7rem; color:var(--text-dim); margin-top:0.25rem; display:block; font-family:'Fira Code',monospace;">
+          Rectangular &rarr; convolution with sinc(&pi;fT) &rarr; ringing. Hann/Blackman suppress ringing but widen the main lobe.
+        </span>
+      </div>
+    </div>
+
+    <!-- Sampling -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-h"></span> Sampling $p(t)$</h3>
+
+      <div class="control-group">
+        <label>$\Delta t$ fine grid (ms): <span id="dtSlid" class="val-display">1.0</span></label>
+        <input type="range" id="dtSlider" min="0.1" max="10" step="0.1" value="1.0" />
+      </div>
+
+      <div class="control-group">
+        <label>Sample Length N (fine): <span id="NVal" class="val-display">1024</span></label>
+        <input type="range" id="NSlider" min="128" max="4096" step="128" value="1024" />
+      </div>
+
+      <div class="control-group">
+        <label>$T_s$ sampling period (ms): <span id="TsVal" class="val-display">40.0</span></label>
+        <input type="range" id="TsSlider" min="1" max="500" step="0.5" value="40" />
+      </div>
+
+      <div class="control-group">
+        <label>OR $F_s$ sampling frequency (Hz): <span id="FsVal" class="val-display">25.0</span></label>
+        <input type="range" id="FsSlider" min="2" max="1000" step="1" value="25" />
+      </div>
+
+      <div class="periodic-row">
+        <span>Sinc reconstruction:</span>
+        <label class="toggle-switch"><input type="checkbox" id="reconToggle" checked /><span class="toggle-slider"></span></label>
+      </div>
+
+      <div class="periodic-row">
+        <span>Number of copies: <span id="copyVal" class="val-display">&plusmn;3</span></span>
+      </div>
+      <input type="range" id="copySlider" min="1" max="8" step="1" value="3" />
+    </div>
+
+    <!-- Display Settings -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-settings"></span> Display</h3>
+
+      <div class="control-group">
+        <label>Spectrum axis $F_{max}$ (Hz): <span id="FmaxVal" class="val-display">200</span></label>
+        <input type="range" id="FmaxSlider" min="30" max="500" step="10" value="200" />
+      </div>
+
+      <div class="control-group">
+        <label>Spectrum display:</label>
+        <select id="specMode" class="glass-select">
+          <option value="linear" selected>Linear |X|</option>
+          <option value="db">dB (20&middot;log&#8321;&#8320;|X|)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Grid Opacity: <span id="gridAlphaVal" class="val-display">0.16</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.5" step="0.01" value="0.16" />
+      </div>
+
+      <div class="control-group">
+        <label>Canvas Height: <span id="canvasHeightVal" class="val-display">180</span>px</label>
+        <input type="range" id="canvasHeight" min="120" max="320" step="10" value="180" />
+      </div>
+
+      <div class="periodic-row">
+        <span>Highlight aliasing region:</span>
+        <label class="toggle-switch"><input type="checkbox" id="aliasHL" checked /><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Education Card -->
+  <div class="edu-card glass-panel">
+    <h2 class="edu-title">Sampling Theorem — Time vs Frequency</h2>
+    <p class="edu-text">
+      The sampling of a continuous-time signal $x(t)$ is modelled mathematically as multiplication by a <strong>Dirac comb</strong>:
+      $$x_s(t) \;=\; x(t)\cdot p(t),\qquad p(t)=\sum_{k=-\infty}^{\infty}\delta(t-kT_s).$$
+      Multiplication in the time domain corresponds to <strong>convolution</strong> in the frequency domain. Furthermore, the Fourier transform of the impulse train is again an impulse train, with spacing $F_s = 1/T_s$:
+      $$P(F)=F_s\sum_{k=-\infty}^{\infty}\delta(F-kF_s).$$
+      Consequently, the spectrum of the sampled signal is obtained as
+      $$X_s(F)=X(F)*P(F)=F_s\sum_{k=-\infty}^{\infty}X(F-kF_s).$$
+      In other words, <em>multiplication by a Dirac comb in the time domain corresponds to convolution with the same comb in the frequency domain, and the spectrum is therefore replicated periodically with period $F_s$.</em>
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Nyquist–Shannon condition:</strong> if $x(t)$ is band-limited (i.e. $X(F) = 0$ for $|F| > B$), the spectrum copies remain disjoint provided that
+      $$F_s \;>\; 2B \quad(\text{Nyquist rate})$$
+      is satisfied. If this condition is violated, adjacent copies overlap at baseband, giving rise to <strong>aliasing</strong>. In this simulation, the region in which the overlap occurs is highlighted in the bottom-right spectrum graph.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Use of this page:</strong> a preset may be selected from the left panel (alternatively, $x(t)$ may be drawn directly on the graph via the ✏ Freehand option); the parameters $\Delta t$ (fine grid resolution) and $N$ are adjustable. In the central panel, either the sampling period $T_s$ or the sampling frequency $F_s$ is set. When the condition $F_s < 2 f_0$ holds, the spectrum copies begin to overlap and the red aliasing indicator is activated.
+    </p>
+
+    <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.2rem;font-size:0.95rem;letter-spacing:0.04em;">Application Areas</h3>
+    <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+      <li><strong>Digital audio:</strong> the CD standard rate of 44.1 kHz and professional rates of 96/192 kHz are chosen in relation to the approximate 20 kHz upper limit of human hearing and the anti-aliasing filter.</li>
+      <li><strong>Imaging and camera systems:</strong> the pixel grid constitutes a sampling lattice; low-frequency moiré patterns are the visual manifestation of aliasing.</li>
+      <li><strong>Software-defined radio (SDR):</strong> anti-aliasing low-pass filtering is performed prior to the ADC, and bandpass sampling techniques are employed.</li>
+      <li><strong>Medical signal processing:</strong> in ECG, EEG and ultrasound measurements, the sampling rate is selected in accordance with the Nyquist condition.</li>
+      <li><strong>Industrial measurement:</strong> in vibration sensors and rotating-machinery monitoring, aliasing may give rise to erroneous fault identification.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Signal Processing Educational Simulation — Sampling Module</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/sampling.js"></script>
+</body>
+</html>

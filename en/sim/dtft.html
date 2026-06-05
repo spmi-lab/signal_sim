@@ -1,0 +1,286 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Discrete-Time Fourier Transform (DTFT)</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== DTFT layout ===== */
+    .dtft-grid {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0 0.8rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 0.55rem;
+      position: relative; z-index: 2;
+    }
+    .dtft-grid .graph-container { padding: 0.5rem 0.7rem 0.6rem; }
+    .dtft-grid canvas {
+      width: 100%; height: 220px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    /* Unit circle 3D panel taller */
+    #cvUC { height: 360px !important; }
+    .panel-xn  { color: var(--color-x); }
+    .panel-uc  { color: #ffd166; }
+    .panel-mag { color: var(--color-h); }
+    .panel-pha { color: var(--color-y); }
+
+    .dtft-grid .spans-wide { grid-column: 1 / span 2; }
+    #cvUC { cursor: crosshair; }
+    #cvMag { cursor: ew-resize; }
+    .draw-active { cursor: crosshair; }
+
+    .dtft-marker-read {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--color-marker);
+      background: rgba(255,79,154,0.08);
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+    }
+    @media (max-width: 900px) {
+      .dtft-grid { grid-template-columns: 1fr; }
+      .dtft-grid .spans-wide { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">&#127769;</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">&#x1D4D5;*</span> Discrete-Time Fourier Transform (DTFT) <span class="title-icon">e^{j&omega;}</span>
+    </h1>
+    <p class="site-subtitle">$X(e^{j\omega})$ &middot; 2&pi; Periodic &middot; Unit Circle</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">&#127968; Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">&#x223F; Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{&middot;} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">&#x222B; Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">&#x1D4D5; Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">&#x2112; Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">&#x03A3; Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">&#x21AF; Sampling</a>
+    <a class="nav-tab group-d active" href="dtft.html">&#x1D4D5;* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">&#x23C3; DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">&#x1D4B5; Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">&#x1D49F; DCT</a>
+    <a class="nav-tab group-o" href="hht.html">&#x210B; HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">&#x1D4D5;<sup>&alpha;</sup> FrFT</a>
+  </nav>
+
+  <!-- Controls (moved to top) -->
+  <div class="controls-wrapper">
+    <!-- Signal -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> x[n] Signal</h3>
+
+      <div class="control-group">
+        <label>Signal:</label>
+        <select id="signalType" class="glass-select">
+          <option value="delta">Dirac $\delta[n]$</option>
+          <option value="rect" selected>Rectangular pulse (rect)</option>
+          <option value="triangle">Triangle pulse</option>
+          <option value="step">Unit step (finite)</option>
+          <option value="expDec">Exponential $a^n u[n]$ (stable)</option>
+          <option value="cosine">Cosine $\cos(\omega_0 n)$</option>
+          <option value="sine">Sine $\sin(\omega_0 n)$</option>
+          <option value="modCos">Modulated cosine &middot; window</option>
+          <option value="sinc">sinc pulse (band-limited)</option>
+          <option value="freehand">&#9999;&#65039; Freehand Drawing</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Amplitude A: <span id="ampVal" class="val-display">1.00</span></label>
+        <input type="range" id="ampSlider" min="0.1" max="3" step="0.05" value="1" />
+      </div>
+
+      <div class="control-group" id="widthGroup">
+        <label>Width / half-length M: <span id="widthVal" class="val-display">5</span></label>
+        <input type="range" id="widthSlider" min="1" max="40" step="1" value="5" />
+      </div>
+
+      <div class="control-group" id="aGroup" style="display:none;">
+        <label>Exponential a (|a|<1): <span id="aVal" class="val-display">0.80</span></label>
+        <input type="range" id="aSlider" min="-0.99" max="0.99" step="0.01" value="0.8" />
+      </div>
+
+      <div class="control-group" id="omega0Group" style="display:none;">
+        <label>$\omega_0$ (rad/sample): <span id="omega0Val" class="val-display">0.50&pi;</span></label>
+        <input type="range" id="omega0Slider" min="0" max="3.14159" step="0.01" value="1.57079" />
+      </div>
+
+      <div class="freehand-controls" id="freehandControls" style="display:none;">
+        <p class="freehand-info">Draw on the x[n] graph with the mouse; 1 step per sample.</p>
+        <button class="glass-btn" id="drawClear">Clear</button>
+        <button class="glass-btn" id="drawSmooth">Smooth</button>
+        <button class="glass-btn" id="drawNormalize">Normalize</button>
+      </div>
+    </div>
+
+    <!-- Range -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-h"></span> Range &amp; &omega; Axis</h3>
+
+      <div class="inline-group">
+        <label>n min:</label>
+        <input type="number" id="nMinInput" class="num-input" value="-20" />
+        <label>n max:</label>
+        <input type="number" id="nMaxInput" class="num-input" value="20" />
+        <button class="glass-btn" id="applyN">Apply</button>
+      </div>
+
+      <div class="control-group">
+        <label>&omega; axis width (multiple of &pi;): <span id="omRangeVal" class="val-display">&plusmn;2&pi;</span></label>
+        <input type="range" id="omRangeSlider" min="1" max="4" step="0.5" value="2" />
+      </div>
+
+      <div class="control-group">
+        <label>&omega; resolution (samples): <span id="omSampVal" class="val-display">1024</span></label>
+        <input type="range" id="omSampSlider" min="256" max="4096" step="128" value="1024" />
+      </div>
+
+      <div class="periodic-row">
+        <span>Highlight periodicity:</span>
+        <label class="toggle-switch"><input type="checkbox" id="periodHL" checked /><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Display -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-settings"></span> Display</h3>
+
+      <div class="control-group">
+        <label>Magnitude display:</label>
+        <select id="magMode" class="glass-select">
+          <option value="linear" selected>Linear |X|</option>
+          <option value="db">dB (20&middot;log&#8321;&#8320;|X|)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Cursor &omega; (rad): <span id="markerVal" class="val-display">0.00</span></label>
+        <input type="range" id="markerSlider" min="-6.28319" max="6.28319" step="0.01" value="0" />
+      </div>
+
+      <div class="control-group">
+        <label>Grid Opacity: <span id="gridAlphaVal" class="val-display">0.16</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.5" step="0.01" value="0.16" />
+      </div>
+
+      <div class="control-group">
+        <label>Canvas Height: <span id="canvasHeightVal" class="val-display">220</span>px</label>
+        <input type="range" id="canvasHeight" min="150" max="400" step="10" value="220" />
+      </div>
+    </div>
+  </div>
+
+  <div class="dtft-grid">
+    <!-- Left: x[n] -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-xn">x[n] — Discrete signal</span>
+        <span class="instant-value" id="nRangeRO">n &isin; [-20, 20]</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$x[n]$ &rarr; series / stem plot</span>
+        <span class="drag-hint" id="xnHint">&#9999;&#65039; you can draw on the panel</span>
+      </div>
+      <canvas id="cvXn"></canvas>
+    </div>
+
+    <!-- Right: Unit circle — the "home" of the DTFT -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-uc">$e^{j\omega}$ — Unit Circle (z = $e^{j\omega}$)</span>
+        <span class="dtft-marker-read" id="markerRO">&omega; = 0.000 &middot; |X| = &mdash;</span>
+        <button class="glass-btn anim-toggle" id="animToggle" title="play/stop animation"
+          style="margin-left:auto; font-size:0.7rem; padding:0.22rem 0.55rem;">&#9208; Stop</button>
+        <button class="glass-btn anim-reset" id="animReset" title="reset 3D view"
+          style="font-size:0.7rem; padding:0.22rem 0.55rem;">&#10227;</button>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$X(e^{j\omega})=\sum_n x[n]\,e^{-j\omega n}$</span>
+        <span class="drag-hint" id="ucHint">When stopped, drag to rotate 3D view</span>
+      </div>
+      <canvas id="cvUC"></canvas>
+    </div>
+
+    <!-- Wide: |X(e^{j&omega;})| magnitude (multi-period showing periodicity) -->
+    <div class="graph-container glass-panel spans-wide">
+      <div class="graph-header">
+        <span class="graph-label panel-mag">|X(e^{j&omega;})| — Magnitude (&omega; axis 2&pi; periodic)</span>
+        <span class="instant-value" id="magRO">|X(0)| = &mdash;</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$|X(e^{j(\omega+2\pi k)})| = |X(e^{j\omega})| \ \forall k\in\mathbb{Z}$</span>
+        <span class="drag-hint">drag cursor / synchronized with circle on the right panel</span>
+      </div>
+      <canvas id="cvMag"></canvas>
+    </div>
+  </div>
+
+  <!-- Education -->
+  <div class="edu-card glass-panel">
+    <h2 class="edu-title">DTFT — Discrete-Time Fourier Transform</h2>
+    <p class="edu-text">
+      For a discrete-time signal $x[n]$, the Discrete-Time Fourier Transform (DTFT) is defined by
+      $$X(e^{j\omega})=\sum_{n=-\infty}^{\infty} x[n]\,e^{-j\omega n}.$$
+      The result is a continuous and <strong>$2\pi$-periodic</strong> function of $\omega$, satisfying $X(e^{j(\omega+2\pi)})=X(e^{j\omega})$. This periodicity follows from the identity $e^{-j(\omega+2\pi)n}=e^{-j\omega n}\,e^{-j2\pi n}$, since $e^{-j2\pi n}=1$ for every integer $n$.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Fundamental DTFT pairs:</strong>
+      <br>$\delta[n]\;\leftrightarrow\;1$
+      <br>$a^n\,u[n], \; |a|<1\;\leftrightarrow\;\dfrac{1}{1-a\,e^{-j\omega}}$
+      <br>$\text{rect}_M[n] \;\leftrightarrow\;\dfrac{\sin(\omega(2M+1)/2)}{\sin(\omega/2)}$ (Dirichlet kernel)
+      <br>$\cos(\omega_0 n)\;\leftrightarrow\;\pi\!\sum_k\!\big[\delta(\omega-\omega_0+2\pi k)+\delta(\omega+\omega_0+2\pi k)\big]$
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Geometric interpretation:</strong> upon the substitution $z = e^{j\omega}$, the DTFT corresponds to the <em>evaluation of the Z-transform on the unit circle</em>. As the point on the circle in the right panel is dragged, $\omega$ varies and the red cursor in the lower graphs is updated synchronously; a full revolution of $2\pi$ on the circle corresponds to one complete period on the frequency axis.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Reading the values:</strong> at the cursor position $\omega$ the magnitude $|X(e^{j\omega})|$ and the phase $\angle X(e^{j\omega})$ are displayed. When the periodicity highlight is enabled, the spectrum copies at $\pm 2\pi$ are shown in a distinct shade; this visualisation emphasises the property that most clearly distinguishes the DTFT from the continuous-time Fourier transform.
+    </p>
+
+    <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.2rem;font-size:0.95rem;letter-spacing:0.04em;">Application Areas</h3>
+    <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+      <li><strong>Filter design:</strong> the frequency response $H(e^{j\omega})$ of FIR and IIR filters is defined through the DTFT.</li>
+      <li><strong>Digital signal analysis:</strong> the "ideal" spectral estimate (with an infinite window) of discrete-time samples is examined within this framework.</li>
+      <li><strong>Relationship with the DFT/FFT:</strong> the DFT, as computed in practice, corresponds to the DTFT sampled at the points $\omega = 2\pi k/N$.</li>
+      <li><strong>Relationship with the Z-transform:</strong> provided that the region of convergence (ROC) of the Z-transform includes the unit circle, the DTFT converges.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Signal Processing Educational Simulation — DTFT Module</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/dtft.js"></script>
+</body>
+</html>

@@ -1,0 +1,975 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laplace Transform — s-Plane &amp; Fourier on the j&#937; Axis</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== SINGLE-SCREEN LAYOUT ===== */
+    .laplace-layout {
+      max-width: 1700px;
+      margin: 0.4rem auto;
+      padding: 0 0.6rem;
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 0.5rem;
+      position: relative; z-index: 2;
+      height: calc(100vh - 165px);
+      min-height: 600px;
+    }
+    .lap-left {
+      display: flex; flex-direction: column;
+      gap: 0.5rem; min-height: 0;
+    }
+    .lap-controls {
+      padding: 0.6rem 0.75rem;
+      overflow-y: auto;
+      flex: 1 1 auto; min-height: 0;
+    }
+    .lap-playback {
+      padding: 0.55rem 0.75rem;
+      flex-shrink: 0;
+    }
+    .lap-right {
+      display: grid;
+      grid-template-rows: 1fr 220px;
+      gap: 0.5rem;
+      min-height: 0;
+    }
+    .lap-right-top {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem; min-height: 0;
+    }
+    .canvas-card {
+      padding: 0.4rem 0.55rem 0.5rem;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .canvas-card canvas {
+      flex: 1; width: 100%;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      min-height: 0;
+    }
+    #cv2d { cursor: crosshair; }
+    #cv3d { cursor: grab; }
+    #cv3d:active { cursor: grabbing; }
+    #cvFreq { cursor: ew-resize; }
+
+    .canvas-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.4rem; margin-bottom: 0.25rem;
+      flex-wrap: nowrap;
+    }
+    .canvas-header .canvas-title { flex-shrink: 0; }
+    .canvas-header .canvas-hint { flex-shrink: 0; }
+    .canvas-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.78rem;
+      letter-spacing: 0.05em;
+    }
+    .canvas-title.t-2d   { color: #7b8cff; }
+    .canvas-title.t-3d   { color: #ff8c42; }
+    .canvas-title.t-freq { color: #ff8c42; }
+    .canvas-hint {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.62rem; color: var(--text-dim);
+    }
+    .freq-live {
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #ff8c42;
+      background: rgba(255,140,66,0.10);
+      border: 1px solid rgba(255,140,66,0.45);
+      border-radius: 6px;
+      padding: 0.18rem 0.55rem;
+      margin-left: auto;
+      box-shadow: 0 0 8px rgba(255,140,66,0.15);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    body.light-theme .freq-live {
+      color: #a8430a;
+      background: rgba(168,67,10,0.08);
+      border-color: rgba(168,67,10,0.5);
+    }
+
+    /* ===== LEFT PANEL ===== */
+    .panel-title-sm {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      color: var(--text-primary);
+      margin: 0.45rem 0 0.3rem;
+      display: flex; align-items: center; gap: 0.4rem;
+      text-transform: uppercase;
+    }
+    .panel-title-sm:first-child { margin-top: 0; }
+    .signal-dot-sm {
+      width: 7px; height: 7px; border-radius: 50%;
+      display: inline-block;
+    }
+
+    .preset-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.3rem; margin-bottom: 0.4rem;
+    }
+    .preset-row button {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 600;
+      font-size: 0.68rem; padding: 0.3rem 0.4rem;
+      border-radius: 6px; cursor: pointer;
+      border: 1px solid var(--border-glow);
+      background: rgba(120,140,200,0.06);
+      color: var(--text-primary);
+      transition: all var(--transition);
+    }
+    .preset-row button:hover { border-color: var(--accent-2); color: var(--accent-2); }
+
+    .add-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; margin-bottom: 0.35rem; }
+    .add-row input {
+      font-family: 'Fira Code', monospace; font-size: 0.72rem;
+      padding: 0.3rem 0.45rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      width: 100%;
+    }
+    .add-btn {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 600;
+      font-size: 0.72rem; padding: 0.3rem 0.55rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid; cursor: pointer;
+      transition: all var(--transition);
+    }
+    .add-btn.pole { border-color: #ff4f9a; color: #ff4f9a; background: rgba(255,79,154,0.05); }
+    .add-btn.pole:hover, .add-btn.pole.active { background: rgba(255,79,154,0.18); }
+    .add-btn.zero { border-color: #39ff85; color: #39ff85; background: rgba(57,255,133,0.05); }
+    .add-btn.zero:hover, .add-btn.zero.active { background: rgba(57,255,133,0.18); }
+
+    .pole-zero-list {
+      max-height: 110px; overflow-y: auto;
+      margin: 0.25rem 0 0.4rem;
+      display: flex; flex-direction: column; gap: 0.2rem;
+    }
+    .pz-item {
+      display: flex; align-items: center; gap: 0.35rem;
+      padding: 0.25rem 0.45rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-glow);
+      background: rgba(120,140,200,0.06);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.68rem;
+    }
+    .pz-item.pole   { border-left: 3px solid #ff4f9a; }
+    .pz-item.zero   { border-left: 3px solid #39ff85; }
+    .pz-tag { font-weight: 700; padding: 0.05rem 0.28rem; border-radius: 3px; font-size: 0.66rem; }
+    .pz-tag.p { color: #ff4f9a; background: rgba(255,79,154,0.1); }
+    .pz-tag.z { color: #39ff85; background: rgba(57,255,133,0.1); }
+    .pz-coords { color: var(--text-primary); flex: 1; }
+    .pz-rm { cursor: pointer; color: #ff5577; font-weight: bold; user-select: none; }
+
+    /* Mode selector (add with mouse) */
+    .mode-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.3rem; margin: 0.25rem 0 0.5rem;
+    }
+    .mode-row .mode-btn {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 600;
+      font-size: 0.7rem; padding: 0.3rem 0.4rem;
+      border: 1px dashed var(--border-glow); border-radius: 6px;
+      background: transparent; color: var(--text-secondary);
+      cursor: pointer; transition: all var(--transition);
+    }
+    .mode-btn.active.mp { border-color: #ff4f9a; color: #ff4f9a; background: rgba(255,79,154,0.08); border-style: solid; }
+    .mode-btn.active.mz { border-color: #39ff85; color: #39ff85; background: rgba(57,255,133,0.08); border-style: solid; }
+
+    /* Mini slider groups */
+    .ctl {
+      margin-bottom: 0.3rem;
+    }
+    .ctl label {
+      display: flex; justify-content: space-between;
+      font-size: 0.68rem; color: var(--text-secondary);
+      margin-bottom: 0.1rem;
+    }
+    .ctl label .vv { color: var(--accent-1); font-family: 'Fira Code', monospace; font-size: 0.66rem; }
+    .ctl input[type=range] {
+      width: 100%;
+      -webkit-appearance: none; appearance: none;
+      height: 4px; border-radius: 4px;
+      background: var(--slider-track);
+      outline: none;
+    }
+    .ctl input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 13px; height: 13px; border-radius: 50%;
+      background: var(--accent-1);
+      cursor: pointer; border: 0;
+      box-shadow: 0 0 6px rgba(57,255,133,0.5);
+    }
+    .ctl input[type=range]::-moz-range-thumb {
+      width: 13px; height: 13px; border-radius: 50%;
+      background: var(--accent-1); cursor: pointer; border: 0;
+    }
+
+    .checkbox-row {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.7rem; margin: 0.15rem 0;
+      color: var(--text-secondary);
+    }
+    .checkbox-row input[type=checkbox] { accent-color: var(--accent-2); }
+
+    .info-grid {
+      display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.5rem;
+      font-family: 'Fira Code', monospace; font-size: 0.66rem;
+      margin: 0.3rem 0 0.1rem;
+    }
+    .info-grid .lbl { color: var(--text-secondary); }
+    .info-grid .val { color: var(--accent-1); }
+
+    /* === PLAYBACK PANEL === */
+    .pb-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.78rem;
+      color: #ff8c42; letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .pb-row {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 0.4rem; align-items: center;
+      margin-bottom: 0.35rem;
+    }
+    .play-btn {
+      width: 36px; height: 32px;
+      border-radius: 6px;
+      border: 1px solid #ff8c42;
+      background: rgba(255,140,66,0.08);
+      color: #ff8c42; cursor: pointer;
+      font-size: 0.85rem;
+      transition: all var(--transition);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .play-btn:hover { background: rgba(255,140,66,0.2); }
+    .play-btn.playing { background: rgba(255,140,66,0.25); }
+
+    .omega-display {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: #ff8c42;
+      text-align: center;
+      padding: 0.2rem;
+      background: rgba(255,140,66,0.06);
+      border-radius: 4px;
+      margin-top: 0.2rem;
+    }
+
+    /* ===========================================
+       SIGNAL TEST PANEL (same size as filter panel above)
+       =========================================== */
+    .signal-test-layout {
+      max-width: 1700px;
+      margin: 0.6rem auto 1.2rem;
+      padding: 0 0.6rem;
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 0.5rem;
+      position: relative; z-index: 2;
+      height: calc(100vh - 165px);
+      min-height: 600px;
+    }
+    .signal-test-layout > * { min-height: 0; }
+
+    .sig-builder {
+      padding: 0.6rem 0.75rem;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    /* Right area — component strip on top, 2x2 equal grid below */
+    .sig-right-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;       /* x(t) and y(t) equal width */
+      grid-template-rows: 230px 1fr 1fr;     /* components, time, frequency */
+      gap: 0.5rem;
+      min-height: 0;
+    }
+    .sig-right-area > * { min-height: 0; }
+    .sig-comps-row {
+      grid-column: 1 / -1;
+      padding: 0.4rem 0.55rem 0.5rem;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .sig-comps-row canvas {
+      flex: 1; width: 100%;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      min-height: 0;
+    }
+    .sig-card {
+      padding: 0.4rem 0.55rem 0.5rem;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .sig-card canvas {
+      flex: 1; width: 100%;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      min-height: 0;
+    }
+
+    .sig-select, .sig-num {
+      width: 100%;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.74rem;
+      padding: 0.32rem 0.5rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      outline: none;
+    }
+    .sig-num:focus { border-color: var(--accent-2); }
+
+    /* Aperiodic: two boxes: A | W */
+    .ap-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+      margin: 0.3rem 0;
+    }
+    .ap-lbl {
+      display: block;
+      font-size: 0.66rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.18rem;
+    }
+
+    /* Drawing modal */
+    .draw-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      display: none;
+      align-items: center; justify-content: center;
+    }
+    .draw-modal-overlay.active { display: flex; }
+    .draw-modal {
+      background: var(--bg-panel);
+      backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--border-glow-strong);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      width: 720px; max-width: 92vw;
+    }
+    .draw-modal h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 1rem;
+      letter-spacing: 0.04em;
+      color: var(--accent-2);
+      margin-bottom: 0.5rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .draw-modal .close {
+      cursor: pointer; color: #ff5577;
+      font-weight: bold; padding: 0 0.4rem;
+      user-select: none;
+    }
+    #drawCanvas {
+      width: 100%; height: 260px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      cursor: crosshair;
+      display: block;
+    }
+    .draw-modal-footer {
+      display: flex; gap: 0.5rem;
+      margin-top: 0.7rem;
+    }
+    .draw-modal-footer .sig-btn { margin-bottom: 0; flex: 1; }
+    .draw-help {
+      font-size: 0.7rem; color: var(--text-dim);
+      margin: 0.4rem 0;
+    }
+    .sig-comp-list {
+      margin: 0.4rem 0;
+      max-height: 170px;
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+      gap: 0.2rem;
+    }
+    .sig-comp-item {
+      display: flex; align-items: center; gap: 0.35rem;
+      padding: 0.26rem 0.45rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-glow);
+      background: rgba(120,140,200,0.06);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.66rem;
+      border-left: 3px solid #7b8cff;
+    }
+    .sig-comp-tag {
+      font-weight: 700;
+      padding: 0.05rem 0.32rem;
+      border-radius: 3px;
+      color: #7b8cff;
+      background: rgba(123,140,255,0.14);
+      font-size: 0.64rem;
+    }
+    .sig-comp-coords { flex: 1; color: var(--text-primary); }
+    .sig-comp-rm { cursor: pointer; color: #ff5577; font-weight: bold; user-select: none; }
+    .sig-comp-rm:hover { color: #ff8aa0; }
+
+    .sig-btn {
+      width: 100%;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.74rem;
+      padding: 0.36rem 0.6rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid;
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-bottom: 0.3rem;
+    }
+    .sig-btn.primary {
+      border-color: #7b8cff; color: #7b8cff;
+      background: rgba(123,140,255,0.08);
+    }
+    .sig-btn.primary:hover { background: rgba(123,140,255,0.2); }
+    .sig-btn.ghost {
+      border-color: var(--border-glow);
+      color: var(--text-secondary);
+      background: transparent;
+    }
+    .sig-btn.ghost:hover { border-color: var(--accent-2); color: var(--accent-2); }
+    .sig-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    @media (max-width: 1200px) {
+      .signal-test-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .sig-right-area {
+        grid-template-rows: 230px 280px 280px;
+      }
+    }
+    @media (max-width: 760px) {
+      .sig-right-area {
+        grid-template-columns: 1fr;
+        grid-template-rows: 230px 200px 200px 200px 200px;
+      }
+      .sig-comps-row { grid-column: auto; }
+    }
+
+    /* === THEORY === */
+    .theory-block {
+      max-width: 1700px; margin: 1.5rem auto;
+      padding: 1.5rem 2rem;
+      position: relative; z-index: 2;
+    }
+    .theory-block h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 1.2rem;
+      letter-spacing: 0.03em;
+      background: linear-gradient(90deg, var(--accent-1), var(--color-y));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.7rem;
+    }
+    .theory-block h3 {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 700;
+      font-size: 0.95rem; color: var(--accent-2);
+      margin-top: 1rem; margin-bottom: 0.4rem;
+      letter-spacing: 0.04em;
+    }
+    .theory-block p, .theory-block li {
+      font-size: 0.88rem; line-height: 1.65;
+      color: var(--text-secondary);
+    }
+    .theory-block ul { margin-left: 1.3rem; margin-bottom: 0.8rem; }
+    .theory-block strong { color: var(--text-primary); }
+
+    /* Tighter header / nav */
+    .site-header { padding: 0.7rem 1rem 0.2rem; }
+    .nav-tabs { margin: 0.3rem auto; }
+
+    @media (max-width: 1200px) {
+      .laplace-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .lap-right { grid-template-rows: 500px 220px; }
+    }
+    @media (max-width: 760px) {
+      .lap-right-top { grid-template-columns: 1fr; }
+      .lap-right { grid-template-rows: 320px 320px 200px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">&#127769;</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">&#x2112;</span> Laplace Transform (3D s-Plane) <span class="title-icon">&#x2217;</span>
+    </h1>
+    <p class="site-subtitle">$s$-Plane &middot; Poles &amp; Zeros &middot; Fourier on the $j\Omega$ axis</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">&#127968; Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">&#x223F; Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{&middot;} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">&#x222B; Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">&#x1D4D5; Fourier Series</a>
+    <a class="nav-tab group-c active" href="laplace.html">&#x2112; Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">&#x03A3; Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">&#x21AF; Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">&#x1D4D5;* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">&#x23C3; DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">&#x1D4B5; Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">&#x1D49F; DCT</a>
+    <a class="nav-tab group-o" href="hht.html">&#x210B; HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">&#x1D4D5;<sup>&alpha;</sup> FrFT</a>
+  </nav>
+
+  <div class="laplace-layout">
+
+    <!-- ============== LEFT ============== -->
+    <div class="lap-left">
+
+      <!-- CONTROL PANEL -->
+      <div class="lap-controls glass-panel">
+        <div class="panel-title-sm">
+          <span class="signal-dot-sm" style="background:#ff4f9a;box-shadow:0 0 8px #ff4f9a;"></span>
+          Poles &amp; Zeros
+        </div>
+
+        <div class="preset-row">
+          <button onclick="loadPreset('lp1')">LP 1st order</button>
+          <button onclick="loadPreset('lp2')">LP 2nd order</button>
+          <button onclick="loadPreset('bp')">Band-pass</button>
+          <button onclick="loadPreset('notch')">Notch</button>
+          <button onclick="loadPreset('clear')" style="grid-column:span 2;">Clear</button>
+        </div>
+
+        <div class="add-row">
+          <input type="number" id="addRe" placeholder="&#963; (Re)" step="0.1" value="-1" />
+          <input type="number" id="addIm" placeholder="&#937; (Im)" step="0.1" value="0" />
+        </div>
+        <div class="add-row">
+          <button class="add-btn pole" onclick="addPoint('pole')">+ Pole &#10005;</button>
+          <button class="add-btn zero" onclick="addPoint('zero')">+ Zero &#9675;</button>
+        </div>
+
+        <div style="font-size:0.66rem; color:var(--text-dim); margin-bottom:0.15rem;">
+          Mouse mode (click on 2D plane):
+        </div>
+        <div class="mode-row">
+          <button class="mode-btn mp active" id="modePole" onclick="setMouseMode('pole')">&#10005; Pole</button>
+          <button class="mode-btn mz" id="modeZero" onclick="setMouseMode('zero')">&#9675; Zero</button>
+        </div>
+
+        <div class="pole-zero-list" id="pzList"></div>
+
+        <div class="panel-title-sm">
+          <span class="signal-dot-sm" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span>
+          Display Settings
+        </div>
+
+        <div class="ctl">
+          <label>3D grid resolution <span class="vv" id="gridResVal">0.40</span></label>
+          <input type="range" id="gridRes" min="0.18" max="0.8" step="0.02" value="0.4" />
+        </div>
+        <div class="ctl">
+          <label>Horizontal rotation <span class="vv" id="rotXVal">35&deg;</span></label>
+          <input type="range" id="rotX" min="-60" max="60" step="1" value="35" />
+        </div>
+        <div class="ctl">
+          <label>Vertical rotation <span class="vv" id="rotYVal">-55&deg;</span></label>
+          <input type="range" id="rotY" min="-90" max="90" step="1" value="-55" />
+        </div>
+        <div class="ctl">
+          <label>Zoom <span class="vv" id="zoomVal">1.20</span></label>
+          <input type="range" id="zoom" min="0.4" max="2.5" step="0.05" value="1.2" />
+        </div>
+        <div class="ctl">
+          <label>Height cap <span class="vv" id="capVal">5.0</span></label>
+          <input type="range" id="cap" min="1" max="20" step="0.5" value="5" />
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="showSurface" checked />
+          <label for="showSurface">Show $|H(s)|$ surface</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="showJOmega" checked />
+          <label for="showJOmega">$j\Omega$ axis curve (3D)</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="showGrid" checked />
+          <label for="showGrid">$s$-plane grid</label>
+        </div>
+
+        <div class="info-grid">
+          <span class="lbl">Number of poles:</span><span class="val" id="nPoles">0</span>
+          <span class="lbl">Number of zeros:</span><span class="val" id="nZeros">0</span>
+          <span class="lbl">Stability:</span><span class="val" id="stability">&mdash;</span>
+        </div>
+      </div>
+
+      <!-- PLAYBACK PANEL -->
+      <div class="lap-playback glass-panel">
+        <div class="pb-title">
+          <span class="signal-dot-sm" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span>
+          Frequency Response — Playback
+        </div>
+
+        <div class="pb-row">
+          <button class="play-btn" id="playBtn" onclick="togglePlay()">&#9654;</button>
+          <input type="range" id="omegaSlider" min="-6" max="6" step="0.02" value="0" style="width:100%;" />
+        </div>
+
+        <div class="ctl">
+          <label>Speed <span class="vv" id="speedVal">1.0&times;</span></label>
+          <input type="range" id="speed" min="0.1" max="5" step="0.1" value="1" />
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="showDist" checked />
+          <label for="showDist">Show distances to poles &amp; zeros</label>
+        </div>
+
+        <div class="omega-display" id="omegaDisplay">&#937; = 0.00 &middot; |H(j&#937;)| = &mdash;</div>
+      </div>
+
+    </div>
+
+    <!-- ============== RIGHT ============== -->
+    <div class="lap-right">
+
+      <div class="lap-right-top">
+        <!-- 2D s-plane -->
+        <div class="canvas-card glass-panel">
+          <div class="canvas-header">
+            <span class="canvas-title t-2d">$s$-Plane 2D — click to add poles/zeros</span>
+            <span class="canvas-hint">left click: add &middot; right click: remove</span>
+          </div>
+          <canvas id="cv2d"></canvas>
+        </div>
+
+        <!-- 3D surface -->
+        <div class="canvas-card glass-panel">
+          <div class="canvas-header">
+            <span class="canvas-title t-3d">$|H(s)|$ 3D Surface</span>
+            <span class="canvas-hint">drag: rotate &middot; scroll: zoom</span>
+          </div>
+          <canvas id="cv3d"></canvas>
+        </div>
+      </div>
+
+      <!-- Frequency response (animated) -->
+      <div class="canvas-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title t-freq">$|H(j\Omega)|$ — Fourier along the $s = j\Omega$ axis</span>
+          <span class="freq-live" id="freqLive">|H(j&#937;)| = &mdash; &middot; &#937; = 0.00</span>
+          <span class="canvas-hint" id="freqHint">click: select &#937;</span>
+        </div>
+        <canvas id="cvFreq"></canvas>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       SIGNAL TEST — passing signals through the filter above
+       ============================================================ -->
+  <div class="signal-test-layout">
+
+    <!-- Left: Component builder -->
+    <div class="sig-builder glass-panel">
+      <div class="panel-title-sm">
+        <span class="signal-dot-sm" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span>
+        Signal Builder Module
+      </div>
+
+      <div class="ctl">
+        <label>Signal type</label>
+        <select id="sigType" class="sig-select">
+          <option value="sin" selected>Sine (periodic)</option>
+          <option value="cos">Cosine (periodic)</option>
+          <option value="square">Square</option>
+          <option value="triangle">Triangle</option>
+          <option value="gauss">Gaussian</option>
+          <option value="custom">Draw my own</option>
+        </select>
+      </div>
+
+      <!-- Aperiodic parameters — zero-centered box inputs -->
+      <div class="ap-row" id="ctlAperiodic" style="display:none;">
+        <div>
+          <label class="ap-lbl">Amplitude A</label>
+          <input type="number" id="sigA_ap" class="sig-num" min="-10" max="10" step="0.1" value="1" />
+        </div>
+        <div>
+          <label class="ap-lbl">Width W (sec)</label>
+          <input type="number" id="sigW_ap" class="sig-num" min="0.05" max="20" step="0.05" value="1.5" />
+        </div>
+      </div>
+
+      <!-- Custom — freehand drawing -->
+      <div id="ctlCustom" style="display:none;">
+        <button class="sig-btn primary" id="openDrawBtn" onclick="openDrawModal()" style="margin-top:0.3rem;">&#128221; Draw by Hand</button>
+        <div style="font-size:0.62rem; color:var(--text-dim); margin-top:0.15rem;" id="drawStatus">
+          No drawing yet — use the button to draw
+        </div>
+      </div>
+
+      <!-- Periodicity switch (for square/triangle/gauss/custom) -->
+      <div class="checkbox-row" id="ctlPeriodic" style="display:none; margin: 0.4rem 0 0.25rem;">
+        <input type="checkbox" id="sigPeriodic" />
+        <label for="sigPeriodic">&#128257; Repeat periodically</label>
+      </div>
+
+      <!-- Periodic sliders (amplitude + frequency + phase) -->
+      <div id="ctlPeriodicCtl">
+        <div class="ctl">
+          <label>Amplitude A <span class="vv" id="sigAval">1.0</span></label>
+          <input type="range" id="sigA" min="0.1" max="5" step="0.05" value="1" />
+        </div>
+        <div class="ctl">
+          <label>Frequency F (Hz) <span class="vv" id="sigFval">1.0</span></label>
+          <input type="range" id="sigF" min="0" max="5" step="0.2" value="1" />
+        </div>
+        <div class="ctl">
+          <label>Phase &#966; (rad) <span class="vv" id="sigPval">0.00</span></label>
+          <input type="range" id="sigP" min="-3.14" max="3.14" step="0.05" value="0" />
+        </div>
+      </div>
+
+      <button class="sig-btn primary" id="sigAddBtn" onclick="addSignalComp()">+ Add Component</button>
+      <button class="sig-btn ghost" onclick="clearSignalComps()">Clear</button>
+
+      <div class="sig-comp-list" id="sigCompList"></div>
+
+      <div class="info-grid">
+        <span class="lbl">Components:</span><span class="val"><span id="sigCount">0</span> / 8</span>
+      </div>
+
+      <div class="panel-title-sm" style="margin-top:0.5rem;">
+        <span class="signal-dot-sm" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span>
+        Spectrum / Resolution
+      </div>
+
+      <div class="ctl">
+        <label>Recording duration T (sec) <span class="vv" id="sigTval">20</span></label>
+        <input type="range" id="sigT" min="5" max="200" step="1" value="20" />
+      </div>
+      <div class="ctl">
+        <label>Sample interval dt (sec)</label>
+        <input type="number" id="sigDt" class="sig-num" min="0.001" max="0.5" step="0.001" value="0.01" />
+        <div style="font-size:0.6rem; color:var(--text-dim); margin-top:0.1rem;">
+          smaller dt &rarr; cleanly samples higher frequencies (min 0.001)
+        </div>
+        <div id="sigDtWarn" style="font-size:0.62rem; color:#ff5577; margin-top:0.1rem; display:none;">
+          &#9888; dt must be &ge; 0.001 — limited to prevent browser lock-up
+        </div>
+      </div>
+      <div class="info-grid" style="margin: 0.1rem 0 0.35rem;">
+        <span class="lbl">FFT N:</span>      <span class="val" id="sigNinfo">2048</span>
+        <span class="lbl">d&#937;:</span>          <span class="val"><span id="sigDomega">0.31</span> rad/s</span>
+        <span class="lbl">Effective dt:</span>    <span class="val"><span id="sigDtEff">0.0098</span> sec</span>
+      </div>
+      <div class="ctl">
+        <label>Time plot range T<sub>plot</sub> (sec) <span class="vv" id="sigTplotVal">5</span></label>
+        <input type="range" id="sigTplot" min="1" max="20" step="0.5" value="5" />
+      </div>
+      <div class="ctl">
+        <label>&#937; display range &plusmn; <span class="vv" id="sigOmegaMaxVal">8</span></label>
+        <input type="range" id="sigOmegaMax" min="3" max="20" step="1" value="8" />
+      </div>
+
+      <div class="panel-title-sm" style="margin-top:0.4rem;">
+        <span class="signal-dot-sm" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span>
+        Grid Settings
+      </div>
+      <div class="ctl">
+        <label>Grid density <span class="vv" id="sigGridDensVal">2</span></label>
+        <input type="range" id="sigGridDens" min="1" max="5" step="1" value="2" />
+      </div>
+      <div class="ctl">
+        <label>Grid opacity <span class="vv" id="sigGridAlphaVal">0.45</span></label>
+        <input type="range" id="sigGridAlpha" min="0" max="1" step="0.05" value="0.45" />
+      </div>
+
+      <div class="panel-title-sm" style="margin-top:0.6rem;">
+        <span class="signal-dot-sm" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span>
+        |Y(j&#937;)| with |H(j&#937;)| overlay
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="sigShowH" checked />
+        <label for="sigShowH">Show filter characteristic</label>
+      </div>
+      <div class="ctl">
+        <label>H transparency <span class="vv" id="sigHAlphaVal">0.40</span></label>
+        <input type="range" id="sigHAlpha" min="0" max="1" step="0.05" value="0.4" />
+      </div>
+
+      <div style="font-size:0.62rem; color:var(--text-dim); margin-top:0.3rem; line-height:1.45;">
+        Total $x(t) = \sum A_k \cdot f_k(\Omega_k t + \varphi_k)$ — passed through the filter above to obtain $y(t)$.
+      </div>
+    </div>
+
+    <!-- Right large area: component strip on top, 2x2 graph grid below -->
+    <div class="sig-right-area">
+
+      <!-- Component strip (each component offset — EMD style) -->
+      <div class="sig-comps-row glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#7b8cff;">Components — $A_k f_k(\Omega_k t + \varphi_k)$ individually</span>
+          <span class="canvas-hint">EMD-style offset stack</span>
+        </div>
+        <canvas id="cvComps"></canvas>
+      </div>
+
+      <!-- x(t) -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#39ff85;">Total signal $x(t)$</span>
+          <span class="canvas-hint">filter input</span>
+        </div>
+        <canvas id="cvXt"></canvas>
+      </div>
+
+      <!-- y(t) -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#ff8c42;">Filter output $y(t)$</span>
+          <span class="canvas-hint">$h(t) * x(t)$</span>
+        </div>
+        <canvas id="cvYt"></canvas>
+      </div>
+
+      <!-- |X(jOmega)| -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#39ff85;">$|X(j\Omega)|$</span>
+          <span class="canvas-hint">input magnitude spectrum</span>
+        </div>
+        <canvas id="cvXf"></canvas>
+      </div>
+
+      <!-- |Y(jOmega)| -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#ff8c42;">$|Y(j\Omega)|$</span>
+          <span class="canvas-hint">sin/cos analytic &bull; others FFT &nbsp;(H dashed line)</span>
+        </div>
+        <canvas id="cvYf"></canvas>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- THEORY + APPLICATION -->
+  <div class="theory-block glass-panel">
+    <h2>Laplace Transform — $s$-Plane &amp; Relationship with Fourier</h2>
+
+    <h3>Fundamental Relationship</h3>
+    <p>
+      The Laplace transform is defined over the complex variable $s = \sigma + j\Omega$ through the relation $X(s) = \int_{-\infty}^{\infty} x(t)\,e^{-st}\,dt$ and represents the signal in terms of <strong>generalised complex exponentials</strong>.
+      The <strong>Fourier transform</strong> $X(j\Omega) = \int x(t)\,e^{-j\Omega t}\,dt$, in contrast, is defined only on the $\sigma = 0$ axis — that is, on the <em>imaginary axis</em>:
+      $$X(j\Omega) = X(s)\big|_{s=j\Omega}.$$
+    </p>
+    <p>
+      <strong>Geometric interpretation:</strong> the cross-section of the three-dimensional $|H(s)|$ surface taken along the $j\Omega$ axis corresponds to the <strong>frequency response</strong> $|H(j\Omega)|$. On this page, that cross-section is plotted in real time on the lower graph; the moving red marker traverses the $j\Omega$ axis and simultaneously visualises the vectors directed towards each pole and zero.
+    </p>
+    <p>
+      <strong>Algebraic expression:</strong>
+      $$|H(j\Omega)| = \frac{\prod_i |j\Omega - z_i|}{\prod_j |j\Omega - p_j|},$$
+      so that the magnitude of the frequency response is interpreted as the ratio of the product of distances from $j\Omega$ to the zeros over the product of distances to the poles.
+    </p>
+
+    <h3>Poles and Zeros</h3>
+    <ul>
+      <li><strong>Pole ($\times$):</strong> the points at which $H(s)$ diverges to infinity; they appear as peaks on the $s$-plane surface.</li>
+      <li><strong>Zero ($\circ$):</strong> the points at which $H(s) = 0$; they appear as valleys on the surface.</li>
+      <li><strong>Stability condition:</strong> all poles must satisfy $\mathrm{Re}\{s\} = \sigma &lt; 0$, that is, they must lie in the left half-plane.</li>
+      <li><strong>Complex conjugacy:</strong> in systems with real coefficients, complex poles and zeros invariably occur in conjugate pairs; consequently, for any pole or zero defined at $\Omega \neq 0$, the corresponding conjugate is added to the system automatically.</li>
+    </ul>
+
+    <h3>Application Areas</h3>
+    <ul>
+      <li><strong>Control engineering:</strong> system design via transfer functions and closed-loop stability analysis are carried out in motor, robot and aircraft control.</li>
+      <li><strong>Circuit analysis:</strong> the design of RLC, op-amp and active filter circuits is performed using network equations involving capacitors and inductors.</li>
+      <li><strong>Mechanical systems:</strong> mass–spring–damper models, vibration isolation design and seismic protection are addressed within this framework.</li>
+      <li><strong>Signal processing:</strong> analogue filter design (Butterworth, Chebyshev, elliptic) and continuous-time system realisations are conducted in the Laplace domain.</li>
+      <li><strong>Audio and acoustics:</strong> loudspeaker equalisation and room-acoustic correction filters are designed through pole–zero placement.</li>
+      <li><strong>Biomedical:</strong> ECG pre-filtering, cardiac rhythm models and drug-distribution kinetics (pharmacokinetics) are analysed using the Laplace transform.</li>
+      <li><strong>Power systems:</strong> generator stability and feedback design are performed within this framework.</li>
+    </ul>
+
+    <h3>References</h3>
+    <ul style="font-family:'Fira Code',monospace;font-size:0.72rem;color:var(--text-dim);">
+      <li>Oppenheim, A. V., Willsky, A. S. (1996). <em>Signals and Systems</em>. Prentice Hall.</li>
+      <li>Lathi, B. P. (2009). <em>Linear Systems and Signals</em>. Oxford University Press.</li>
+      <li>Phillips, C. L., Parr, J. M., Riskin, E. A. (2014). <em>Signals, Systems, and Transforms</em>. Pearson.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer">Signal Processing Educational Simulation — Laplace Module</footer>
+
+  <!-- Freehand drawing modal -->
+  <div class="draw-modal-overlay" id="drawModal">
+    <div class="draw-modal">
+      <h3>
+        <span>&#128221; Draw Signal Shape by Hand</span>
+        <span class="close" onclick="closeDrawModal()">&#10005;</span>
+      </h3>
+      <div class="draw-help">
+        Drag horizontally with the mouse — left=&minus;A, right=+A. Zero-centered, will be normalized.
+      </div>
+      <canvas id="drawCanvas"></canvas>
+      <div class="draw-modal-footer">
+        <button class="sig-btn ghost" onclick="clearDraw()">&#128465; Clear</button>
+        <button class="sig-btn ghost" onclick="smoothDraw()">~ Smooth</button>
+        <button class="sig-btn primary" onclick="saveDraw()">&#10003; Save and Use</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/laplace.js"></script>
+</body>
+</html>

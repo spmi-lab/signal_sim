@@ -1,0 +1,772 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Basic Signals — Interactive Introduction</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* === Page-specific layout === */
+    .bs-wrap {
+      max-width: 1500px;
+      margin: 1rem auto;
+      padding: 0 1rem;
+      position: relative; z-index: 2;
+    }
+
+    /* === Signal gallery (top card strip) === */
+    .signal-gallery {
+      margin: 1rem 0 1.4rem;
+    }
+    .gallery-header {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 0.7rem;
+    }
+    .gallery-header h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+    }
+    .gallery-header h2::before {
+      content: ""; display: inline-block;
+      width: 3px; height: 1.1em; vertical-align: -0.18em;
+      margin-right: 0.5rem;
+      background: linear-gradient(180deg, var(--accent-1), var(--color-y));
+      border-radius: 2px;
+    }
+    .gallery-sub {
+      font-size: 0.8rem; color: var(--text-secondary);
+    }
+    .signal-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 0.55rem;
+    }
+    .sig-card {
+      background: var(--bg-panel);
+      border: 1.2px solid var(--border-glow);
+      border-left: 3px solid var(--border-glow); /* overridden by JS with signal color */
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.5rem 0.4rem;
+      cursor: pointer;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0.25rem;
+      transition: all var(--transition);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+    }
+    .sig-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(100, 160, 255, 0.15);
+    }
+    .sig-card.active {
+      background: rgba(120, 140, 200, 0.08);
+      box-shadow: 0 0 14px rgba(100, 160, 255, 0.12) inset;
+    }
+    .sig-card .thumb {
+      width: 100%; height: 38px;
+      display: block;
+    }
+    .sig-card .label {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      color: var(--text-primary);
+      text-align: center;
+      line-height: 1.1;
+    }
+    .sig-card .sym {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.66rem;
+      color: var(--text-dim);
+    }
+    .sig-card.active .sym { color: var(--accent-1); }
+
+    /* === Main graph + info panel === */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .primary-graph-card {
+      padding: 0.9rem 1rem 1rem;
+    }
+    .primary-graph-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .primary-graph-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent-1);
+      letter-spacing: 0.03em;
+    }
+    .graph-badge {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      padding: 0.22rem 0.55rem;
+      border-radius: 4px;
+      background: rgba(57, 255, 133, 0.10);
+      color: var(--accent-1);
+      border: 1px solid var(--accent-1);
+    }
+    .graph-badge.aperiodic {
+      background: rgba(255, 140, 66, 0.10);
+      color: var(--accent-2);
+      border-color: var(--accent-2);
+    }
+    #canvasMain {
+      width: 100%;
+      height: 320px;
+      display: block;
+    }
+
+    .info-card {
+      padding: 0.9rem 1rem 1rem;
+      display: flex; flex-direction: column;
+    }
+    .info-card h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-primary);
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.03em;
+    }
+    .info-formula {
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      padding: 0.7rem;
+      margin: 0.4rem 0 0.6rem;
+      overflow-x: auto;
+      font-size: 0.92rem;
+    }
+    .info-desc {
+      font-size: 0.82rem;
+      line-height: 1.55;
+      color: var(--text-secondary);
+      margin-bottom: 0.7rem;
+    }
+    .prop-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+    .prop-table td {
+      padding: 0.32rem 0.4rem;
+      border-bottom: 1px dashed var(--border-glow);
+    }
+    .prop-table td:first-child {
+      color: var(--text-dim);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      width: 42%;
+      letter-spacing: 0.04em;
+    }
+    .prop-table td:last-child {
+      color: var(--text-primary);
+      font-family: 'Saira', sans-serif;
+      font-weight: 500;
+    }
+    .prop-yes { color: var(--accent-1); }
+    .prop-no  { color: var(--color-marker); }
+
+    /* === Numerical statistics block === */
+    .stats-block {
+      margin-top: 0.7rem;
+      padding: 0.55rem 0.6rem;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+    }
+    .stats-block h5 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 0.35rem;
+      display: flex; align-items: baseline; gap: 0.4rem;
+    }
+    .stats-block h5 span {
+      font-size: 0.66rem;
+      color: var(--text-dim);
+      letter-spacing: 0;
+    }
+    .stats-grid-mini {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.25rem 0.7rem;
+    }
+    .stats-grid-mini > div {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.74rem;
+      padding: 0.15rem 0;
+      border-bottom: 1px dashed var(--border-glow);
+    }
+    .stats-grid-mini .lbl { color: var(--text-dim); }
+    .stats-grid-mini .val { color: var(--accent-1); font-weight: 500; }
+
+    /* Hidden parameter rows */
+    .ctrl-row[data-hidden="1"] { display: none; }
+
+    /* === Controls === */
+    .controls-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+    .ctrl-card {
+      padding: 1rem 1.1rem;
+    }
+    .ctrl-card h4 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      margin-bottom: 0.7rem;
+      letter-spacing: 0.05em;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .ctrl-card h4 .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent-1);
+      box-shadow: 0 0 8px var(--accent-1);
+    }
+    .ctrl-card h4 .dot.h { background: var(--accent-2); box-shadow: 0 0 8px var(--accent-2); }
+    .ctrl-card h4 .dot.s { background: var(--color-y); box-shadow: 0 0 8px var(--color-y); }
+
+    .ctrl-row {
+      display: flex; flex-direction: column; gap: 0.25rem;
+      margin-bottom: 0.65rem;
+    }
+    .ctrl-row label {
+      font-size: 0.78rem; color: var(--text-secondary);
+      display: flex; justify-content: space-between;
+    }
+    .ctrl-row label .v {
+      font-family: 'Fira Code', monospace;
+      color: var(--accent-1);
+    }
+    .ctrl-row input[type="range"] { width: 100%; }
+
+    .toggle-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.4rem 0;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    /* === Comparison (derivative/integral) === */
+    .compare-card {
+      padding: 1rem 1.1rem;
+      margin-bottom: 1.2rem;
+    }
+    .compare-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.5rem;
+      margin-bottom: 0.6rem;
+    }
+    .compare-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-primary);
+      letter-spacing: 0.03em;
+    }
+    .compare-legend {
+      display: flex; gap: 0.8rem;
+      font-size: 0.74rem;
+    }
+    .compare-legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+    .legend-line {
+      display: inline-block; width: 18px; height: 3px; border-radius: 2px;
+    }
+    #canvasDeriv, #canvasIntegral {
+      width: 100%;
+      height: 165px;
+      display: block;
+    }
+    /* main canvas — slightly shorter to leave room for derivative/integral pair below */
+    #canvasMain {
+      height: 250px !important;
+    }
+    /* inline derivative+integral pair attached under main graph */
+    .di-inline {
+      margin-top: 0.6rem;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+    }
+    .di-inline .mini-graph { padding: 0.45rem 0.55rem 0.3rem; }
+    .di-inline .mini-graph h5 { font-size: 0.78rem; margin-bottom: 0.25rem; }
+    @media (max-width: 760px) {
+      .di-inline { grid-template-columns: 1fr; }
+    }
+    .compare-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem;
+    }
+    .mini-graph {
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.6rem 0.3rem;
+    }
+    .mini-graph h5 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+      margin-bottom: 0.3rem;
+    }
+
+    /* === Theory cards === */
+    .theory-section {
+      margin-top: 2rem;
+    }
+    .theory-section > h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.4rem;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+      margin-bottom: 0.4rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .theory-section > h2::before {
+      content: ""; display: inline-block;
+      width: 4px; height: 1.2em;
+      background: linear-gradient(180deg, var(--accent-1), var(--color-y));
+      border-radius: 2px;
+    }
+    .theory-section > p.section-intro {
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+      margin: 0 0 1rem 1rem;
+    }
+    .theory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 1rem;
+    }
+    .theory-card {
+      padding: 1.1rem 1.2rem;
+    }
+    .theory-card h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--accent-1);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.03em;
+    }
+    .theory-card h3.t-orange { color: var(--accent-2); }
+    .theory-card h3.t-indigo { color: var(--color-y); }
+    .theory-card p, .theory-card li {
+      font-size: 0.85rem;
+      line-height: 1.65;
+      color: var(--text-secondary);
+    }
+    .theory-card ul { margin-left: 1.2rem; margin-top: 0.4rem; }
+    .theory-card .math-block {
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.7rem;
+      margin: 0.5rem 0;
+      overflow-x: auto;
+      font-size: 0.92rem;
+    }
+    .theory-card .pill {
+      display: inline-block;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(123, 140, 255, 0.14);
+      color: var(--color-y);
+      margin-right: 0.3rem;
+      letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 920px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .compare-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">&#x1F319;</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">&#x223F;</span> Basic Signals <span class="title-icon">&#x03B4;</span>
+    </h1>
+    <p class="site-subtitle">Periodic &middot; Aperiodic &middot; Dirac &middot; Unit Step &middot; Exponential &middot; Sinusoidal — Interactive Introduction</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">&#x1F3E0; Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c active" href="basic-signals.html">&#x223F; Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{&middot;} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">&int; Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">&#x1D4D5; Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">&#x2112; Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">&Sigma; Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">&#x21AF; Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">&#x1D4D5;* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">&#x23C3; DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">&#x1D4B5; Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">&#x1D49F; DCT</a>
+    <a class="nav-tab group-o" href="hht.html">&#x210B; HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">&#x1D4D5;<sup>&alpha;</sup> FrFT</a>
+  </nav>
+
+  <div class="bs-wrap">
+
+    <!-- ====== SIGNAL GALLERY ====== -->
+    <section class="signal-gallery">
+      <div class="gallery-header">
+        <h2>Signal Library</h2>
+        <span class="gallery-sub">— click a card to examine it on the main display</span>
+      </div>
+      <div class="signal-cards" id="signalCards">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- ====== MAIN GRAPH + INFO PANEL ====== -->
+    <div class="main-grid">
+      <div class="primary-graph-card glass-panel">
+        <div class="primary-graph-header">
+          <span class="primary-graph-title" id="mainTitle">x(t) — Signal</span>
+          <span class="graph-badge" id="mainBadge">aperiodic</span>
+        </div>
+        <canvas id="canvasMain"></canvas>
+        <!-- Derivative & Integral side by side right below -->
+        <div class="di-inline">
+          <div class="mini-graph">
+            <h5>Derivative — $\dfrac{dx}{dt}$</h5>
+            <canvas id="canvasDeriv"></canvas>
+          </div>
+          <div class="mini-graph">
+            <h5>Integral — $\displaystyle\int_{-\infty}^{t} x(\tau)\,d\tau$</h5>
+            <canvas id="canvasIntegral"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-card glass-panel">
+        <h3 id="infoName">Mathematical Definition</h3>
+        <div class="info-formula" id="infoFormula">$x(t) = \ldots$</div>
+        <p class="info-desc" id="infoDesc">Select a signal.</p>
+        <table class="prop-table">
+          <tbody id="propTable"></tbody>
+        </table>
+        <div class="stats-block" id="statsBlock">
+          <h5>Numerical Statistics <span>(over the interval $t \in [t_{\min}, t_{\max}]$)</span></h5>
+          <div class="stats-grid-mini">
+            <div><span class="lbl">max $|x|$</span><span class="val" id="stMaxAbs">—</span></div>
+            <div><span class="lbl">mean (DC)</span><span class="val" id="stMean">—</span></div>
+            <div><span class="lbl">RMS</span><span class="val" id="stRms">—</span></div>
+            <div><span class="lbl">$E = \int |x|^2 dt$</span><span class="val" id="stEnergy">—</span></div>
+            <div><span class="lbl">$P = E/(t_{\max}-t_{\min})$</span><span class="val" id="stPower">—</span></div>
+            <div><span class="lbl">$x(t_0)$</span><span class="val" id="stAtT0">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== CONTROL PANELS ====== -->
+    <div class="controls-row">
+      <!-- Parameters — dynamically hidden/shown based on signal -->
+      <div class="ctrl-card glass-panel" id="paramsCard">
+        <h4><span class="dot"></span> Parameters <span style="margin-left:auto;font-size:0.7rem;color:var(--text-dim);font-family:'Fira Code',monospace;letter-spacing:0.05em;" id="paramsHint">signal-dependent</span></h4>
+
+        <div class="ctrl-row" data-param="amp">
+          <label>Amplitude $A$ <span class="v" id="ampVal">1.00</span></label>
+          <input type="range" id="amp" min="-3" max="3" step="0.05" value="1" />
+        </div>
+
+        <div class="ctrl-row" data-param="shift">
+          <label>Time shift $t_0$ (s) <span class="v" id="shiftVal">0.00</span></label>
+          <input type="range" id="shift" min="-6" max="6" step="0.1" value="0" />
+        </div>
+
+        <div class="ctrl-row" data-param="freq">
+          <label>Frequency $F$ (Hz) <span class="v" id="freqVal">1.00</span></label>
+          <input type="range" id="freq" min="0.1" max="5" step="0.05" value="1" />
+        </div>
+
+        <div class="ctrl-row" data-param="width">
+          <label>Width / Duration $T$ (s) <span class="v" id="widthVal">2.00</span></label>
+          <input type="range" id="width" min="0.2" max="8" step="0.1" value="2" />
+        </div>
+
+        <div class="ctrl-row" data-param="sigma">
+          <label>Standard deviation $\sigma$ <span class="v" id="sigmaVal">1.00</span></label>
+          <input type="range" id="sigma" min="0.1" max="4" step="0.05" value="1" />
+        </div>
+
+        <div class="ctrl-row" data-param="alpha">
+          <label>Decay / Growth $\alpha$ <span class="v" id="alphaVal">0.50</span></label>
+          <input type="range" id="alpha" min="-2" max="2" step="0.05" value="0.5" />
+        </div>
+      </div>
+
+      <!-- Modes -->
+      <div class="ctrl-card glass-panel">
+        <h4><span class="dot h"></span> Display Mode</h4>
+
+        <div class="toggle-row">
+          <span>Periodic repeat</span>
+          <label class="toggle-switch"><input type="checkbox" id="periodic" /><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <span>Show derivative $\dot{x}(t)$</span>
+          <label class="toggle-switch"><input type="checkbox" id="showDeriv" checked /><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <span>Show integral $\int x\,dt$</span>
+          <label class="toggle-switch"><input type="checkbox" id="showIntegral" checked /><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <span>Even / Odd decomposition</span>
+          <label class="toggle-switch"><input type="checkbox" id="showEvenOdd" /><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <span>Time axis grid</span>
+          <label class="toggle-switch"><input type="checkbox" id="showGrid" checked /><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Axes -->
+      <div class="ctrl-card glass-panel">
+        <h4><span class="dot s"></span> Axis Settings</h4>
+
+        <div class="ctrl-row">
+          <label>$t_{\min}$ <span class="v" id="tminVal">-6</span></label>
+          <input type="range" id="tmin" min="-20" max="-1" step="0.5" value="-6" />
+        </div>
+        <div class="ctrl-row">
+          <label>$t_{\max}$ <span class="v" id="tmaxVal">6</span></label>
+          <input type="range" id="tmax" min="1" max="20" step="0.5" value="6" />
+        </div>
+        <div class="ctrl-row">
+          <label>Sampling density $N$ <span class="v" id="samplesVal">800</span></label>
+          <input type="range" id="samples" min="200" max="2000" step="50" value="800" />
+        </div>
+
+        <div style="display:flex;gap:0.4rem;margin-top:0.6rem;">
+          <button class="glass-btn" id="resetParams" style="flex:1;">&#x21BA; Reset Parameters</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== DERIVATIVE / INTEGRAL — explanation ====== -->
+    <div class="compare-card glass-panel" id="compareCard">
+      <div class="compare-header">
+        <span class="compare-title">Derivative &amp; Integral Relationship</span>
+        <div class="compare-legend">
+          <span><span class="legend-line" style="background:var(--accent-1);"></span> $x(t)$</span>
+          <span><span class="legend-line" style="background:var(--accent-2);"></span> $\dot{x}(t)$</span>
+          <span><span class="legend-line" style="background:var(--color-y);"></span> $\int x\,dt$</span>
+        </div>
+      </div>
+      <p style="font-size:0.82rem;color:var(--text-secondary);margin:0;line-height:1.6;">
+        The unit step is the integral of the Dirac delta: $u(t) = \int_{-\infty}^{t} \delta(\tau)\,d\tau$.
+        The ramp is the integral of the step: $r(t) = \int_{-\infty}^{t} u(\tau)\,d\tau$.
+        This same chain can be observed in the derivative and integral panels above.
+      </p>
+    </div>
+
+    <!-- ====== THEORY SECTION ====== -->
+    <section class="theory-section">
+      <h2>Theoretical Background</h2>
+      <p class="section-intro">A summary of signal classification, the underlying mathematical definitions and the principles governing the behaviours observed in the simulation is provided below.</p>
+
+      <div class="theory-grid">
+
+        <!-- Periodic vs Aperiodic -->
+        <div class="theory-card glass-panel">
+          <h3>Periodic &amp; Aperiodic Signals</h3>
+          <p>
+            A signal $x(t)$ is <strong>periodic</strong> if, for the smallest $T_0 > 0$, at every $t$
+          </p>
+          <div class="math-block">$$x(t + T_0) = x(t), \quad \forall t \in \mathbb{R}$$</div>
+          <p>
+            holds; $T_0$ is the <em>fundamental period</em>, $F_0 = 1/T_0$ is the <em>fundamental frequency</em>,
+            and $\Omega_0 = 2\pi F_0$ is the <em>angular fundamental frequency</em>. Otherwise the signal is <strong>aperiodic</strong>.
+          </p>
+          <ul>
+            <li><span class="pill">example</span> $\sin(\Omega_0 t)$ &rarr; periodic, $T_0 = 2\pi/\Omega_0$</li>
+            <li><span class="pill">example</span> $e^{-\alpha t}u(t)$ &rarr; aperiodic</li>
+            <li>The sum of two periodic signals is periodic only if $T_1/T_2$ is rational.</li>
+          </ul>
+        </div>
+
+        <!-- Dirac Delta -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-orange">Dirac Delta $\delta(t)$</h3>
+          <p>
+            The Dirac delta is a <em>generalized function</em> (distribution); it is not a function in the classical sense.
+            It is defined by two fundamental properties:
+          </p>
+          <div class="math-block">$$\delta(t) = 0,\; t \neq 0; \qquad \int_{-\infty}^{\infty} \delta(t)\,dt = 1$$</div>
+          <p><strong>Sifting (sampling) property:</strong> for any continuous $f(t)$</p>
+          <div class="math-block">$$\int_{-\infty}^{\infty} f(t)\,\delta(t - t_0)\,dt = f(t_0).$$</div>
+          <ul>
+            <li>Scaling: $\delta(at) = \dfrac{1}{|a|}\delta(t)$</li>
+            <li>Evenness: $\delta(-t) = \delta(t)$</li>
+            <li>Derivative: $u'(t) = \delta(t)$ (in the distributional sense)</li>
+            <li>The <em>impulse response</em> $h(t)$ of LTI systems is defined as the response to a $\delta(t)$ input.</li>
+          </ul>
+        </div>
+
+        <!-- Unit Step -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-indigo">Unit Step $u(t)$ (Heaviside)</h3>
+          <div class="math-block">$$u(t) = \begin{cases} 1, & t \geq 0 \\ 0, & t < 0 \end{cases}$$</div>
+          <p>
+            <strong>Derivative:</strong> $u'(t) = \delta(t)$ — the derivative of the step is the Dirac delta.
+            <strong>Integral:</strong> $\int u(\tau)d\tau = r(t)$ — integrating the step yields the ramp.
+          </p>
+          <p>
+            The unit step is regarded as the building block of <em>causal</em> signals: the expression $x(t)\,u(t)$ extracts only the $t \geq 0$ portion of $x(t)$.
+            Switching events and sources activated at $t=0$ are modelled by means of this signal.
+          </p>
+        </div>
+
+        <!-- Exponential and Sinusoidal -->
+        <div class="theory-card glass-panel">
+          <h3>Exponential &amp; Sinusoidal Signals</h3>
+          <p>Two fundamental <em>eigenfunctions</em> of continuous time:</p>
+          <div class="math-block">$$x(t) = A e^{\alpha t}, \qquad x(t) = A\cos(\Omega_0 t + \varphi)$$</div>
+          <p>
+            These two representations are unified through <strong>Euler's identity</strong>:
+          </p>
+          <div class="math-block">$$e^{j\Omega t} = \cos(\Omega t) + j\sin(\Omega t).$$</div>
+          <p>
+            The generalised <strong>complex exponential</strong> $A\,e^{s t}$, with $s = \sigma + j\Omega$, gives rise to either decaying or growing oscillations and constitutes the mathematical foundation of the Laplace transform and of the <em>natural response</em> of LTI systems.
+            For $\sigma < 0$ a damped behaviour is observed, $\sigma = 0$ yields a pure oscillation, and $\sigma > 0$ corresponds to a growing oscillation.
+          </p>
+        </div>
+
+        <!-- Energy and Power -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-orange">Energy &amp; Power Signals</h3>
+          <div class="math-block">$$E = \int_{-\infty}^{\infty} |x(t)|^2 dt, \qquad P = \lim_{T \to \infty} \frac{1}{2T}\int_{-T}^{T}|x(t)|^2 dt$$</div>
+          <ul>
+            <li><strong>Energy signal:</strong> $0 < E < \infty$ and $P = 0$. Typical: short pulses, $e^{-\alpha t}u(t)$.</li>
+            <li><strong>Power signal:</strong> $0 < P < \infty$ and $E = \infty$. Typical: $\cos(\Omega_0 t)$, periodic signals.</li>
+            <li>A signal cannot be both an energy and a power signal (except for the Dirac).</li>
+          </ul>
+          <p>
+            The power of a periodic signal can also be defined over a single period:
+            $P = \frac{1}{T_0}\int_{T_0}|x(t)|^2 dt$.
+          </p>
+        </div>
+
+        <!-- Even and Odd -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-indigo">Even &amp; Odd Components</h3>
+          <p>Any $x(t)$ can be uniquely decomposed into even and odd parts:</p>
+          <div class="math-block">$$x_e(t) = \tfrac{1}{2}\big[x(t) + x(-t)\big],\quad x_o(t) = \tfrac{1}{2}\big[x(t) - x(-t)\big]$$</div>
+          <p>
+            The relations $x_e(-t) = x_e(t)$ (even) and $x_o(-t) = -x_o(t)$ (odd) hold, with $x(t) = x_e(t) + x_o(t)$.
+            This decomposition constitutes the basis of the symmetry properties of the Fourier transform: the Fourier transform of a real-valued and even signal is itself real-valued and even, whereas that of a real-valued and odd signal is purely imaginary and odd.
+          </p>
+        </div>
+
+        <!-- Signal Operations -->
+        <div class="theory-card glass-panel">
+          <h3>Time-Domain Operations</h3>
+          <p>The fundamental signal operations listed below correspond directly to the shift, scaling and amplitude controls available in the simulation:</p>
+          <ul>
+            <li><strong>Time shift:</strong> $x(t - t_0)$ — $t_0 > 0$ shifts to the right (delay).</li>
+            <li><strong>Time scaling:</strong> $x(at)$ — $|a| > 1$ compresses, $|a| < 1$ expands.</li>
+            <li><strong>Time reversal:</strong> $x(-t)$ — reflection, at the core of convolution and correlation.</li>
+            <li><strong>Amplitude scaling:</strong> $A \cdot x(t)$.</li>
+            <li><strong>General transformation:</strong> $x(at - b) = x(a(t - b/a))$ — first <em>scale</em>, then <em>shift</em>.</li>
+          </ul>
+        </div>
+
+        <!-- Dirac comb -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-orange">Dirac Comb $\delta_T(t)$</h3>
+          <div class="math-block">$$\delta_T(t) = \sum_{k=-\infty}^{\infty} \delta(t - kT)$$</div>
+          <p>
+            This signal, defined as an impulse train of period $T$, constitutes the mathematical core of the <strong>sampling theorem</strong>: the multiplication of a continuous signal by $\delta_T(t)$ yields a discrete-time representation composed of the values $x(kT)$.
+          </p>
+          <p>
+            The Fourier transform of this signal is again a Dirac comb (Poisson summation formula):
+          </p>
+          <div class="math-block">$$\mathcal{F}\{\delta_T(t)\} = \frac{2\pi}{T}\sum_{k} \delta\!\left(\Omega - \tfrac{2\pi k}{T}\right).$$</div>
+        </div>
+
+        <!-- Classification Summary -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-indigo">Signal Classification — Summary</h3>
+          <ul>
+            <li><strong>Continuous- and discrete-time:</strong> $x(t)$ versus $x[n]$ — the continuous-time case is addressed on this page.</li>
+            <li><strong>Periodic and aperiodic:</strong> the presence or absence of a repeating structure.</li>
+            <li><strong>Even and odd:</strong> the symmetry relation with $x(-t)$.</li>
+            <li><strong>Energy and power signals:</strong> whether the integral of $|x(t)|^2$ is bounded or not.</li>
+            <li><strong>Causal / anticausal / two-sided:</strong> whether the signal takes non-zero values for $t<0$.</li>
+            <li><strong>Deterministic and random:</strong> whether the signal admits a closed-form description.</li>
+            <li><strong>Analogue and digital:</strong> whether the amplitude is continuous or quantised.</li>
+          </ul>
+          <p>
+            Each signal may belong to several classes simultaneously; for instance, $\cos(\Omega_0 t)$ is classified as continuous, periodic, even, a power signal, deterministic and two-sided.
+          </p>
+        </div>
+
+      </div>
+
+      <h3 style="margin-top:1.6rem;">References</h3>
+      <ul class="ref-list">
+        <li>Oppenheim, A. V., Willsky, A. S., Nawab, S. H. (1996). <em>Signals and Systems</em> (2nd ed.). Prentice Hall. — Continuous-time elementary signals, classification, and introduction to LTI systems.</li>
+        <li>Lathi, B. P. (2009). <em>Linear Systems and Signals</em> (2nd ed.). Oxford University Press. — Detailed treatment of the Dirac delta, the unit step, and Heaviside distributions.</li>
+        <li>Haykin, S., Van Veen, B. (2002). <em>Signals and Systems</em> (2nd ed.). Wiley. — Energy/power signals and the even/odd decomposition.</li>
+        <li>Bracewell, R. N. (2000). <em>The Fourier Transform and Its Applications</em> (3rd ed.). McGraw-Hill. — The Dirac comb, the Poisson summation formula, and distributions.</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <footer class="site-footer"><span>Signal Processing Educational Simulation — Basic Signals</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/basic-signals.js"></script>
+</body>
+</html>

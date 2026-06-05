@@ -1,0 +1,774 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Temel Sinyaller — Etkileşimli Tanıtım</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* === Sayfaya özgü düzen === */
+    .bs-wrap {
+      max-width: 1500px;
+      margin: 1rem auto;
+      padding: 0 1rem;
+      position: relative; z-index: 2;
+    }
+
+    /* === Sinyal galerisi (üst kart şeridi) === */
+    .signal-gallery {
+      margin: 1rem 0 1.4rem;
+    }
+    .gallery-header {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 0.7rem;
+    }
+    .gallery-header h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+    }
+    .gallery-header h2::before {
+      content: ""; display: inline-block;
+      width: 3px; height: 1.1em; vertical-align: -0.18em;
+      margin-right: 0.5rem;
+      background: linear-gradient(180deg, var(--accent-1), var(--color-y));
+      border-radius: 2px;
+    }
+    .gallery-sub {
+      font-size: 0.8rem; color: var(--text-secondary);
+    }
+    .signal-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 0.55rem;
+    }
+    .sig-card {
+      background: var(--bg-panel);
+      border: 1.2px solid var(--border-glow);
+      border-left: 3px solid var(--border-glow); /* JS'de sinyalin rengiyle override edilir */
+      border-radius: var(--radius-sm);
+      padding: 0.6rem 0.5rem 0.4rem;
+      cursor: pointer;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 0.25rem;
+      transition: all var(--transition);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+    }
+    .sig-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(100, 160, 255, 0.15);
+    }
+    .sig-card.active {
+      background: rgba(120, 140, 200, 0.08);
+      box-shadow: 0 0 14px rgba(100, 160, 255, 0.12) inset;
+    }
+    .sig-card .thumb {
+      width: 100%; height: 38px;
+      display: block;
+    }
+    .sig-card .label {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.02em;
+      color: var(--text-primary);
+      text-align: center;
+      line-height: 1.1;
+    }
+    .sig-card .sym {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.66rem;
+      color: var(--text-dim);
+    }
+    .sig-card.active .sym { color: var(--accent-1); }
+
+    /* === Ana grafik + bilgi paneli === */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.55fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .primary-graph-card {
+      padding: 0.9rem 1rem 1rem;
+    }
+    .primary-graph-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .primary-graph-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--accent-1);
+      letter-spacing: 0.03em;
+    }
+    .graph-badge {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      padding: 0.22rem 0.55rem;
+      border-radius: 4px;
+      background: rgba(57, 255, 133, 0.10);
+      color: var(--accent-1);
+      border: 1px solid var(--accent-1);
+    }
+    .graph-badge.aperiodic {
+      background: rgba(255, 140, 66, 0.10);
+      color: var(--accent-2);
+      border-color: var(--accent-2);
+    }
+    #canvasMain {
+      width: 100%;
+      height: 320px;
+      display: block;
+    }
+
+    .info-card {
+      padding: 0.9rem 1rem 1rem;
+      display: flex; flex-direction: column;
+    }
+    .info-card h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-primary);
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.03em;
+    }
+    .info-formula {
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      padding: 0.7rem;
+      margin: 0.4rem 0 0.6rem;
+      overflow-x: auto;
+      font-size: 0.92rem;
+    }
+    .info-desc {
+      font-size: 0.82rem;
+      line-height: 1.55;
+      color: var(--text-secondary);
+      margin-bottom: 0.7rem;
+    }
+    .prop-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.78rem;
+    }
+    .prop-table td {
+      padding: 0.32rem 0.4rem;
+      border-bottom: 1px dashed var(--border-glow);
+    }
+    .prop-table td:first-child {
+      color: var(--text-dim);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      width: 42%;
+      letter-spacing: 0.04em;
+    }
+    .prop-table td:last-child {
+      color: var(--text-primary);
+      font-family: 'Saira', sans-serif;
+      font-weight: 500;
+    }
+    .prop-yes { color: var(--accent-1); }
+    .prop-no  { color: var(--color-marker); }
+
+    /* === Sayısal istatistikler bloğu === */
+    .stats-block {
+      margin-top: 0.7rem;
+      padding: 0.55rem 0.6rem;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+    }
+    .stats-block h5 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 0.35rem;
+      display: flex; align-items: baseline; gap: 0.4rem;
+    }
+    .stats-block h5 span {
+      font-size: 0.66rem;
+      color: var(--text-dim);
+      letter-spacing: 0;
+    }
+    .stats-grid-mini {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.25rem 0.7rem;
+    }
+    .stats-grid-mini > div {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.74rem;
+      padding: 0.15rem 0;
+      border-bottom: 1px dashed var(--border-glow);
+    }
+    .stats-grid-mini .lbl { color: var(--text-dim); }
+    .stats-grid-mini .val { color: var(--accent-1); font-weight: 500; }
+
+    /* Gizlenen parametre satırları */
+    .ctrl-row[data-hidden="1"] { display: none; }
+
+    /* === Kontroller === */
+    .controls-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+    }
+    .ctrl-card {
+      padding: 1rem 1.1rem;
+    }
+    .ctrl-card h4 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      margin-bottom: 0.7rem;
+      letter-spacing: 0.05em;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .ctrl-card h4 .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent-1);
+      box-shadow: 0 0 8px var(--accent-1);
+    }
+    .ctrl-card h4 .dot.h { background: var(--accent-2); box-shadow: 0 0 8px var(--accent-2); }
+    .ctrl-card h4 .dot.s { background: var(--color-y); box-shadow: 0 0 8px var(--color-y); }
+
+    .ctrl-row {
+      display: flex; flex-direction: column; gap: 0.25rem;
+      margin-bottom: 0.65rem;
+    }
+    .ctrl-row label {
+      font-size: 0.78rem; color: var(--text-secondary);
+      display: flex; justify-content: space-between;
+    }
+    .ctrl-row label .v {
+      font-family: 'Fira Code', monospace;
+      color: var(--accent-1);
+    }
+    .ctrl-row input[type="range"] { width: 100%; }
+
+    .toggle-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.4rem 0;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+    }
+
+    /* === Karşılaştırma (türev/integral) === */
+    .compare-card {
+      padding: 1rem 1.1rem;
+      margin-bottom: 1.2rem;
+    }
+    .compare-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.5rem;
+      margin-bottom: 0.6rem;
+    }
+    .compare-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text-primary);
+      letter-spacing: 0.03em;
+    }
+    .compare-legend {
+      display: flex; gap: 0.8rem;
+      font-size: 0.74rem;
+    }
+    .compare-legend span { display: inline-flex; align-items: center; gap: 0.3rem; }
+    .legend-line {
+      display: inline-block; width: 18px; height: 3px; border-radius: 2px;
+    }
+    #canvasDeriv, #canvasIntegral {
+      width: 100%;
+      height: 165px;
+      display: block;
+    }
+    /* main canvas — slightly shorter to leave room for derivative/integral pair below */
+    #canvasMain {
+      height: 250px !important;
+    }
+    /* inline derivative+integral pair attached under main graph */
+    .di-inline {
+      margin-top: 0.6rem;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+    }
+    .di-inline .mini-graph { padding: 0.45rem 0.55rem 0.3rem; }
+    .di-inline .mini-graph h5 { font-size: 0.78rem; margin-bottom: 0.25rem; }
+    @media (max-width: 760px) {
+      .di-inline { grid-template-columns: 1fr; }
+    }
+    .compare-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem;
+    }
+    .mini-graph {
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.6rem 0.3rem;
+    }
+    .mini-graph h5 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+      margin-bottom: 0.3rem;
+    }
+
+    /* === Teori kartları === */
+    .theory-section {
+      margin-top: 2rem;
+    }
+    .theory-section > h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.4rem;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+      margin-bottom: 0.4rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .theory-section > h2::before {
+      content: ""; display: inline-block;
+      width: 4px; height: 1.2em;
+      background: linear-gradient(180deg, var(--accent-1), var(--color-y));
+      border-radius: 2px;
+    }
+    .theory-section > p.section-intro {
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+      margin: 0 0 1rem 1rem;
+    }
+    .theory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 1rem;
+    }
+    .theory-card {
+      padding: 1.1rem 1.2rem;
+    }
+    .theory-card h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--accent-1);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.03em;
+    }
+    .theory-card h3.t-orange { color: var(--accent-2); }
+    .theory-card h3.t-indigo { color: var(--color-y); }
+    .theory-card p, .theory-card li {
+      font-size: 0.85rem;
+      line-height: 1.65;
+      color: var(--text-secondary);
+    }
+    .theory-card ul { margin-left: 1.2rem; margin-top: 0.4rem; }
+    .theory-card .math-block {
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.7rem;
+      margin: 0.5rem 0;
+      overflow-x: auto;
+      font-size: 0.92rem;
+    }
+    .theory-card .pill {
+      display: inline-block;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(123, 140, 255, 0.14);
+      color: var(--color-y);
+      margin-right: 0.3rem;
+      letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 920px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .compare-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">∿</span> Temel Sinyaller <span class="title-icon">δ</span>
+    </h1>
+    <p class="site-subtitle">Periyodik · Aperiyodik · Dirac · Birim Basamak · Üstel · Sinusoidal — Etkileşimli Tanıtım</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c active" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <div class="bs-wrap">
+
+    <!-- ====== SİNYAL GALERİSİ ====== -->
+    <section class="signal-gallery">
+      <div class="gallery-header">
+        <h2>Sinyal Kütüphanesi</h2>
+        <span class="gallery-sub">— bir karta tıklayarak ana ekranda inceleyin</span>
+      </div>
+      <div class="signal-cards" id="signalCards">
+        <!-- JS tarafından doldurulur -->
+      </div>
+    </section>
+
+    <!-- ====== ANA GRAFİK + BİLGİ PANELİ ====== -->
+    <div class="main-grid">
+      <div class="primary-graph-card glass-panel">
+        <div class="primary-graph-header">
+          <span class="primary-graph-title" id="mainTitle">x(t) — Sinyal</span>
+          <span class="graph-badge" id="mainBadge">aperiyodik</span>
+        </div>
+        <canvas id="canvasMain"></canvas>
+        <!-- Türev & İntegral hemen altta yan yana -->
+        <div class="di-inline">
+          <div class="mini-graph">
+            <h5>Türev — $\dfrac{dx}{dt}$</h5>
+            <canvas id="canvasDeriv"></canvas>
+          </div>
+          <div class="mini-graph">
+            <h5>İntegral — $\displaystyle\int_{-\infty}^{t} x(\tau)\,d\tau$</h5>
+            <canvas id="canvasIntegral"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-card glass-panel">
+        <h3 id="infoName">Matematiksel Tanım</h3>
+        <div class="info-formula" id="infoFormula">$x(t) = \ldots$</div>
+        <p class="info-desc" id="infoDesc">Bir sinyal seçiniz.</p>
+        <table class="prop-table">
+          <tbody id="propTable"></tbody>
+        </table>
+        <div class="stats-block" id="statsBlock">
+          <h5>Sayısal İstatistikler <span>($t \in [t_{\min}, t_{\max}]$ aralığında)</span></h5>
+          <div class="stats-grid-mini">
+            <div><span class="lbl">max $|x|$</span><span class="val" id="stMaxAbs">—</span></div>
+            <div><span class="lbl">ortalama (DC)</span><span class="val" id="stMean">—</span></div>
+            <div><span class="lbl">RMS</span><span class="val" id="stRms">—</span></div>
+            <div><span class="lbl">$E = \int |x|^2 dt$</span><span class="val" id="stEnergy">—</span></div>
+            <div><span class="lbl">$P = E/(t_{\max}-t_{\min})$</span><span class="val" id="stPower">—</span></div>
+            <div><span class="lbl">$x(t_0)$</span><span class="val" id="stAtT0">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== KONTROL PANELLERİ ====== -->
+    <div class="controls-row">
+      <!-- Parametreler — sinyale göre dinamik olarak gizlenir/gösterilir -->
+      <div class="ctrl-card glass-panel" id="paramsCard">
+        <h4><span class="dot"></span> Parametreler <span style="margin-left:auto;font-size:0.7rem;color:var(--text-dim);font-family:'Fira Code',monospace;letter-spacing:0.05em;" id="paramsHint">sinyale göre</span></h4>
+
+        <div class="ctrl-row" data-param="amp">
+          <label>Genlik $A$ <span class="v" id="ampVal">1.00</span></label>
+          <input type="range" id="amp" min="-3" max="3" step="0.05" value="1" />
+        </div>
+
+        <div class="ctrl-row" data-param="shift">
+          <label>Zaman kayması $t_0$ (s) <span class="v" id="shiftVal">0.00</span></label>
+          <input type="range" id="shift" min="-6" max="6" step="0.1" value="0" />
+        </div>
+
+        <div class="ctrl-row" data-param="freq">
+          <label>Frekans $F$ (Hz) <span class="v" id="freqVal">1.00</span></label>
+          <input type="range" id="freq" min="0.1" max="5" step="0.05" value="1" />
+        </div>
+
+        <div class="ctrl-row" data-param="width">
+          <label>Genişlik / Süre $T$ (s) <span class="v" id="widthVal">2.00</span></label>
+          <input type="range" id="width" min="0.2" max="8" step="0.1" value="2" />
+        </div>
+
+        <div class="ctrl-row" data-param="sigma">
+          <label>Standart sapma $\sigma$ <span class="v" id="sigmaVal">1.00</span></label>
+          <input type="range" id="sigma" min="0.1" max="4" step="0.05" value="1" />
+        </div>
+
+        <div class="ctrl-row" data-param="alpha">
+          <label>Sönüm / Büyüme $\alpha$ <span class="v" id="alphaVal">0.50</span></label>
+          <input type="range" id="alpha" min="-2" max="2" step="0.05" value="0.5" />
+        </div>
+      </div>
+
+      <!-- Modlar -->
+      <div class="ctrl-card glass-panel">
+        <h4><span class="dot h"></span> Görüntü Modu</h4>
+
+        <div class="toggle-row">
+          <span>Periyodik tekrarla</span>
+          <label class="toggle-switch"><input type="checkbox" id="periodic" /><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <span>Türev $\dot{x}(t)$ göster</span>
+          <label class="toggle-switch"><input type="checkbox" id="showDeriv" checked /><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <span>İntegral $\int x\,dt$ göster</span>
+          <label class="toggle-switch"><input type="checkbox" id="showIntegral" checked /><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <span>Çift / Tek ayrışım</span>
+          <label class="toggle-switch"><input type="checkbox" id="showEvenOdd" /><span class="toggle-slider"></span></label>
+        </div>
+
+        <div class="toggle-row">
+          <span>Zaman ekseni ızgarası</span>
+          <label class="toggle-switch"><input type="checkbox" id="showGrid" checked /><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Eksenler -->
+      <div class="ctrl-card glass-panel">
+        <h4><span class="dot s"></span> Eksen Ayarları</h4>
+
+        <div class="ctrl-row">
+          <label>$t_{\min}$ <span class="v" id="tminVal">-6</span></label>
+          <input type="range" id="tmin" min="-20" max="-1" step="0.5" value="-6" />
+        </div>
+        <div class="ctrl-row">
+          <label>$t_{\max}$ <span class="v" id="tmaxVal">6</span></label>
+          <input type="range" id="tmax" min="1" max="20" step="0.5" value="6" />
+        </div>
+        <div class="ctrl-row">
+          <label>Örnekleme yoğunluğu $N$ <span class="v" id="samplesVal">800</span></label>
+          <input type="range" id="samples" min="200" max="2000" step="50" value="800" />
+        </div>
+
+        <div style="display:flex;gap:0.4rem;margin-top:0.6rem;">
+          <button class="glass-btn" id="resetParams" style="flex:1;">↺ Parametreleri Sıfırla</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== TÜREV / İNTEGRAL — açıklama ====== -->
+    <div class="compare-card glass-panel" id="compareCard">
+      <div class="compare-header">
+        <span class="compare-title">Türev &amp; İntegral İlişkisi</span>
+        <div class="compare-legend">
+          <span><span class="legend-line" style="background:var(--accent-1);"></span> $x(t)$</span>
+          <span><span class="legend-line" style="background:var(--accent-2);"></span> $\dot{x}(t)$</span>
+          <span><span class="legend-line" style="background:var(--color-y);"></span> $\int x\,dt$</span>
+        </div>
+      </div>
+      <p style="font-size:0.82rem;color:var(--text-secondary);margin:0;line-height:1.6;">
+        Birim basamak, Dirac deltanın integralidir: $u(t) = \int_{-\infty}^{t} \delta(\tau)\,d\tau$.
+        Rampa, basamağın integralidir: $r(t) = \int_{-\infty}^{t} u(\tau)\,d\tau$.
+        Aynı zincir yukarıdaki türev ve integral panellerinde gözlemlenebilir.
+      </p>
+    </div>
+
+    <!-- ====== TEORİ BÖLÜMÜ ====== -->
+    <section class="theory-section">
+      <h2>Teorik Açıklamalar</h2>
+      <p class="section-intro">Sinyal sınıflandırmasına, temel matematiksel tanımlara ve simülasyonda gözlemlenen davranışların altında yatan ilkelere ilişkin özet bilgiler aşağıda sunulmaktadır.</p>
+
+      <div class="theory-grid">
+
+        <!-- Periyodik vs Aperiyodik -->
+        <div class="theory-card glass-panel">
+          <h3>Periyodik &amp; Aperiyodik İşaretler</h3>
+          <p>
+            Bir $x(t)$ işareti, en küçük $T_0 > 0$ değeri için her $t$'de
+          </p>
+          <div class="math-block">$$x(t + T_0) = x(t), \quad \forall t \in \mathbb{R}$$</div>
+          <p>
+            koşulunu sağlıyorsa <strong>periyodik</strong>tir; $T_0$ <em>temel periyot</em>, $F_0 = 1/T_0$ <em>temel frekans</em>,
+            $\Omega_0 = 2\pi F_0$ ise <em>açısal temel frekans</em>tır. Aksi hâlde işaret <strong>aperiyodik</strong>tır.
+          </p>
+          <ul>
+            <li><span class="pill">örnek</span> $\sin(\Omega_0 t)$ → periyodik, $T_0 = 2\pi/\Omega_0$</li>
+            <li><span class="pill">örnek</span> $e^{-\alpha t}u(t)$ → aperiyodik</li>
+            <li>İki periyodik işaretin toplamı yalnızca $T_1/T_2$ rasyonel ise periyodiktir.</li>
+          </ul>
+        </div>
+
+        <!-- Dirac Delta -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-orange">Dirac Delta $\delta(t)$</h3>
+          <p>
+            Dirac deltası bir <em>genelleştirilmiş fonksiyondur</em> (dağılımdır); klasik anlamda fonksiyon değildir.
+            İki temel özelliği ile tanımlanır:
+          </p>
+          <div class="math-block">$$\delta(t) = 0,\; t \neq 0; \qquad \int_{-\infty}^{\infty} \delta(t)\,dt = 1$$</div>
+          <p><strong>Eleme (sampling) özelliği:</strong> herhangi bir sürekli $f(t)$ için</p>
+          <div class="math-block">$$\int_{-\infty}^{\infty} f(t)\,\delta(t - t_0)\,dt = f(t_0).$$</div>
+          <ul>
+            <li>Ölçekleme: $\delta(at) = \dfrac{1}{|a|}\delta(t)$</li>
+            <li>Çiftlik: $\delta(-t) = \delta(t)$</li>
+            <li>Türev: $u'(t) = \delta(t)$ (dağılım anlamında)</li>
+            <li>LTI sistemlerin <em>impuls cevabı</em> $h(t)$, $\delta(t)$ girişine verdiği yanıt olarak tanımlanır.</li>
+          </ul>
+        </div>
+
+        <!-- Birim Basamak -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-indigo">Birim Basamak $u(t)$ (Heaviside)</h3>
+          <div class="math-block">$$u(t) = \begin{cases} 1, & t \geq 0 \\ 0, & t < 0 \end{cases}$$</div>
+          <p>
+            <strong>Türev:</strong> $u'(t) = \delta(t)$ — basamağın türevi Dirac deltasıdır.
+            <strong>İntegral:</strong> $\int u(\tau)d\tau = r(t)$ — basamak integre edilince rampaya dönüşür.
+          </p>
+          <p>
+            Birim basamak, <em>nedensel</em> sinyallerin yapı taşı olarak değerlendirilmektedir: $x(t)\,u(t)$ ifadesi, $x(t)$'nin yalnızca $t \geq 0$ kısmını elde etmek için kullanılır.
+            Anahtarlama olayları ve $t=0$ anında devreye giren kaynaklar bu işaret üzerinden modellenir.
+          </p>
+        </div>
+
+        <!-- Üstel ve Sinusoidal -->
+        <div class="theory-card glass-panel">
+          <h3>Üstel &amp; Sinusoidal İşaretler</h3>
+          <p>Sürekli zamanın iki temel <em>özfonksiyonu</em>:</p>
+          <div class="math-block">$$x(t) = A e^{\alpha t}, \qquad x(t) = A\cos(\Omega_0 t + \varphi)$$</div>
+          <p>
+            Bu iki gösterim <strong>Euler özdeşliği</strong> ile birleştirilmektedir:
+          </p>
+          <div class="math-block">$$e^{j\Omega t} = \cos(\Omega t) + j\sin(\Omega t).$$</div>
+          <p>
+            Genelleştirilmiş <strong>karmaşık üstel</strong> $A\,e^{s t}$, $s = \sigma + j\Omega$ tanımı altında sönen ya da büyüyen salınım üretmekte; bu yapı Laplace dönüşümünün ve LTI sistemlerin <em>doğal yanıtının</em> matematiksel temelini oluşturmaktadır.
+            $\sigma < 0$ değerinde sönüm, $\sigma = 0$ değerinde saf salınım, $\sigma > 0$ değerinde ise büyüyen salınım gözlenir.
+          </p>
+        </div>
+
+        <!-- Enerji ve Güç -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-orange">Enerji &amp; Güç Sinyalleri</h3>
+          <div class="math-block">$$E = \int_{-\infty}^{\infty} |x(t)|^2 dt, \qquad P = \lim_{T \to \infty} \frac{1}{2T}\int_{-T}^{T}|x(t)|^2 dt$$</div>
+          <ul>
+            <li><strong>Enerji sinyali:</strong> $0 < E < \infty$ ve $P = 0$. Tipik: kısa darbeler, $e^{-\alpha t}u(t)$.</li>
+            <li><strong>Güç sinyali:</strong> $0 < P < \infty$ ve $E = \infty$. Tipik: $\cos(\Omega_0 t)$, periyodik işaretler.</li>
+            <li>Bir sinyal hem enerji hem güç sinyali olamaz (Dirac dışında).</li>
+          </ul>
+          <p>
+            Periyodik bir işaretin güç tanımı yalnızca tek bir periyot üzerinden de yapılabilir:
+            $P = \frac{1}{T_0}\int_{T_0}|x(t)|^2 dt$.
+          </p>
+        </div>
+
+        <!-- Çift ve Tek -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-indigo">Çift &amp; Tek Bileşenler</h3>
+          <p>Herhangi bir $x(t)$, tek ve çift parçalara biricik şekilde ayrıştırılır:</p>
+          <div class="math-block">$$x_e(t) = \tfrac{1}{2}\big[x(t) + x(-t)\big],\quad x_o(t) = \tfrac{1}{2}\big[x(t) - x(-t)\big]$$</div>
+          <p>
+            Bu durumda $x_e(-t) = x_e(t)$ (çift), $x_o(-t) = -x_o(t)$ (tek) ve toplamları $x(t) = x_e(t) + x_o(t)$ ilişkisi sağlanır.
+            Söz konusu ayrışım Fourier dönüşümünün simetri özelliklerinin temelini teşkil etmektedir:
+            reel ve çift bir sinyalin Fourier dönüşümü yine reel ve çift; reel ve tek bir sinyalinki ise tamamen sanal ve tektir.
+          </p>
+        </div>
+
+        <!-- Sinyal İşlemleri -->
+        <div class="theory-card glass-panel">
+          <h3>Zaman Düzleminde Temel İşlemler</h3>
+          <p>Aşağıda yer alan temel sinyal işlemleri, simülasyondaki kaydırma, ölçekleme ve genlik denetimlerine doğrudan karşılık gelmektedir:</p>
+          <ul>
+            <li><strong>Zaman kaydırma:</strong> $x(t - t_0)$ — $t_0 > 0$ sağa öteler (gecikme).</li>
+            <li><strong>Zaman ölçekleme:</strong> $x(at)$ — $|a| > 1$ sıkıştırır, $|a| < 1$ genişletir.</li>
+            <li><strong>Zaman tersleme:</strong> $x(-t)$ — yansıma, konvolüsyon ve korelasyonun çekirdeğinde.</li>
+            <li><strong>Genlik ölçekleme:</strong> $A \cdot x(t)$.</li>
+            <li><strong>Genel dönüşüm:</strong> $x(at - b) = x(a(t - b/a))$ — önce <em>ölçekle</em>, sonra <em>kaydır</em>.</li>
+          </ul>
+        </div>
+
+        <!-- Dirac taraklı -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-orange">Dirac Taraklısı $\delta_T(t)$</h3>
+          <div class="math-block">$$\delta_T(t) = \sum_{k=-\infty}^{\infty} \delta(t - kT)$$</div>
+          <p>
+            $T$ periyotlu impuls dizisi olarak tanımlanan bu işaret, <strong>örnekleme teoreminin</strong> matematiksel çekirdeğini oluşturmaktadır:
+            sürekli bir sinyalin $\delta_T(t)$ ile çarpılması, $x(kT)$ değerlerinden oluşan ayrık zaman temsilini doğurmaktadır.
+          </p>
+          <p>
+            Bu işaretin Fourier dönüşümü yine bir Dirac taraklısıdır (Poisson toplam formülü):
+          </p>
+          <div class="math-block">$$\mathcal{F}\{\delta_T(t)\} = \frac{2\pi}{T}\sum_{k} \delta\!\left(\Omega - \tfrac{2\pi k}{T}\right).$$</div>
+        </div>
+
+        <!-- Sınıflandırma Özeti -->
+        <div class="theory-card glass-panel">
+          <h3 class="t-indigo">Sinyal Sınıflandırması — Özet</h3>
+          <ul>
+            <li><strong>Sürekli ve ayrık zamanlı:</strong> $x(t)$ ve $x[n]$ — bu sayfada sürekli zaman ele alınmaktadır.</li>
+            <li><strong>Periyodik ve aperiyodik:</strong> sinyalde tekrarlayan bir yapının bulunup bulunmadığı.</li>
+            <li><strong>Çift ve tek:</strong> $x(-t)$ ile arasındaki simetri bağıntısı.</li>
+            <li><strong>Enerji ve güç sinyalleri:</strong> $|x(t)|^2$ integralinin sınırlı olup olmadığı.</li>
+            <li><strong>Nedensel / antikausal / iki yönlü:</strong> $t<0$ bölgesinde değer üstlenip üstlenmediği.</li>
+            <li><strong>Deterministik ve rastgele:</strong> sinyalin kapalı formülle tanımlanıp tanımlanamadığı.</li>
+            <li><strong>Analog ve sayısal:</strong> genliğin sürekli mi yoksa nicelendirilmiş mi olduğu.</li>
+          </ul>
+          <p>
+            Her sinyal birden çok sınıfa aynı anda dâhil olabilir; örneğin $\cos(\Omega_0 t)$ işareti sürekli, periyodik, çift, güç sinyali, deterministik ve iki yönlü olarak sınıflandırılmaktadır.
+          </p>
+        </div>
+
+      </div>
+
+      <h3 style="margin-top:1.6rem;">Kaynaklar</h3>
+      <ul class="ref-list">
+        <li>Oppenheim, A. V., Willsky, A. S., Nawab, S. H. (1996). <em>Signals and Systems</em> (2nd ed.). Prentice Hall. — Sürekli zaman temel işaretleri, sinyal sınıflandırması ve LTI sistem girişi.</li>
+        <li>Lathi, B. P. (2009). <em>Linear Systems and Signals</em> (2nd ed.). Oxford University Press. — Dirac delta, birim basamak ve Heaviside dağılımları üzerine ayrıntılı tartışma.</li>
+        <li>Haykin, S., Van Veen, B. (2002). <em>Signals and Systems</em> (2nd ed.). Wiley. — Enerji/güç sinyalleri, çift/tek ayrıştırma.</li>
+        <li>Bracewell, R. N. (2000). <em>The Fourier Transform and Its Applications</em> (3rd ed.). McGraw-Hill. — Dirac taraklısı, Poisson toplam formülü ve dağılımlar.</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <footer class="site-footer"><span>Sinyal İşleme Eğitim Simülasyonu — Temel İşaretler</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/basic-signals.js"></script>
+</body>
+</html>

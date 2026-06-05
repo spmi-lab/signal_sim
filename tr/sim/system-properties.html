@@ -1,0 +1,906 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LTI Sistem Özellikleri — Etkileşimli Simülasyon</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* === Layout === */
+    .sp-wrap {
+      max-width: 1500px;
+      margin: 1rem auto;
+      padding: 0 1rem;
+      position: relative; z-index: 2;
+    }
+    .sp-section {
+      margin-bottom: 1.6rem;
+    }
+    .sp-section-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+      margin-bottom: 0.6rem;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .sp-section-title::before {
+      content: ""; display: inline-block;
+      width: 4px; height: 1.2em;
+      background: linear-gradient(180deg, var(--accent-1), var(--color-y));
+      border-radius: 2px;
+    }
+    .sp-section-title .badge {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      padding: 0.18rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(57,255,133,0.12);
+      color: var(--accent-1);
+      border: 1px solid var(--accent-1);
+      letter-spacing: 0.08em;
+    }
+    .sp-section-sub {
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.8rem;
+      margin-left: 1rem;
+    }
+
+    /* === System def === */
+    .sysdef-card {
+      padding: 1.1rem 1.2rem;
+    }
+    .sysdef-row {
+      display: flex; align-items: center; gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.6rem;
+    }
+    .sysdef-row label {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--accent-1);
+      min-width: 90px;
+    }
+    .sysdef-input {
+      flex: 1;
+      min-width: 280px;
+      padding: 0.55rem 0.7rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.92rem;
+      background: var(--canvas-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      outline: none;
+    }
+    .sysdef-input:focus {
+      border-color: var(--accent-1);
+      box-shadow: 0 0 0 2px rgba(57,255,133,0.18);
+    }
+    .sysdef-input.invalid {
+      border-color: var(--color-marker);
+      box-shadow: 0 0 0 2px rgba(255,79,154,0.18);
+    }
+    .sysdef-status {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+    .sysdef-status.ok {
+      background: rgba(57,255,133,0.10);
+      color: var(--accent-1);
+      border: 1px solid var(--accent-1);
+    }
+    .sysdef-status.err {
+      background: rgba(255,79,154,0.10);
+      color: var(--color-marker);
+      border: 1px solid var(--color-marker);
+    }
+    .sysdef-presets {
+      display: flex; flex-wrap: wrap; gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+    .sysdef-presets button {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.74rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      background: var(--canvas-bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-glow);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .sysdef-presets button:hover {
+      border-color: var(--accent-2);
+      color: var(--accent-2);
+    }
+    .sysdef-help {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-top: 0.6rem;
+      padding: 0.6rem 0.8rem;
+      background: rgba(123,140,255,0.06);
+      border-left: 3px solid var(--color-y);
+      border-radius: 4px;
+    }
+    .sysdef-help code {
+      background: var(--canvas-bg);
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      font-size: 0.78rem;
+      color: var(--accent-1);
+    }
+    .sysdef-rendered {
+      padding: 0.6rem 0.8rem;
+      margin-top: 0.5rem;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      font-size: 0.95rem;
+      min-height: 2.3rem;
+    }
+
+    /* === Time axis controls === */
+    .axis-card {
+      padding: 1rem 1.2rem;
+    }
+    .axis-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem 1.3rem;
+    }
+    .axis-row .ctrl-row {
+      display: flex; flex-direction: column; gap: 0.25rem;
+    }
+    .ctrl-row label {
+      font-size: 0.8rem; color: var(--text-secondary);
+      display: flex; justify-content: space-between;
+    }
+    .ctrl-row label .v {
+      font-family: 'Fira Code', monospace;
+      color: var(--accent-1);
+    }
+    .ctrl-row input[type="range"] { width: 100%; }
+
+    /* === Signal cards === */
+    .signal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 920px) {
+      .signal-grid { grid-template-columns: 1fr; }
+    }
+    .signal-card {
+      padding: 1rem 1.1rem;
+      border-left: 3px solid var(--accent-1);
+    }
+    .signal-card.x2 { border-left-color: var(--accent-2); }
+    .signal-card h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--accent-1);
+      margin-bottom: 0.6rem;
+      letter-spacing: 0.04em;
+    }
+    .signal-card.x2 h3 { color: var(--accent-2); }
+    .sig-types {
+      display: flex; flex-wrap: wrap; gap: 0.35rem;
+      margin-bottom: 0.7rem;
+    }
+    .sig-type-btn {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      padding: 0.32rem 0.65rem;
+      border-radius: 4px;
+      background: var(--canvas-bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-glow);
+      cursor: pointer;
+      transition: all var(--transition);
+      letter-spacing: 0.04em;
+    }
+    .sig-type-btn:hover {
+      border-color: var(--accent-1);
+      color: var(--text-primary);
+    }
+    .sig-type-btn.active {
+      background: linear-gradient(135deg, rgba(57,255,133,0.18), rgba(123,140,255,0.18));
+      border-color: var(--accent-1);
+      color: var(--accent-1);
+      box-shadow: 0 0 8px rgba(57,255,133,0.18) inset;
+    }
+    .signal-card.x2 .sig-type-btn.active {
+      background: linear-gradient(135deg, rgba(255,140,66,0.18), rgba(255,79,154,0.18));
+      border-color: var(--accent-2);
+      color: var(--accent-2);
+      box-shadow: 0 0 8px rgba(255,140,66,0.18) inset;
+    }
+    .sig-params {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.5rem 0.9rem;
+      margin-bottom: 0.6rem;
+    }
+    .sig-canvas-wrap {
+      position: relative;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+    }
+    .sig-canvas-wrap canvas {
+      width: 100%;
+      height: 200px;
+      display: block;
+      cursor: default;
+    }
+    .sig-canvas-wrap.draw-mode canvas {
+      cursor: crosshair;
+    }
+    .sig-canvas-wrap .draw-hint {
+      position: absolute;
+      top: 6px; right: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--accent-2);
+      pointer-events: none;
+      opacity: 0.8;
+    }
+    .sig-clear-draw {
+      margin-top: 0.5rem;
+      display: none;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      padding: 0.32rem 0.7rem;
+      border-radius: 4px;
+      background: var(--canvas-bg);
+      color: var(--color-marker);
+      border: 1px solid var(--color-marker);
+      cursor: pointer;
+    }
+    .sig-clear-draw.show { display: inline-block; }
+
+    /* === Property sections === */
+    .prop-card {
+      padding: 1.1rem 1.2rem;
+    }
+    .prop-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.6rem;
+      margin-bottom: 0.6rem;
+    }
+    .prop-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text-primary);
+      letter-spacing: 0.03em;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .prop-title .num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, var(--accent-1), var(--color-y));
+      color: var(--bg-deep);
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .prop-formula {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      padding: 0.25rem 0.55rem;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: 4px;
+    }
+    .prop-ctrl {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 0.7rem;
+      margin-bottom: 0.7rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .prop-ctrl label { color: var(--text-secondary); }
+    .prop-radio-group {
+      display: inline-flex; gap: 0.3rem;
+    }
+    .prop-radio {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      background: var(--canvas-bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-glow);
+      cursor: pointer;
+      letter-spacing: 0.04em;
+    }
+    .prop-radio.active {
+      background: rgba(57,255,133,0.12);
+      border-color: var(--accent-1);
+      color: var(--accent-1);
+    }
+    .io-grid {
+      display: grid;
+      grid-template-columns: 1fr 36px 1fr;
+      gap: 0.4rem;
+      align-items: stretch;
+    }
+    @media (max-width: 760px) {
+      .io-grid { grid-template-columns: 1fr; }
+      .io-arrow { display: none; }
+    }
+    .io-cell {
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.6rem 0.3rem;
+    }
+    .io-cell h4 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+      margin-bottom: 0.3rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .io-cell h4 .tag {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+    .io-cell canvas {
+      width: 100%;
+      height: 200px;
+      display: block;
+    }
+    .io-arrow {
+      align-self: center;
+      text-align: center;
+      font-size: 1.4rem;
+      color: var(--accent-2);
+      font-family: 'Saira Condensed', sans-serif;
+    }
+    .verdict {
+      margin-top: 0.7rem;
+      padding: 0.55rem 0.8rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .verdict.unknown {
+      background: rgba(123,140,255,0.08);
+      border: 1px solid var(--color-y);
+      color: var(--text-secondary);
+    }
+    .verdict.pass {
+      background: rgba(57,255,133,0.10);
+      border: 1px solid var(--accent-1);
+      color: var(--accent-1);
+    }
+    .verdict.fail {
+      background: rgba(255,79,154,0.10);
+      border: 1px solid var(--color-marker);
+      color: var(--color-marker);
+    }
+    .verdict strong {
+      font-family: 'Saira Condensed', sans-serif;
+      letter-spacing: 0.05em;
+    }
+    .stat-strip {
+      display: flex; flex-wrap: wrap; gap: 0.7rem 1.2rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 0.4rem;
+    }
+    .stat-strip span b { color: var(--accent-1); font-weight: 500; }
+
+    /* === Linearity panel (3 rows of IO) === */
+    .lin-rows .io-grid { margin-bottom: 0.4rem; }
+    .lin-rows .io-grid .io-cell canvas { height: 160px; }
+    .lin-rows .io-grid:last-child .io-cell canvas { height: 200px; }
+
+    /* === Property note === */
+    .prop-note {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 0.5rem;
+      line-height: 1.55;
+    }
+    .prop-note code {
+      background: var(--canvas-bg);
+      padding: 0.05rem 0.3rem;
+      border-radius: 3px;
+      color: var(--accent-1);
+      font-size: 0.78rem;
+    }
+
+    /* === Yanıp sönen tarama uyarısı === */
+    @keyframes pulseWarn {
+      0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(255, 140, 66, 0.7);
+        transform: translateY(0);
+      }
+      50% {
+        opacity: 0.55;
+        box-shadow: 0 0 0 6px rgba(255, 140, 66, 0);
+        transform: translateY(-1px);
+      }
+    }
+    .sweep-warn {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      padding: 0.32rem 0.7rem;
+      margin-left: 0.6rem;
+      border-radius: 4px;
+      background: rgba(255, 140, 66, 0.12);
+      color: var(--accent-2);
+      border: 1.5px solid var(--accent-2);
+      animation: pulseWarn 1.4s ease-in-out infinite;
+      cursor: help;
+    }
+    .sweep-warn .arrow {
+      display: inline-block;
+      animation: arrowBob 1s ease-in-out infinite;
+    }
+    @keyframes arrowBob {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(-3px); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">T</span> LTI Sistem Özellikleri <span class="title-icon">{·}</span>
+    </h1>
+    <p class="site-subtitle">Belleksizlik · Nedensellik · Doğrusallık · Zamanla Değişmezlik · Kararlılık — Etkileşimli Sistem Tanımlama</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c active" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <div class="sp-wrap">
+
+    <!-- ============ 1. SİSTEM TANIMI ============ -->
+    <section class="sp-section">
+      <div class="sp-section-title">Sistem Tanımı <span class="badge">T{x(t)}</span></div>
+      <p class="sp-section-sub">Sistemin giriş–çıkış ilişkisi matematiksel bir ifade üzerinden tanımlanmaktadır. <code style="color:var(--accent-1);">x</code> giriş işaretini, <code style="color:var(--accent-1);">t</code> ise zamanı temsil eder. Gecikme için <code style="color:var(--accent-1);">x(t-3)</code> yazımı desteklenmektedir.</p>
+
+      <div class="sysdef-card glass-panel">
+        <div class="sysdef-row">
+          <label>T{x(t)} =</label>
+          <input type="text" id="sysExpr" class="sysdef-input"
+            value="x(t)^2 + cos(2*pi*t)/5*rect(3*t) * exp(-2*t) + x(t-3)" autocomplete="off" spellcheck="false" />
+          <span id="sysStatus" class="sysdef-status ok">✓ ifade geçerli</span>
+        </div>
+
+        <div class="sysdef-rendered" id="sysRendered">$y(t) = \ldots$</div>
+
+        <div class="sysdef-presets">
+          <span style="font-size:0.78rem;color:var(--text-dim);align-self:center;margin-right:0.3rem;">Hazır örnekler:</span>
+          <button data-expr="3*x(t)">y = 3x(t) — belleksiz, LTI</button>
+          <button data-expr="x(t-2)">y = x(t−2) — saf gecikme</button>
+          <button data-expr="x(t)^2">y = x²(t) — belleksiz, doğrusal değil</button>
+          <button data-expr="t*x(t)">y = t·x(t) — zamanla değişen, doğrusal</button>
+          <button data-expr="cos(x(t))">y = cos(x(t)) — belleksiz, doğrusal değil</button>
+          <button data-expr="x(t) + x(t-1)">y = x(t)+x(t−1) — bellekli, LTI</button>
+          <button data-expr="x(-t)">y = x(−t) — zaman tersleme</button>
+          <button data-expr="x(2*t)">y = x(2t) — zaman ölçekleme</button>
+          <button data-expr="x(t)^2 + cos(2*pi*t)/5*rect(3*t) * exp(-2*t) + x(t-3)">Varsayılan (karmaşık)</button>
+        </div>
+
+        <div class="sysdef-help">
+          <strong>Desteklenen yazım:</strong>
+          değişkenler: <code>t</code>, <code>x(...)</code>;
+          sabitler: <code>pi</code>, <code>e</code>;
+          operatörler: <code>+ − * / ^</code>;
+          fonksiyonlar: <code>cos sin tan exp log sqrt abs sgn</code>,
+          <code>u(t)</code> (basamak), <code>rect(t)</code> (|t|≤½), <code>tri(t)</code> (üçgen),
+          <code>delta(t)</code> (Dirac, dar darbe).
+          <br/>
+          <strong>Gecikme:</strong> <code>x(t-T0)</code> formunda; argüman her şey olabilir (ör. <code>x(2*t-1)</code> ölçekleme + kayma).
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 2. ZAMAN EKSENİ ============ -->
+    <section class="sp-section">
+      <div class="sp-section-title">Zaman Ekseni <span class="badge" style="background:rgba(123,140,255,0.12);color:var(--color-y);border-color:var(--color-y);">t ∈ [−t₀, t₁]</span></div>
+      <p class="sp-section-sub">Tüm grafikler ortak bir zaman ızgarasında çizilir. <code style="color:var(--accent-1);">dt</code> çözünürlüğü belirler. Her sinyal için ayrı merkez ($t_{c1}$, $t_{c2}$) aşağıdaki kartlarda ayarlanır.</p>
+
+      <div class="axis-card glass-panel">
+        <div class="axis-row">
+          <div class="ctrl-row">
+            <label>Başlangıç $-t_0$ <span class="v" id="t0Val">-6.0</span></label>
+            <input type="range" id="t0" min="-20" max="-1" step="0.5" value="-6" />
+          </div>
+          <div class="ctrl-row">
+            <label>Bitiş $+t_1$ <span class="v" id="t1Val">6.0</span></label>
+            <input type="range" id="t1" min="1" max="20" step="0.5" value="6" />
+          </div>
+          <div class="ctrl-row">
+            <label>Çözünürlük $dt$ <span class="v" id="dtVal">0.020</span></label>
+            <input type="range" id="dt" min="0.005" max="0.1" step="0.005" value="0.02" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 3. GİRİŞ İŞARETLERİ ============ -->
+    <section class="sp-section">
+      <div class="sp-section-title">Giriş İşaretleri <span class="badge" style="background:rgba(255,140,66,0.12);color:var(--accent-2);border-color:var(--accent-2);">x₁(t) &amp; x₂(t)</span></div>
+      <p class="sp-section-sub">İki ayrı giriş işareti tanımlanmaktadır; doğrusallık testinde her ikisi birlikte, diğer özelliklerin sınanmasında ise tek tek kullanılmaktadır. <strong>Elle çiz</strong> seçeneği aracılığıyla kullanıcı tarafından serbest biçimli bir sinyal de tanımlanabilmektedir.</p>
+
+      <div class="signal-grid">
+
+        <!-- x_1 -->
+        <div class="signal-card glass-panel" data-sig="1">
+          <h3>x₁(t)</h3>
+          <div class="sig-types" data-sig="1">
+            <button class="sig-type-btn active" data-type="cos">Kosinüs</button>
+            <button class="sig-type-btn" data-type="sin">Sinüs</button>
+            <button class="sig-type-btn" data-type="dirac">Dirac δ</button>
+            <button class="sig-type-btn" data-type="square">Kare (aperiyodik)</button>
+            <button class="sig-type-btn" data-type="triangle">Üçgen (aperiyodik)</button>
+            <button class="sig-type-btn" data-type="draw">✎ Elle Çiz</button>
+          </div>
+          <div class="sig-params" data-sig="1">
+            <div class="ctrl-row">
+              <label>Genlik $A$ <span class="v" data-val="amp">1.00</span></label>
+              <input type="range" data-param="amp" min="-3" max="3" step="0.05" value="1" />
+            </div>
+            <div class="ctrl-row">
+              <label>Frekans $F$ <span class="v" data-val="freq">0.50</span></label>
+              <input type="range" data-param="freq" min="0.05" max="3" step="0.05" value="0.5" />
+            </div>
+            <div class="ctrl-row">
+              <label>Genişlik $W$ <span class="v" data-val="width">2.00</span></label>
+              <input type="range" data-param="width" min="0.2" max="10" step="0.1" value="2" />
+            </div>
+            <div class="ctrl-row">
+              <label>Faz $\varphi$ <span class="v" data-val="phase">0.00</span></label>
+              <input type="range" data-param="phase" min="-3.14159" max="3.14159" step="0.05" value="0" />
+            </div>
+            <div class="ctrl-row" style="grid-column:1/-1;">
+              <label>Merkez $t_{c1}$ <span class="v" data-val="tc">0.00</span></label>
+              <input type="range" data-param="tc" min="-10" max="10" step="0.05" value="0" />
+            </div>
+          </div>
+          <div class="sig-canvas-wrap" data-sig="1">
+            <canvas data-sig="1"></canvas>
+          </div>
+          <button class="sig-clear-draw" data-sig="1">🗑 Çizimi Sil</button>
+        </div>
+
+        <!-- x_2 -->
+        <div class="signal-card glass-panel x2" data-sig="2">
+          <h3>x₂(t)</h3>
+          <div class="sig-types" data-sig="2">
+            <button class="sig-type-btn" data-type="cos">Kosinüs</button>
+            <button class="sig-type-btn active" data-type="sin">Sinüs</button>
+            <button class="sig-type-btn" data-type="dirac">Dirac δ</button>
+            <button class="sig-type-btn" data-type="square">Kare (aperiyodik)</button>
+            <button class="sig-type-btn" data-type="triangle">Üçgen (aperiyodik)</button>
+            <button class="sig-type-btn" data-type="draw">✎ Elle Çiz</button>
+          </div>
+          <div class="sig-params" data-sig="2">
+            <div class="ctrl-row">
+              <label>Genlik $A$ <span class="v" data-val="amp">0.80</span></label>
+              <input type="range" data-param="amp" min="-3" max="3" step="0.05" value="0.8" />
+            </div>
+            <div class="ctrl-row">
+              <label>Frekans $F$ <span class="v" data-val="freq">1.00</span></label>
+              <input type="range" data-param="freq" min="0.05" max="3" step="0.05" value="1" />
+            </div>
+            <div class="ctrl-row">
+              <label>Genişlik $W$ <span class="v" data-val="width">3.00</span></label>
+              <input type="range" data-param="width" min="0.2" max="10" step="0.1" value="3" />
+            </div>
+            <div class="ctrl-row">
+              <label>Faz $\varphi$ <span class="v" data-val="phase">0.00</span></label>
+              <input type="range" data-param="phase" min="-3.14159" max="3.14159" step="0.05" value="0" />
+            </div>
+            <div class="ctrl-row" style="grid-column:1/-1;">
+              <label>Merkez $t_{c2}$ <span class="v" data-val="tc">0.00</span></label>
+              <input type="range" data-param="tc" min="-10" max="10" step="0.05" value="0" />
+            </div>
+          </div>
+          <div class="sig-canvas-wrap" data-sig="2">
+            <canvas data-sig="2"></canvas>
+          </div>
+          <button class="sig-clear-draw" data-sig="2">🗑 Çizimi Sil</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 4. ÖZELLİKLER ============ -->
+
+    <!-- 1) Belleksizlik -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num">1</span>Belleksizlik (Memoryless)</div>
+          <span class="prop-formula">y(t) = f(x(t))</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>Giriş:</label>
+          <div class="prop-radio-group" data-prop="mem">
+            <button class="prop-radio active" data-input="x1">x₁(t)</button>
+            <button class="prop-radio" data-input="x2">x₂(t)</button>
+          </div>
+        </div>
+        <div class="io-grid">
+          <div class="io-cell">
+            <h4>Giriş x(t) <span class="tag" id="memInTag">x₁</span></h4>
+            <canvas id="memInCv"></canvas>
+          </div>
+          <div class="io-arrow">→</div>
+          <div class="io-cell">
+            <h4>Çıkış y(t) <span class="tag">T{x}</span></h4>
+            <canvas id="memOutCv"></canvas>
+          </div>
+        </div>
+        <div class="verdict unknown" id="memVerdict"><strong>Belleksiz mi?</strong> <span>Sezgisel test: y(t)'nin yalnızca x(t)'nin <em>aynı anki</em> değerine bağlı olup olmadığını sınar.</span></div>
+        <p class="prop-note">Sistem yalnızca <code>x(t)</code>'ye bağlıysa ve başka bir zaman noktasını kullanmıyorsa <strong>belleksiz</strong> olarak değerlendirilmektedir (örn. <code>3*x(t)</code>, <code>x(t)^2</code>). İfadede <code>x(t-a)</code> ($a \neq 0$), integral veya diferansiyel terimler bulunması durumunda sistemin <em>bellekli</em> olduğu söylenir.</p>
+      </div>
+    </section>
+
+    <!-- 2) Nedensellik -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num">2</span>Nedensellik (Causality)</div>
+          <span class="prop-formula">y(t) = f(x(τ ≤ t))</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>Giriş:</label>
+          <div class="prop-radio-group" data-prop="cau">
+            <button class="prop-radio active" data-input="x1">x₁(t)</button>
+            <button class="prop-radio" data-input="x2">x₂(t)</button>
+          </div>
+          <label style="margin-left:0.8rem;">Kesme zamanı $t^*$: <span class="v" id="causTstarVal" style="color:var(--accent-1);font-family:'Fira Code',monospace;">2.0</span></label>
+          <input type="range" id="causTstar" min="-5" max="5" step="0.1" value="2" style="width:180px;" />
+        </div>
+        <div class="io-grid">
+          <div class="io-cell">
+            <h4>Giriş <span class="tag">x(t) — t* sonrası kesilmiş (kesik)</span></h4>
+            <canvas id="cauInCv"></canvas>
+          </div>
+          <div class="io-arrow">→</div>
+          <div class="io-cell">
+            <h4>Çıkış <span class="tag">T{x} (yeşil) vs T{x · u(t*−t)} (pembe)</span></h4>
+            <canvas id="cauOutCv"></canvas>
+          </div>
+        </div>
+        <div class="verdict unknown" id="cauVerdict"><strong>Nedensel mi?</strong> <span>Girişin t&gt;t* kısmı silinince çıkışın t&lt;t* kısmı değişiyor mu?</span></div>
+        <p class="prop-note">Test (gerek ve yeter koşul): giriş işareti $t^*$ noktasında iki kopyaya ayrılmaktadır. $T\{x\}(t) = T\{x \cdot u(t^*-t)\}(t)$ eşitliği tüm $t \leq t^*$ için sağlanıyorsa sistem <strong>nedensel</strong> olarak nitelendirilir; zira bu durumda çıkışın geçmişi yalnızca girişin geçmişine bağlıdır. <code>x(t+a)</code> ($a > 0$), <code>x(-t)</code> ya da <code>x(2t)</code> gibi <em>geleceğe erişim</em> içeren sistemlerde testin kesik (pembe) çıkışı geçmiş bölgede ana yanıttan (yeşil) sapma göstermektedir.</p>
+      </div>
+    </section>
+
+    <!-- 3) Doğrusallık -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num">3</span>Doğrusallık (Süperpozisyon)</div>
+          <span class="prop-formula">T{ax₁+bx₂} =? aT{x₁}+bT{x₂}</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>Katsayılar:</label>
+          <span style="font-family:'Fira Code',monospace;color:var(--accent-1);">a = <span id="linAVal">1.00</span></span>
+          <input type="range" id="linA" min="-3" max="3" step="0.05" value="1" style="width:140px;" />
+          <span style="font-family:'Fira Code',monospace;color:var(--accent-2);">b = <span id="linBVal">1.00</span></span>
+          <input type="range" id="linB" min="-3" max="3" step="0.05" value="1" style="width:140px;" />
+          <span class="sweep-warn" title="Tek bir (a, b) çiftinde verdict aldatıcı olabilir — örn. a veya b sıfır olduğunda doğrusal olmayan bir sistem bile süperpozisyona uyabilir. Farklı pozitif/negatif değerlerle slider'ları süpürüp verdict'in tutarlı kaldığını gözleyin.">
+            <span class="arrow">↔</span> a, b değerlerini tarayınız
+          </span>
+        </div>
+        <div class="lin-rows">
+          <div class="io-grid">
+            <div class="io-cell">
+              <h4>a·x₁(t) <span class="tag">giriş 1</span></h4>
+              <canvas id="linIn1Cv"></canvas>
+            </div>
+            <div class="io-arrow">→</div>
+            <div class="io-cell">
+              <h4>a·T{x₁(t)} <span class="tag">çıkış 1</span></h4>
+              <canvas id="linOut1Cv"></canvas>
+            </div>
+          </div>
+          <div class="io-grid">
+            <div class="io-cell">
+              <h4>b·x₂(t) <span class="tag">giriş 2</span></h4>
+              <canvas id="linIn2Cv"></canvas>
+            </div>
+            <div class="io-arrow">→</div>
+            <div class="io-cell">
+              <h4>b·T{x₂(t)} <span class="tag">çıkış 2</span></h4>
+              <canvas id="linOut2Cv"></canvas>
+            </div>
+          </div>
+          <div class="io-grid">
+            <div class="io-cell">
+              <h4>a·x₁ + b·x₂ <span class="tag">birleşik giriş</span></h4>
+              <canvas id="linInSCv"></canvas>
+            </div>
+            <div class="io-arrow">→</div>
+            <div class="io-cell">
+              <h4>T{a·x₁ + b·x₂} <span style="color:var(--color-marker);" class="tag">vs a·T{x₁}+b·T{x₂}</span></h4>
+              <canvas id="linOutSCv"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="verdict unknown" id="linVerdict"><strong>Doğrusal mı?</strong> <span>İki çıkış (yeşil = T{birleşik}, pembe-kesik = a·T{x₁}+b·T{x₂}) çakışırsa süperpozisyon sağlanır.</span></div>
+        <p class="prop-note">İki temel sınama uygulanır: <em>(a) Toplanabilirlik</em> — $T\{x_1+x_2\} = T\{x_1\} + T\{x_2\}$; <em>(b) Homojenlik</em> — $T\{\alpha x\} = \alpha T\{x\}$. Her iki koşulun birlikte sağlanması durumunda sistem <strong>doğrusal</strong> kabul edilmektedir.</p>
+      </div>
+    </section>
+
+    <!-- 4) Zamanla Değişmezlik -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num">4</span>Zamanla Değişmezlik (LTI Test)</div>
+          <span class="prop-formula">T{x(t−T₀)} =? y(t−T₀)</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>Giriş:</label>
+          <div class="prop-radio-group" data-prop="tinv">
+            <button class="prop-radio active" data-input="x1">x₁(t)</button>
+            <button class="prop-radio" data-input="x2">x₂(t)</button>
+          </div>
+          <label style="margin-left:0.8rem;">Gecikme $T_0$: <span class="v" id="tinvT0Val" style="color:var(--accent-1);font-family:'Fira Code',monospace;">1.5</span></label>
+          <input type="range" id="tinvT0" min="-5" max="5" step="0.1" value="1.5" style="width:180px;" />
+          <span class="sweep-warn" title="Tek bir T₀ değerinde verdict aldatıcı olabilir — özellikle sistem periyodik bir katsayı içeriyorsa (örn. cos(2πt)·x(t)) bazı T₀ değerleri tesadüfen değişmezmiş gibi görünür. Slider'ı geniş bir aralıkta süpürüp verdict'in tutarlı olduğundan emin olun.">
+            <span class="arrow">↔</span> slider ile tarayınız
+          </span>
+        </div>
+        <div class="io-grid">
+          <div class="io-cell">
+            <h4>Giriş: x(t−T₀) <span class="tag">gecikmeli giriş</span></h4>
+            <canvas id="tinvInCv"></canvas>
+          </div>
+          <div class="io-arrow">→</div>
+          <div class="io-cell">
+            <h4>Çıkış: T{x(t−T₀)} <span style="color:var(--color-marker);" class="tag">vs y(t−T₀)</span></h4>
+            <canvas id="tinvOutCv"></canvas>
+          </div>
+        </div>
+        <div class="verdict unknown" id="tinvVerdict"><strong>Zamanla değişmez mi?</strong> <span>Yeşil eğri (önce gecikme, sonra sistem) ile pembe-kesik eğri (önce sistem, sonra gecikme) çakışırsa sistem zamanla değişmezdir.</span></div>
+        <p class="prop-note">Bir sistemin <strong>zamanla değişmez</strong> olarak nitelendirilebilmesi için, girişe uygulanan gecikmenin çıkışta da aynı miktarda gecikme olarak görünmesi gerekmektedir. <code>t*x(t)</code>, <code>x(2t)</code> veya <code>cos(2\pi t)\cdot x(t)$ gibi <em>$t$'yi açık biçimde içeren</em> sistemler genellikle <strong>zamanla değişen</strong> sistemler olarak sınıflandırılır.</p>
+      </div>
+    </section>
+
+    <!-- 5) Kararlılık -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num">5</span>Kararlılık (BIBO)</div>
+          <span class="prop-formula">|x(t)| ≤ Mₓ ⇒ |y(t)| ≤ Mᵧ</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>Giriş:</label>
+          <div class="prop-radio-group" data-prop="stab">
+            <button class="prop-radio active" data-input="x1">x₁(t)</button>
+            <button class="prop-radio" data-input="x2">x₂(t)</button>
+          </div>
+        </div>
+        <div class="io-grid">
+          <div class="io-cell">
+            <h4>Giriş x(t) <span class="tag" id="stabInTag">x₁</span></h4>
+            <canvas id="stabInCv"></canvas>
+          </div>
+          <div class="io-arrow">→</div>
+          <div class="io-cell">
+            <h4>Çıkış y(t) <span class="tag">T{x}</span></h4>
+            <canvas id="stabOutCv"></canvas>
+          </div>
+        </div>
+        <div class="stat-strip" id="stabStats">
+          <span>max |x(t)| = <b id="stabMx">—</b></span>
+          <span>max |y(t)| = <b id="stabMy">—</b></span>
+          <span>kazanç ≈ <b id="stabG">—</b></span>
+        </div>
+        <div class="verdict unknown" id="stabVerdict"><strong>BIBO kararlı mı?</strong> <span>Sınırlı bir girişin sınırlı çıkış üretmesi gerekir.</span></div>
+        <p class="prop-note">BIBO kararlılığının ispatı için tüm sınırlı girişlerin sınırlı çıkış üretmesi gerekir; tek bir sınırlı giriş üzerindeki gözlem yalnızca <em>karşı örnek</em> sağlama amacıyla kullanılabilir. Bu sınırlamaya karşın, çıkışın sınırsızca büyüdüğü gözlemlenirse sistem <strong>kararsız</strong> olarak nitelendirilir. <code>e^(\alpha t)</code> bileşeni içeren sistemlerde $\alpha > 0$ değeri kararsızlığa yol açmaktadır.</p>
+      </div>
+    </section>
+
+    <!-- ============ EKSTRA: LTI ⇒ İMPULS CEVABI h(t) ============ -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel" style="border-left:3px solid var(--color-y);">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num" style="background:linear-gradient(135deg,var(--color-y),var(--accent-2));">★</span>İmpuls Cevabı (yalnızca LTI sistemlerde)</div>
+          <span class="prop-formula">h(t) = T{δ(t − t<sub>h</sub>)}</span>
+        </div>
+        <div id="ltiGate" class="verdict unknown" style="margin-bottom:0.6rem;">
+          <strong>LTI durumu:</strong> <span>Doğrusallık ve zamanla değişmezlik testlerinin her ikisi de geçerse h(t) hesaplanır.</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>İmpuls konumu $t_h$: <span class="v" id="impTVal" style="color:var(--accent-1);font-family:'Fira Code',monospace;">0.0</span></label>
+          <input type="range" id="impT" min="-5" max="5" step="0.1" value="0" style="width:200px;" />
+        </div>
+        <div class="io-grid">
+          <div class="io-cell">
+            <h4>Giriş δ(t − t<sub>h</sub>) <span class="tag">birim impuls</span></h4>
+            <canvas id="impInCv"></canvas>
+          </div>
+          <div class="io-arrow">→</div>
+          <div class="io-cell">
+            <h4>Çıkış h(t) <span class="tag">impuls cevabı</span></h4>
+            <canvas id="impOutCv"></canvas>
+          </div>
+        </div>
+        <p class="prop-note">LTI sistemler tamamen <strong>impuls cevabı</strong> $h(t)$ ile karakterize edilmektedir: keyfi bir giriş için çıkış, konvolüsyon işlemi yoluyla $y(t) = x(t) * h(t) = \int x(\tau)\,h(t-\tau)\,d\tau$ olarak hesaplanır. Sistem LTI değilse bu temsil geçerliliğini yitirir; zira farklı girişler için farklı bir $h(\cdot)$ tanımlamak gerekecektir.</p>
+      </div>
+    </section>
+
+    <section class="sp-section" style="margin-top:1.5rem;">
+      <h3>Kaynaklar</h3>
+      <ul class="ref-list">
+        <li>Oppenheim, A. V., Willsky, A. S., Nawab, S. H. (1996). <em>Signals and Systems</em> (2nd ed.). Prentice Hall. — LTI sistem özellikleri, doğrusallık, zamanla değişmezlik ve nedensellik tanımları.</li>
+        <li>Lathi, B. P. (2009). <em>Linear Systems and Signals</em> (2nd ed.). Oxford University Press. — Sistem özelliklerinin sınanması ve BIBO kararlılığı.</li>
+        <li>Phillips, C. L., Parr, J. M., Riskin, E. A. (2014). <em>Signals, Systems, and Transforms</em> (5th ed.). Pearson. — Bellek, nedensellik ve doğrusallık üzerine örnekli işleyiş.</li>
+        <li>Haykin, S., Van Veen, B. (2002). <em>Signals and Systems</em> (2nd ed.). Wiley. — Sürekli zamanda LTI sistem karakterizasyonu ve impuls cevabı.</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <footer class="site-footer"><span>Sinyal İşleme Eğitim Simülasyonu — Sistem Özellikleri</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/system-properties.js"></script>
+</body>
+</html>

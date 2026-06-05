@@ -1,0 +1,906 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LTI System Properties — Interactive Simulation</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* === Layout === */
+    .sp-wrap {
+      max-width: 1500px;
+      margin: 1rem auto;
+      padding: 0 1rem;
+      position: relative; z-index: 2;
+    }
+    .sp-section {
+      margin-bottom: 1.6rem;
+    }
+    .sp-section-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+      margin-bottom: 0.6rem;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .sp-section-title::before {
+      content: ""; display: inline-block;
+      width: 4px; height: 1.2em;
+      background: linear-gradient(180deg, var(--accent-1), var(--color-y));
+      border-radius: 2px;
+    }
+    .sp-section-title .badge {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      padding: 0.18rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(57,255,133,0.12);
+      color: var(--accent-1);
+      border: 1px solid var(--accent-1);
+      letter-spacing: 0.08em;
+    }
+    .sp-section-sub {
+      font-size: 0.84rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.8rem;
+      margin-left: 1rem;
+    }
+
+    /* === System def === */
+    .sysdef-card {
+      padding: 1.1rem 1.2rem;
+    }
+    .sysdef-row {
+      display: flex; align-items: center; gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.6rem;
+    }
+    .sysdef-row label {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--accent-1);
+      min-width: 90px;
+    }
+    .sysdef-input {
+      flex: 1;
+      min-width: 280px;
+      padding: 0.55rem 0.7rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.92rem;
+      background: var(--canvas-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      outline: none;
+    }
+    .sysdef-input:focus {
+      border-color: var(--accent-1);
+      box-shadow: 0 0 0 2px rgba(57,255,133,0.18);
+    }
+    .sysdef-input.invalid {
+      border-color: var(--color-marker);
+      box-shadow: 0 0 0 2px rgba(255,79,154,0.18);
+    }
+    .sysdef-status {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+    .sysdef-status.ok {
+      background: rgba(57,255,133,0.10);
+      color: var(--accent-1);
+      border: 1px solid var(--accent-1);
+    }
+    .sysdef-status.err {
+      background: rgba(255,79,154,0.10);
+      color: var(--color-marker);
+      border: 1px solid var(--color-marker);
+    }
+    .sysdef-presets {
+      display: flex; flex-wrap: wrap; gap: 0.4rem;
+      margin-top: 0.5rem;
+    }
+    .sysdef-presets button {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.74rem;
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      background: var(--canvas-bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-glow);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .sysdef-presets button:hover {
+      border-color: var(--accent-2);
+      color: var(--accent-2);
+    }
+    .sysdef-help {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-top: 0.6rem;
+      padding: 0.6rem 0.8rem;
+      background: rgba(123,140,255,0.06);
+      border-left: 3px solid var(--color-y);
+      border-radius: 4px;
+    }
+    .sysdef-help code {
+      background: var(--canvas-bg);
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      font-size: 0.78rem;
+      color: var(--accent-1);
+    }
+    .sysdef-rendered {
+      padding: 0.6rem 0.8rem;
+      margin-top: 0.5rem;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      font-size: 0.95rem;
+      min-height: 2.3rem;
+    }
+
+    /* === Time axis controls === */
+    .axis-card {
+      padding: 1rem 1.2rem;
+    }
+    .axis-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem 1.3rem;
+    }
+    .axis-row .ctrl-row {
+      display: flex; flex-direction: column; gap: 0.25rem;
+    }
+    .ctrl-row label {
+      font-size: 0.8rem; color: var(--text-secondary);
+      display: flex; justify-content: space-between;
+    }
+    .ctrl-row label .v {
+      font-family: 'Fira Code', monospace;
+      color: var(--accent-1);
+    }
+    .ctrl-row input[type="range"] { width: 100%; }
+
+    /* === Signal cards === */
+    .signal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 920px) {
+      .signal-grid { grid-template-columns: 1fr; }
+    }
+    .signal-card {
+      padding: 1rem 1.1rem;
+      border-left: 3px solid var(--accent-1);
+    }
+    .signal-card.x2 { border-left-color: var(--accent-2); }
+    .signal-card h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--accent-1);
+      margin-bottom: 0.6rem;
+      letter-spacing: 0.04em;
+    }
+    .signal-card.x2 h3 { color: var(--accent-2); }
+    .sig-types {
+      display: flex; flex-wrap: wrap; gap: 0.35rem;
+      margin-bottom: 0.7rem;
+    }
+    .sig-type-btn {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      padding: 0.32rem 0.65rem;
+      border-radius: 4px;
+      background: var(--canvas-bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-glow);
+      cursor: pointer;
+      transition: all var(--transition);
+      letter-spacing: 0.04em;
+    }
+    .sig-type-btn:hover {
+      border-color: var(--accent-1);
+      color: var(--text-primary);
+    }
+    .sig-type-btn.active {
+      background: linear-gradient(135deg, rgba(57,255,133,0.18), rgba(123,140,255,0.18));
+      border-color: var(--accent-1);
+      color: var(--accent-1);
+      box-shadow: 0 0 8px rgba(57,255,133,0.18) inset;
+    }
+    .signal-card.x2 .sig-type-btn.active {
+      background: linear-gradient(135deg, rgba(255,140,66,0.18), rgba(255,79,154,0.18));
+      border-color: var(--accent-2);
+      color: var(--accent-2);
+      box-shadow: 0 0 8px rgba(255,140,66,0.18) inset;
+    }
+    .sig-params {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.5rem 0.9rem;
+      margin-bottom: 0.6rem;
+    }
+    .sig-canvas-wrap {
+      position: relative;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+    }
+    .sig-canvas-wrap canvas {
+      width: 100%;
+      height: 200px;
+      display: block;
+      cursor: default;
+    }
+    .sig-canvas-wrap.draw-mode canvas {
+      cursor: crosshair;
+    }
+    .sig-canvas-wrap .draw-hint {
+      position: absolute;
+      top: 6px; right: 8px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--accent-2);
+      pointer-events: none;
+      opacity: 0.8;
+    }
+    .sig-clear-draw {
+      margin-top: 0.5rem;
+      display: none;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      padding: 0.32rem 0.7rem;
+      border-radius: 4px;
+      background: var(--canvas-bg);
+      color: var(--color-marker);
+      border: 1px solid var(--color-marker);
+      cursor: pointer;
+    }
+    .sig-clear-draw.show { display: inline-block; }
+
+    /* === Property sections === */
+    .prop-card {
+      padding: 1.1rem 1.2rem;
+    }
+    .prop-header {
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 0.6rem;
+      margin-bottom: 0.6rem;
+    }
+    .prop-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--text-primary);
+      letter-spacing: 0.03em;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .prop-title .num {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, var(--accent-1), var(--color-y));
+      color: var(--bg-deep);
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+    .prop-formula {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      padding: 0.25rem 0.55rem;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: 4px;
+    }
+    .prop-ctrl {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 0.7rem;
+      margin-bottom: 0.7rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .prop-ctrl label { color: var(--text-secondary); }
+    .prop-radio-group {
+      display: inline-flex; gap: 0.3rem;
+    }
+    .prop-radio {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      background: var(--canvas-bg);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-glow);
+      cursor: pointer;
+      letter-spacing: 0.04em;
+    }
+    .prop-radio.active {
+      background: rgba(57,255,133,0.12);
+      border-color: var(--accent-1);
+      color: var(--accent-1);
+    }
+    .io-grid {
+      display: grid;
+      grid-template-columns: 1fr 36px 1fr;
+      gap: 0.4rem;
+      align-items: stretch;
+    }
+    @media (max-width: 760px) {
+      .io-grid { grid-template-columns: 1fr; }
+      .io-arrow { display: none; }
+    }
+    .io-cell {
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.6rem 0.3rem;
+    }
+    .io-cell h4 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+      margin-bottom: 0.3rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .io-cell h4 .tag {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+    .io-cell canvas {
+      width: 100%;
+      height: 200px;
+      display: block;
+    }
+    .io-arrow {
+      align-self: center;
+      text-align: center;
+      font-size: 1.4rem;
+      color: var(--accent-2);
+      font-family: 'Saira Condensed', sans-serif;
+    }
+    .verdict {
+      margin-top: 0.7rem;
+      padding: 0.55rem 0.8rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .verdict.unknown {
+      background: rgba(123,140,255,0.08);
+      border: 1px solid var(--color-y);
+      color: var(--text-secondary);
+    }
+    .verdict.pass {
+      background: rgba(57,255,133,0.10);
+      border: 1px solid var(--accent-1);
+      color: var(--accent-1);
+    }
+    .verdict.fail {
+      background: rgba(255,79,154,0.10);
+      border: 1px solid var(--color-marker);
+      color: var(--color-marker);
+    }
+    .verdict strong {
+      font-family: 'Saira Condensed', sans-serif;
+      letter-spacing: 0.05em;
+    }
+    .stat-strip {
+      display: flex; flex-wrap: wrap; gap: 0.7rem 1.2rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 0.4rem;
+    }
+    .stat-strip span b { color: var(--accent-1); font-weight: 500; }
+
+    /* === Linearity panel (3 rows of IO) === */
+    .lin-rows .io-grid { margin-bottom: 0.4rem; }
+    .lin-rows .io-grid .io-cell canvas { height: 160px; }
+    .lin-rows .io-grid:last-child .io-cell canvas { height: 200px; }
+
+    /* === Property note === */
+    .prop-note {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 0.5rem;
+      line-height: 1.55;
+    }
+    .prop-note code {
+      background: var(--canvas-bg);
+      padding: 0.05rem 0.3rem;
+      border-radius: 3px;
+      color: var(--accent-1);
+      font-size: 0.78rem;
+    }
+
+    /* === Pulsing sweep warning === */
+    @keyframes pulseWarn {
+      0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(255, 140, 66, 0.7);
+        transform: translateY(0);
+      }
+      50% {
+        opacity: 0.55;
+        box-shadow: 0 0 0 6px rgba(255, 140, 66, 0);
+        transform: translateY(-1px);
+      }
+    }
+    .sweep-warn {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      padding: 0.32rem 0.7rem;
+      margin-left: 0.6rem;
+      border-radius: 4px;
+      background: rgba(255, 140, 66, 0.12);
+      color: var(--accent-2);
+      border: 1.5px solid var(--accent-2);
+      animation: pulseWarn 1.4s ease-in-out infinite;
+      cursor: help;
+    }
+    .sweep-warn .arrow {
+      display: inline-block;
+      animation: arrowBob 1s ease-in-out infinite;
+    }
+    @keyframes arrowBob {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(-3px); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">&#x1F319;</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">T</span> LTI System Properties <span class="title-icon">{&middot;}</span>
+    </h1>
+    <p class="site-subtitle">Memorylessness &middot; Causality &middot; Linearity &middot; Time Invariance &middot; Stability — Interactive System Identification</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">&#x1F3E0; Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">&#x223F; Basic Signals</a>
+    <a class="nav-tab group-c active" href="system-properties.html">T{&middot;} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">&int; Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">&#x1D4D5; Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">&#x2112; Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">&Sigma; Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">&#x21AF; Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">&#x1D4D5;* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">&#x23C3; DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">&#x1D4B5; Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">&#x1D49F; DCT</a>
+    <a class="nav-tab group-o" href="hht.html">&#x210B; HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">&#x1D4D5;<sup>&alpha;</sup> FrFT</a>
+  </nav>
+
+  <div class="sp-wrap">
+
+    <!-- ============ 1. SYSTEM DEFINITION ============ -->
+    <section class="sp-section">
+      <div class="sp-section-title">System Definition <span class="badge">T{x(t)}</span></div>
+      <p class="sp-section-sub">The input–output relation of the system is defined by means of a mathematical expression. <code style="color:var(--accent-1);">x</code> denotes the input signal and <code style="color:var(--accent-1);">t</code> denotes time; delay notation of the form <code style="color:var(--accent-1);">x(t-3)</code> is supported.</p>
+
+      <div class="sysdef-card glass-panel">
+        <div class="sysdef-row">
+          <label>T{x(t)} =</label>
+          <input type="text" id="sysExpr" class="sysdef-input"
+            value="x(t)^2 + cos(2*pi*t)/5*rect(3*t) * exp(-2*t) + x(t-3)" autocomplete="off" spellcheck="false" />
+          <span id="sysStatus" class="sysdef-status ok">&#x2713; expression valid</span>
+        </div>
+
+        <div class="sysdef-rendered" id="sysRendered">$y(t) = \ldots$</div>
+
+        <div class="sysdef-presets">
+          <span style="font-size:0.78rem;color:var(--text-dim);align-self:center;margin-right:0.3rem;">Preset examples:</span>
+          <button data-expr="3*x(t)">y = 3x(t) — memoryless, LTI</button>
+          <button data-expr="x(t-2)">y = x(t&#x2212;2) — pure delay</button>
+          <button data-expr="x(t)^2">y = x&#xB2;(t) — memoryless, nonlinear</button>
+          <button data-expr="t*x(t)">y = t&middot;x(t) — time-varying, linear</button>
+          <button data-expr="cos(x(t))">y = cos(x(t)) — memoryless, nonlinear</button>
+          <button data-expr="x(t) + x(t-1)">y = x(t)+x(t&#x2212;1) — with memory, LTI</button>
+          <button data-expr="x(-t)">y = x(&#x2212;t) — time reversal</button>
+          <button data-expr="x(2*t)">y = x(2t) — time scaling</button>
+          <button data-expr="x(t)^2 + cos(2*pi*t)/5*rect(3*t) * exp(-2*t) + x(t-3)">Default (complex)</button>
+        </div>
+
+        <div class="sysdef-help">
+          <strong>Supported syntax:</strong>
+          variables: <code>t</code>, <code>x(...)</code>;
+          constants: <code>pi</code>, <code>e</code>;
+          operators: <code>+ &#x2212; * / ^</code>;
+          functions: <code>cos sin tan exp log sqrt abs sgn</code>,
+          <code>u(t)</code> (step), <code>rect(t)</code> (|t|&#x2264;&#xBD;), <code>tri(t)</code> (triangle),
+          <code>delta(t)</code> (Dirac, narrow pulse).
+          <br/>
+          <strong>Delay:</strong> in the form <code>x(t-T0)</code>; the argument can be anything (e.g., <code>x(2*t-1)</code> for scaling + shift).
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 2. TIME AXIS ============ -->
+    <section class="sp-section">
+      <div class="sp-section-title">Time Axis <span class="badge" style="background:rgba(123,140,255,0.12);color:var(--color-y);border-color:var(--color-y);">t &#x2208; [&#x2212;t&#x2080;, t&#x2081;]</span></div>
+      <p class="sp-section-sub">All graphs are drawn on a common time grid. <code style="color:var(--accent-1);">dt</code> determines the resolution. Separate centers ($t_{c1}$, $t_{c2}$) for each signal are set in the cards below.</p>
+
+      <div class="axis-card glass-panel">
+        <div class="axis-row">
+          <div class="ctrl-row">
+            <label>Start $-t_0$ <span class="v" id="t0Val">-6.0</span></label>
+            <input type="range" id="t0" min="-20" max="-1" step="0.5" value="-6" />
+          </div>
+          <div class="ctrl-row">
+            <label>End $+t_1$ <span class="v" id="t1Val">6.0</span></label>
+            <input type="range" id="t1" min="1" max="20" step="0.5" value="6" />
+          </div>
+          <div class="ctrl-row">
+            <label>Resolution $dt$ <span class="v" id="dtVal">0.020</span></label>
+            <input type="range" id="dt" min="0.005" max="0.1" step="0.005" value="0.02" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 3. INPUT SIGNALS ============ -->
+    <section class="sp-section">
+      <div class="sp-section-title">Input Signals <span class="badge" style="background:rgba(255,140,66,0.12);color:var(--accent-2);border-color:var(--accent-2);">x&#x2081;(t) &amp; x&#x2082;(t)</span></div>
+      <p class="sp-section-sub">Two distinct input signals are defined; both are employed jointly in the linearity test, whereas the remaining properties are evaluated using each signal individually. With the <strong>Freehand Draw</strong> option, an arbitrary signal may also be specified by the user.</p>
+
+      <div class="signal-grid">
+
+        <!-- x_1 -->
+        <div class="signal-card glass-panel" data-sig="1">
+          <h3>x&#x2081;(t)</h3>
+          <div class="sig-types" data-sig="1">
+            <button class="sig-type-btn active" data-type="cos">Cosine</button>
+            <button class="sig-type-btn" data-type="sin">Sine</button>
+            <button class="sig-type-btn" data-type="dirac">Dirac &#x03B4;</button>
+            <button class="sig-type-btn" data-type="square">Square (aperiodic)</button>
+            <button class="sig-type-btn" data-type="triangle">Triangle (aperiodic)</button>
+            <button class="sig-type-btn" data-type="draw">&#x270E; Freehand Draw</button>
+          </div>
+          <div class="sig-params" data-sig="1">
+            <div class="ctrl-row">
+              <label>Amplitude $A$ <span class="v" data-val="amp">1.00</span></label>
+              <input type="range" data-param="amp" min="-3" max="3" step="0.05" value="1" />
+            </div>
+            <div class="ctrl-row">
+              <label>Frequency $F$ <span class="v" data-val="freq">0.50</span></label>
+              <input type="range" data-param="freq" min="0.05" max="3" step="0.05" value="0.5" />
+            </div>
+            <div class="ctrl-row">
+              <label>Width $W$ <span class="v" data-val="width">2.00</span></label>
+              <input type="range" data-param="width" min="0.2" max="10" step="0.1" value="2" />
+            </div>
+            <div class="ctrl-row">
+              <label>Phase $\varphi$ <span class="v" data-val="phase">0.00</span></label>
+              <input type="range" data-param="phase" min="-3.14159" max="3.14159" step="0.05" value="0" />
+            </div>
+            <div class="ctrl-row" style="grid-column:1/-1;">
+              <label>Center $t_{c1}$ <span class="v" data-val="tc">0.00</span></label>
+              <input type="range" data-param="tc" min="-10" max="10" step="0.05" value="0" />
+            </div>
+          </div>
+          <div class="sig-canvas-wrap" data-sig="1">
+            <canvas data-sig="1"></canvas>
+          </div>
+          <button class="sig-clear-draw" data-sig="1">&#x1F5D1; Clear Drawing</button>
+        </div>
+
+        <!-- x_2 -->
+        <div class="signal-card glass-panel x2" data-sig="2">
+          <h3>x&#x2082;(t)</h3>
+          <div class="sig-types" data-sig="2">
+            <button class="sig-type-btn" data-type="cos">Cosine</button>
+            <button class="sig-type-btn active" data-type="sin">Sine</button>
+            <button class="sig-type-btn" data-type="dirac">Dirac &#x03B4;</button>
+            <button class="sig-type-btn" data-type="square">Square (aperiodic)</button>
+            <button class="sig-type-btn" data-type="triangle">Triangle (aperiodic)</button>
+            <button class="sig-type-btn" data-type="draw">&#x270E; Freehand Draw</button>
+          </div>
+          <div class="sig-params" data-sig="2">
+            <div class="ctrl-row">
+              <label>Amplitude $A$ <span class="v" data-val="amp">0.80</span></label>
+              <input type="range" data-param="amp" min="-3" max="3" step="0.05" value="0.8" />
+            </div>
+            <div class="ctrl-row">
+              <label>Frequency $F$ <span class="v" data-val="freq">1.00</span></label>
+              <input type="range" data-param="freq" min="0.05" max="3" step="0.05" value="1" />
+            </div>
+            <div class="ctrl-row">
+              <label>Width $W$ <span class="v" data-val="width">3.00</span></label>
+              <input type="range" data-param="width" min="0.2" max="10" step="0.1" value="3" />
+            </div>
+            <div class="ctrl-row">
+              <label>Phase $\varphi$ <span class="v" data-val="phase">0.00</span></label>
+              <input type="range" data-param="phase" min="-3.14159" max="3.14159" step="0.05" value="0" />
+            </div>
+            <div class="ctrl-row" style="grid-column:1/-1;">
+              <label>Center $t_{c2}$ <span class="v" data-val="tc">0.00</span></label>
+              <input type="range" data-param="tc" min="-10" max="10" step="0.05" value="0" />
+            </div>
+          </div>
+          <div class="sig-canvas-wrap" data-sig="2">
+            <canvas data-sig="2"></canvas>
+          </div>
+          <button class="sig-clear-draw" data-sig="2">&#x1F5D1; Clear Drawing</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 4. PROPERTIES ============ -->
+
+    <!-- 1) Memorylessness -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num">1</span>Memorylessness</div>
+          <span class="prop-formula">y(t) = f(x(t))</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>Input:</label>
+          <div class="prop-radio-group" data-prop="mem">
+            <button class="prop-radio active" data-input="x1">x&#x2081;(t)</button>
+            <button class="prop-radio" data-input="x2">x&#x2082;(t)</button>
+          </div>
+        </div>
+        <div class="io-grid">
+          <div class="io-cell">
+            <h4>Input x(t) <span class="tag" id="memInTag">x&#x2081;</span></h4>
+            <canvas id="memInCv"></canvas>
+          </div>
+          <div class="io-arrow">&rarr;</div>
+          <div class="io-cell">
+            <h4>Output y(t) <span class="tag">T{x}</span></h4>
+            <canvas id="memOutCv"></canvas>
+          </div>
+        </div>
+        <div class="verdict unknown" id="memVerdict"><strong>Memoryless?</strong> <span>Heuristic test: checks whether y(t) depends only on the <em>current</em> value of x(t).</span></div>
+        <p class="prop-note">A system is classified as <strong>memoryless</strong> when its output depends solely on the present value <code>x(t)</code> and on no other time instants (e.g., <code>3*x(t)</code>, <code>x(t)^2</code>). When the expression contains <code>x(t-a)</code> ($a \neq 0$), an integral or a differential term, the system is said to <em>possess memory</em>.</p>
+      </div>
+    </section>
+
+    <!-- 2) Causality -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num">2</span>Causality</div>
+          <span class="prop-formula">y(t) = f(x(&#x03C4; &#x2264; t))</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>Input:</label>
+          <div class="prop-radio-group" data-prop="cau">
+            <button class="prop-radio active" data-input="x1">x&#x2081;(t)</button>
+            <button class="prop-radio" data-input="x2">x&#x2082;(t)</button>
+          </div>
+          <label style="margin-left:0.8rem;">Cutoff time $t^*$: <span class="v" id="causTstarVal" style="color:var(--accent-1);font-family:'Fira Code',monospace;">2.0</span></label>
+          <input type="range" id="causTstar" min="-5" max="5" step="0.1" value="2" style="width:180px;" />
+        </div>
+        <div class="io-grid">
+          <div class="io-cell">
+            <h4>Input <span class="tag">x(t) — truncated after t* (dashed)</span></h4>
+            <canvas id="cauInCv"></canvas>
+          </div>
+          <div class="io-arrow">&rarr;</div>
+          <div class="io-cell">
+            <h4>Output <span class="tag">T{x} (green) vs T{x &middot; u(t*&#x2212;t)} (pink)</span></h4>
+            <canvas id="cauOutCv"></canvas>
+          </div>
+        </div>
+        <div class="verdict unknown" id="cauVerdict"><strong>Causal?</strong> <span>When the portion of the input for t&gt;t* is removed, does the output for t&lt;t* change?</span></div>
+        <p class="prop-note">Test (a necessary and sufficient condition): the input is split into two copies at $t^*$. If $T\{x\}(t) = T\{x \cdot u(t^*-t)\}(t)$ holds for all $t \leq t^*$, the system is regarded as <strong>causal</strong>, since in this case the past of the output depends only on the past of the input. In systems that access the <em>future</em>, such as <code>x(t+a)</code> ($a > 0$), <code>x(-t)</code> or <code>x(2t)</code>, the pink (dashed) output of the test diverges from the principal response (green) over the past portion of the time axis.</p>
+      </div>
+    </section>
+
+    <!-- 3) Linearity -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num">3</span>Linearity (Superposition)</div>
+          <span class="prop-formula">T{ax&#x2081;+bx&#x2082;} =? aT{x&#x2081;}+bT{x&#x2082;}</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>Coefficients:</label>
+          <span style="font-family:'Fira Code',monospace;color:var(--accent-1);">a = <span id="linAVal">1.00</span></span>
+          <input type="range" id="linA" min="-3" max="3" step="0.05" value="1" style="width:140px;" />
+          <span style="font-family:'Fira Code',monospace;color:var(--accent-2);">b = <span id="linBVal">1.00</span></span>
+          <input type="range" id="linB" min="-3" max="3" step="0.05" value="1" style="width:140px;" />
+          <span class="sweep-warn" title="A verdict from a single (a, b) pair can be misleading — e.g., when a or b is zero, even a nonlinear system may satisfy superposition. Sweep the sliders through various positive/negative values and verify the verdict remains consistent.">
+            <span class="arrow">&#x2194;</span> sweep a, b values
+          </span>
+        </div>
+        <div class="lin-rows">
+          <div class="io-grid">
+            <div class="io-cell">
+              <h4>a&middot;x&#x2081;(t) <span class="tag">input 1</span></h4>
+              <canvas id="linIn1Cv"></canvas>
+            </div>
+            <div class="io-arrow">&rarr;</div>
+            <div class="io-cell">
+              <h4>a&middot;T{x&#x2081;(t)} <span class="tag">output 1</span></h4>
+              <canvas id="linOut1Cv"></canvas>
+            </div>
+          </div>
+          <div class="io-grid">
+            <div class="io-cell">
+              <h4>b&middot;x&#x2082;(t) <span class="tag">input 2</span></h4>
+              <canvas id="linIn2Cv"></canvas>
+            </div>
+            <div class="io-arrow">&rarr;</div>
+            <div class="io-cell">
+              <h4>b&middot;T{x&#x2082;(t)} <span class="tag">output 2</span></h4>
+              <canvas id="linOut2Cv"></canvas>
+            </div>
+          </div>
+          <div class="io-grid">
+            <div class="io-cell">
+              <h4>a&middot;x&#x2081; + b&middot;x&#x2082; <span class="tag">combined input</span></h4>
+              <canvas id="linInSCv"></canvas>
+            </div>
+            <div class="io-arrow">&rarr;</div>
+            <div class="io-cell">
+              <h4>T{a&middot;x&#x2081; + b&middot;x&#x2082;} <span style="color:var(--color-marker);" class="tag">vs a&middot;T{x&#x2081;}+b&middot;T{x&#x2082;}</span></h4>
+              <canvas id="linOutSCv"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="verdict unknown" id="linVerdict"><strong>Linear?</strong> <span>If the two outputs (green = T{combined}, pink-dashed = a&middot;T{x&#x2081;}+b&middot;T{x&#x2082;}) coincide, superposition holds.</span></div>
+        <p class="prop-note">Two fundamental tests are applied: <em>(a) Additivity</em> — $T\{x_1+x_2\} = T\{x_1\} + T\{x_2\}$; <em>(b) Homogeneity</em> — $T\{\alpha x\} = \alpha T\{x\}$. When both conditions are satisfied simultaneously, the system is regarded as <strong>linear</strong>.</p>
+      </div>
+    </section>
+
+    <!-- 4) Time Invariance -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num">4</span>Time Invariance (LTI Test)</div>
+          <span class="prop-formula">T{x(t&#x2212;T&#x2080;)} =? y(t&#x2212;T&#x2080;)</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>Input:</label>
+          <div class="prop-radio-group" data-prop="tinv">
+            <button class="prop-radio active" data-input="x1">x&#x2081;(t)</button>
+            <button class="prop-radio" data-input="x2">x&#x2082;(t)</button>
+          </div>
+          <label style="margin-left:0.8rem;">Delay $T_0$: <span class="v" id="tinvT0Val" style="color:var(--accent-1);font-family:'Fira Code',monospace;">1.5</span></label>
+          <input type="range" id="tinvT0" min="-5" max="5" step="0.1" value="1.5" style="width:180px;" />
+          <span class="sweep-warn" title="A verdict from a single T&#x2080; value can be misleading — especially if the system contains a periodic coefficient (e.g., cos(2&#x03C0;t)&middot;x(t)), some T&#x2080; values may coincidentally appear invariant. Sweep the slider over a wide range and make sure the verdict remains consistent.">
+            <span class="arrow">&#x2194;</span> sweep with slider
+          </span>
+        </div>
+        <div class="io-grid">
+          <div class="io-cell">
+            <h4>Input: x(t&#x2212;T&#x2080;) <span class="tag">delayed input</span></h4>
+            <canvas id="tinvInCv"></canvas>
+          </div>
+          <div class="io-arrow">&rarr;</div>
+          <div class="io-cell">
+            <h4>Output: T{x(t&#x2212;T&#x2080;)} <span style="color:var(--color-marker);" class="tag">vs y(t&#x2212;T&#x2080;)</span></h4>
+            <canvas id="tinvOutCv"></canvas>
+          </div>
+        </div>
+        <div class="verdict unknown" id="tinvVerdict"><strong>Time-invariant?</strong> <span>If the green curve (delay first, then system) and the pink-dashed curve (system first, then delay) coincide, the system is time-invariant.</span></div>
+        <p class="prop-note">For a system to be regarded as <strong>time-invariant</strong>, a delay applied to the input must appear as the same delay in the output. Systems that <em>explicitly involve $t$</em>, such as <code>t*x(t)</code>, <code>x(2t)</code> or <code>cos(2\pi t)\cdot x(t)$</code>, are generally classified as <strong>time-varying</strong>.</p>
+      </div>
+    </section>
+
+    <!-- 5) Stability -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num">5</span>Stability (BIBO)</div>
+          <span class="prop-formula">|x(t)| &#x2264; M&#x2093; &#x21D2; |y(t)| &#x2264; M&#x1D67;</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>Input:</label>
+          <div class="prop-radio-group" data-prop="stab">
+            <button class="prop-radio active" data-input="x1">x&#x2081;(t)</button>
+            <button class="prop-radio" data-input="x2">x&#x2082;(t)</button>
+          </div>
+        </div>
+        <div class="io-grid">
+          <div class="io-cell">
+            <h4>Input x(t) <span class="tag" id="stabInTag">x&#x2081;</span></h4>
+            <canvas id="stabInCv"></canvas>
+          </div>
+          <div class="io-arrow">&rarr;</div>
+          <div class="io-cell">
+            <h4>Output y(t) <span class="tag">T{x}</span></h4>
+            <canvas id="stabOutCv"></canvas>
+          </div>
+        </div>
+        <div class="stat-strip" id="stabStats">
+          <span>max |x(t)| = <b id="stabMx">&mdash;</b></span>
+          <span>max |y(t)| = <b id="stabMy">&mdash;</b></span>
+          <span>gain &#x2248; <b id="stabG">&mdash;</b></span>
+        </div>
+        <div class="verdict unknown" id="stabVerdict"><strong>BIBO stable?</strong> <span>A bounded input must produce a bounded output.</span></div>
+        <p class="prop-note">A proof of BIBO stability requires that every bounded input produces a bounded output; observation with a single bounded input can only serve to provide a <em>counter-example</em>. Despite this limitation, if the output is found to grow without bound, the system is classified as <strong>unstable</strong>. In systems containing the term <code>e^(\alpha t)</code>, a value $\alpha > 0$ leads to instability.</p>
+      </div>
+    </section>
+
+    <!-- ============ EXTRA: LTI => IMPULSE RESPONSE h(t) ============ -->
+    <section class="sp-section">
+      <div class="prop-card glass-panel" style="border-left:3px solid var(--color-y);">
+        <div class="prop-header">
+          <div class="prop-title"><span class="num" style="background:linear-gradient(135deg,var(--color-y),var(--accent-2));">&#x2605;</span>Impulse Response (LTI systems only)</div>
+          <span class="prop-formula">h(t) = T{&#x03B4;(t &#x2212; t<sub>h</sub>)}</span>
+        </div>
+        <div id="ltiGate" class="verdict unknown" style="margin-bottom:0.6rem;">
+          <strong>LTI status:</strong> <span>h(t) is computed when both the linearity and time invariance tests pass.</span>
+        </div>
+        <div class="prop-ctrl">
+          <label>Impulse position $t_h$: <span class="v" id="impTVal" style="color:var(--accent-1);font-family:'Fira Code',monospace;">0.0</span></label>
+          <input type="range" id="impT" min="-5" max="5" step="0.1" value="0" style="width:200px;" />
+        </div>
+        <div class="io-grid">
+          <div class="io-cell">
+            <h4>Input &#x03B4;(t &#x2212; t<sub>h</sub>) <span class="tag">unit impulse</span></h4>
+            <canvas id="impInCv"></canvas>
+          </div>
+          <div class="io-arrow">&rarr;</div>
+          <div class="io-cell">
+            <h4>Output h(t) <span class="tag">impulse response</span></h4>
+            <canvas id="impOutCv"></canvas>
+          </div>
+        </div>
+        <p class="prop-note">LTI systems are completely characterised by their <strong>impulse response</strong> $h(t)$: for an arbitrary input, the output is obtained through the convolution $y(t) = x(t) * h(t) = \int x(\tau)\,h(t-\tau)\,d\tau$. When the system is not LTI, this representation ceases to be valid, since a distinct $h(\cdot)$ would be required for each input.</p>
+      </div>
+    </section>
+
+    <section class="sp-section" style="margin-top:1.5rem;">
+      <h3>References</h3>
+      <ul class="ref-list">
+        <li>Oppenheim, A. V., Willsky, A. S., Nawab, S. H. (1996). <em>Signals and Systems</em> (2nd ed.). Prentice Hall. — LTI system properties, definitions of linearity, time-invariance, and causality.</li>
+        <li>Lathi, B. P. (2009). <em>Linear Systems and Signals</em> (2nd ed.). Oxford University Press. — Testing of system properties and BIBO stability.</li>
+        <li>Phillips, C. L., Parr, J. M., Riskin, E. A. (2014). <em>Signals, Systems, and Transforms</em> (5th ed.). Pearson. — Worked treatments of memory, causality, and linearity.</li>
+        <li>Haykin, S., Van Veen, B. (2002). <em>Signals and Systems</em> (2nd ed.). Wiley. — Characterisation of continuous-time LTI systems and the impulse response.</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <footer class="site-footer"><span>Signal Processing Educational Simulation — System Properties</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/system-properties.js"></script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ayrık Zamanda Konvolüsyon</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">∿</span> Ayrık Zamanda Konvolüsyon <span class="title-icon">∗</span>
+    </h1>
+    <p class="site-subtitle">Etkileşimli Sinyal İşleme Laboratuvarı</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d active" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <!-- 4 Grafik -->
+  <div class="graphs-row">
+    <div class="graph-container glass-panel">
+      <div class="graph-header"><span class="graph-label label-x">x[n] — Giriş</span></div>
+      <canvas id="canvasX"></canvas>
+    </div>
+    <div class="graph-container glass-panel">
+      <div class="graph-header"><span class="graph-label label-h">h[n] — Sistem</span></div>
+      <canvas id="canvasH"></canvas>
+    </div>
+    <div class="graph-container glass-panel graph-overlap">
+      <div class="graph-header">
+        <span class="graph-label label-overlap">x[k]·h[n−k] — Çakışma</span>
+        <span class="instant-value" id="instantValue">y[0] = 0.000</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$y[n] = \sum_{k} x[k]\,h[n-k]$</span>
+        <span class="drag-hint">← fare ile kaydır →</span>
+      </div>
+      <canvas id="canvasOverlap"></canvas>
+    </div>
+    <div class="graph-container glass-panel">
+      <div class="graph-header"><span class="graph-label label-y">y[n] — Konvolüsyon</span></div>
+      <canvas id="canvasY"></canvas>
+    </div>
+  </div>
+
+  <!-- Kontroller -->
+  <div class="controls-wrapper">
+    <!-- x[n] -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> x[n]</h3>
+      <div class="control-group">
+        <label>İşaret:</label>
+        <select id="xSignalType" class="glass-select">
+          <option value="rect">Kare Darbe</option>
+          <option value="triangle">Üçgen Darbe</option>
+          <option value="delta">Dirac Delta</option>
+          <option value="step">Birim Basamak</option>
+          <option value="sine">Sinüs</option>
+          <option value="cosine">Kosinüs</option>
+          <option value="ramp">Rampa</option>
+          <option value="expDecay">Üstel Azalan</option>
+          <option value="gaussian">Gauss</option>
+          <option value="freehand">✏️ Serbest Çizim</option>
+        </select>
+      </div>
+      <div id="xParamControls">
+        <div class="control-group">
+          <label>Genlik: <span id="xAmpVal" class="val-display">1.00</span></label>
+          <input type="range" id="xAmplitude" min="0.1" max="5" step="0.05" value="1" />
+        </div>
+        <div class="control-group">
+          <label>Genişlik: <span id="xWidthVal" class="val-display">6</span></label>
+          <input type="range" id="xWidth" min="1" max="30" step="1" value="6" />
+        </div>
+        <div class="control-group">
+          <label>Kaydırma: <span id="xShiftVal" class="val-display">0</span></label>
+          <input type="range" id="xShift" min="-20" max="20" step="1" value="0" />
+        </div>
+        <div class="periodic-row">
+          <span>Periyodik:</span>
+          <label class="toggle-switch"><input type="checkbox" id="xPeriodic" /><span class="toggle-slider"></span></label>
+        </div>
+        <div class="control-group freq-group disabled" id="xFreqGroup">
+          <label>Frekans: <span id="xFreqVal" class="val-display">0.10</span></label>
+          <input type="range" id="xFreq" min="0.02" max="0.5" step="0.01" value="0.1" disabled />
+        </div>
+      </div>
+      <div class="freehand-controls" id="xFreehandControls" style="display:none;">
+        <p class="freehand-info">x[n] grafiğinde fare ile çizin</p>
+        <button class="glass-btn" id="xClear">Temizle</button>
+        <button class="glass-btn" id="xNormalize">Normalize</button>
+        <button class="glass-btn" id="xSmooth">Düzgünleştir</button>
+      </div>
+    </div>
+
+    <!-- h[n] -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-h"></span> h[n]</h3>
+      <div class="control-group">
+        <label>İşaret:</label>
+        <select id="hSignalType" class="glass-select">
+          <option value="triangle" selected>Üçgen Darbe</option>
+          <option value="rect">Kare Darbe</option>
+          <option value="delta">Dirac Delta</option>
+          <option value="step">Birim Basamak</option>
+          <option value="sine">Sinüs</option>
+          <option value="cosine">Kosinüs</option>
+          <option value="ramp">Rampa</option>
+          <option value="expDecay">Üstel Azalan</option>
+          <option value="gaussian">Gauss</option>
+          <option value="freehand">✏️ Serbest Çizim</option>
+        </select>
+      </div>
+      <div id="hParamControls">
+        <div class="control-group">
+          <label>Genlik: <span id="hAmpVal" class="val-display">1.00</span></label>
+          <input type="range" id="hAmplitude" min="0.1" max="5" step="0.05" value="1" />
+        </div>
+        <div class="control-group">
+          <label>Genişlik: <span id="hWidthVal" class="val-display">6</span></label>
+          <input type="range" id="hWidth" min="1" max="30" step="1" value="6" />
+        </div>
+        <div class="control-group">
+          <label>Kaydırma: <span id="hShiftVal" class="val-display">0</span></label>
+          <input type="range" id="hShift" min="-20" max="20" step="1" value="0" />
+        </div>
+        <div class="periodic-row">
+          <span>Periyodik:</span>
+          <label class="toggle-switch"><input type="checkbox" id="hPeriodic" /><span class="toggle-slider"></span></label>
+        </div>
+        <div class="control-group freq-group disabled" id="hFreqGroup">
+          <label>Frekans: <span id="hFreqVal" class="val-display">0.10</span></label>
+          <input type="range" id="hFreq" min="0.02" max="0.5" step="0.01" value="0.1" disabled />
+        </div>
+      </div>
+      <div class="freehand-controls" id="hFreehandControls" style="display:none;">
+        <p class="freehand-info">h[n] grafiğinde fare ile çizin</p>
+        <button class="glass-btn" id="hClear">Temizle</button>
+        <button class="glass-btn" id="hNormalize">Normalize</button>
+        <button class="glass-btn" id="hSmooth">Düzgünleştir</button>
+      </div>
+    </div>
+
+    <!-- Genel Ayarlar -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-settings"></span> Görüntü Ayarları</h3>
+      <div class="inline-group">
+        <label>n min:</label>
+        <input type="number" id="nMinInput" class="num-input" value="-20" />
+        <label>n max:</label>
+        <input type="number" id="nMaxInput" class="num-input" value="20" />
+        <button class="glass-btn" id="applyRange">Uygula</button>
+      </div>
+      <div class="control-group">
+        <label>Grid Opaklık: <span id="gridAlphaVal" class="val-display">0.15</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.6" step="0.01" value="0.15" />
+      </div>
+      <div class="control-group">
+        <label>Stem Nokta Boyutu: <span id="dotSizeVal" class="val-display">4</span></label>
+        <input type="range" id="dotSize" min="2" max="8" step="0.5" value="4" />
+      </div>
+      <div class="control-group">
+        <label>Stem Çizgi Kalınlığı: <span id="stemWidthVal" class="val-display">2.0</span></label>
+        <input type="range" id="stemWidth" min="0.5" max="5" step="0.25" value="2" />
+      </div>
+      <div class="control-group">
+        <label>Canvas Yükseklik: <span id="canvasHeightVal" class="val-display">240</span>px</label>
+        <input type="range" id="canvasHeight" min="150" max="450" step="10" value="240" />
+      </div>
+    </div>
+  </div>
+
+  <div class="edu-card glass-panel">
+    <h2 class="edu-title">Ayrık Zaman Konvolüsyonu</h2>
+    <p class="edu-text">
+      $$y[n] = \sum_{k=-\infty}^{\infty} x[k]\,h[n-k]$$
+      Giriş işareti <em>$x[n]$</em> ile sistem cevabı <em>$h[n]$</em>'nin konvolüsyonu LTI sisteminin çıkışını verir.
+      Üçüncü ekranda <em>$h$</em> işaretini fare ile kaydırarak her $n$ değeri için çarpım toplamını gözlemleyin.
+      Dördüncü ekranda kırmızı nokta, o anki kaydırma değerine karşılık gelen $y[n]$ değerini gösterir.
+    </p>
+    <p class="edu-text" style="margin-top:0.7rem;">
+      <strong>Notasyon (ayrık zaman):</strong> bağımsız değişken $n \in \mathbb{Z}$, normalize edilmiş frekans $\omega \in [-\pi, \pi]$ (rad/sample), gerçek frekans $f = \omega/(2\pi)$ (cycles/sample).
+    </p>
+
+    <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.2rem;font-size:0.95rem;letter-spacing:0.04em;">📍 Uygulama Alanları</h3>
+    <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+      <li><strong>Sayısal filtreleme:</strong> FIR filtre uygulaması — her örnek için $h$ ile konvolüsyon.</li>
+      <li><strong>Görüntü işleme:</strong> 2D konvolüsyonun temeli (kenar bulma, bulanıklaştırma, derin öğrenmede convolution layer).</li>
+      <li><strong>Ses işleme:</strong> reverb, echo, equalizer, impulse response uygulaması.</li>
+      <li><strong>Makine öğrenmesi:</strong> CNN'lerde feature extraction — $1$D ses, $2$D görüntü konvolüsyonu.</li>
+      <li><strong>İletişim:</strong> matched filter (eşleştirilmiş filtre) — bilinen sinyal şablonu ile gelen sinyalin konvolüsyonu.</li>
+      <li><strong>Sismoloji:</strong> kaynak sinyali × ortam yanıtı = ölçülen sismogram.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Sinyal İşleme Eğitim Simülasyonu</span></footer>
+  <script src="../theme.js"></script>
+
+  <script src="discrete.js"></script>
+</body>
+</html>

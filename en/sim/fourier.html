@@ -1,0 +1,453 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fourier Series</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* Sub-tabs */
+    .subtabs {
+      position: relative; z-index: 2;
+      display: flex; justify-content: center; gap: 0.4rem;
+      margin: 0.4rem auto; padding: 0 1rem; max-width: 1500px;
+    }
+    .subtab {
+      font-family: 'Consolas', monospace;
+      font-size: 0.74rem; padding: 0.4rem 1rem;
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      background: var(--select-bg);
+      color: var(--text-secondary); cursor: pointer;
+      transition: all var(--transition);
+    }
+    .subtab.active {
+      border-color: var(--color-h);
+      color: var(--color-h);
+      box-shadow: 0 0 10px rgba(255,140,66,0.18);
+    }
+    .subtab.disabled {
+      opacity: 0.45; cursor: not-allowed;
+    }
+    .subtab.disabled:hover { box-shadow: none; }
+
+    /* Tab contents */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* "Coming soon" placeholder card */
+    .placeholder-card {
+      max-width: 800px; margin: 3rem auto; padding: 2rem;
+      text-align: center;
+      position: relative; z-index: 2;
+    }
+    .placeholder-card h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-size: 1rem; color: var(--text-secondary);
+      margin-bottom: 0.6rem;
+    }
+    .placeholder-card p {
+      font-size: 0.85rem; color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* 3 graphs — HORIZONTAL (side by side) */
+    .fourier-graphs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.7rem;
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .fourier-graphs .graph-container { padding: 0.55rem 0.75rem; }
+    .fourier-graphs canvas {
+      width: 100%;
+      height: 280px;
+      border-radius: var(--radius-sm);
+      background: var(--canvas-bg);
+      display: block;
+    }
+    .canvas-spectrum { cursor: ew-resize; }
+
+    /* Controls — at TOP (3 columns) */
+    .fourier-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.7rem;
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    @media (max-width: 1100px) {
+      .fourier-graphs { grid-template-columns: 1fr; }
+      .fourier-controls { grid-template-columns: 1fr; }
+    }
+    @media (min-width: 1100px) and (max-width: 1400px) {
+      .fourier-graphs { grid-template-columns: 1fr 1fr; }
+      .fourier-graphs .graph-container:last-child { grid-column: 1 / span 2; }
+    }
+
+    /* Freehand modal */
+    .freehand-modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 200;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(6px);
+    }
+    .freehand-modal.active { display: flex; }
+    .freehand-modal-content {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow-strong);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      max-width: 92vw; width: 800px;
+      max-height: 92vh; overflow-y: auto;
+    }
+    .freehand-modal h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-size: 1rem; letter-spacing: 0.06em;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+    .freehand-modal p {
+      font-size: 0.78rem; color: var(--text-secondary);
+      margin-bottom: 0.7rem; line-height: 1.5;
+    }
+    .freehand-modal canvas {
+      width: 100%; height: 340px;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      cursor: crosshair;
+      display: block;
+    }
+    .freehand-modal-controls {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      margin-top: 0.8rem; align-items: center;
+    }
+    .freehand-modal-controls .glass-btn { font-size: 0.78rem; padding: 0.4rem 0.8rem; }
+    .freehand-modal-controls .primary {
+      border-color: var(--accent-1); color: var(--accent-1);
+      background: rgba(57,255,133,0.06);
+    }
+    .freehand-modal-controls .primary:hover { background: rgba(57,255,133,0.16); }
+    .freehand-modal-controls .danger {
+      border-color: #ff5577; color: #ff5577;
+      background: rgba(255,85,119,0.05);
+    }
+    .modal-sym-row {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-left: auto;
+      font-size: 0.75rem; color: var(--text-secondary);
+    }
+
+    /* Sweep button */
+    .sweep-btn {
+      font-family: 'Consolas', monospace;
+      font-size: 0.78rem; padding: 0.45rem 0.9rem;
+      border: 1px solid var(--accent-2); color: var(--accent-2);
+      background: rgba(255,140,66,0.06);
+      border-radius: var(--radius-sm); cursor: pointer;
+      transition: all var(--transition);
+      width: 100%;
+    }
+    .sweep-btn:hover { background: rgba(255,140,66,0.16); box-shadow: 0 0 12px rgba(255,140,66,0.15); }
+    .sweep-btn.active {
+      background: rgba(255,140,66,0.25);
+      animation: sweepPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes sweepPulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(255,140,66,0.3); }
+      50% { box-shadow: 0 0 20px rgba(255,140,66,0.6); }
+    }
+
+    .readout-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.3rem 0.6rem;
+      font-family: 'Consolas', monospace;
+      font-size: 0.78rem;
+      margin: 0.4rem 0;
+    }
+    .readout-row .label { color: var(--text-secondary); }
+    .readout-row .val { color: var(--accent-1); }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">&#127769;</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">&#x1D4D5;</span> Fourier Series <span class="title-icon">&#x2217;</span>
+    </h1>
+    <p class="site-subtitle">Periodic Signal &middot; Spectrum &middot; Partial Sum</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">&#127968; Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">&#x223F; Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{&middot;} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">&#x222B; Conv. Continuous</a>
+    <a class="nav-tab group-c active" href="fourier.html">&#x1D4D5; Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">&#x2112; Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">&#x03A3; Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">&#x21AF; Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">&#x1D4D5;* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">&#x23C3; DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">&#x1D4B5; Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">&#x1D49F; DCT</a>
+    <a class="nav-tab group-o" href="hht.html">&#x210B; HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">&#x1D4D5;<sup>&alpha;</sup> FrFT</a>
+  </nav>
+
+  <!-- Sub-tabs -->
+  <div class="subtabs">
+    <button class="subtab active" data-tab="series">Fourier Series</button>
+  </div>
+
+  <!-- Series tab -->
+  <div class="tab-content active" id="tab-series">
+    <!-- Controls — at TOP -->
+    <div class="fourier-controls">
+      <!-- Signal -->
+      <div class="control-panel glass-panel">
+        <h3 class="panel-title"><span class="signal-dot" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span> Signal</h3>
+
+        <div class="control-group">
+          <label>Signal Type:</label>
+          <select id="signalType" class="glass-select">
+            <option value="square">Square Wave</option>
+            <option value="triangle">Triangle Wave</option>
+            <option value="sawtooth">Sawtooth</option>
+            <option value="sine">Sine</option>
+            <option value="cosine">Cosine</option>
+            <option value="halfwave">Half-Wave Rectified</option>
+            <option value="fullwave">Full-Wave Rectified</option>
+            <option value="pulse">Pulse Train (Rect)</option>
+            <option value="freehand">&#9999;&#65039; Freehand Drawing</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Period $T_0$ (s): <span id="T0Val" class="val-display">1.00</span></label>
+          <input type="range" id="T0Slider" min="0.1" max="4" step="0.05" value="1" />
+        </div>
+
+        <div class="control-group">
+          <label>Amplitude A: <span id="ampVal" class="val-display">1.00</span></label>
+          <input type="range" id="ampSlider" min="0.1" max="5" step="0.05" value="1" />
+        </div>
+
+        <div class="control-group" id="dutyGroup" style="display:none;">
+          <label>Duty (for square) / Width: <span id="dutyVal" class="val-display">0.50</span></label>
+          <input type="range" id="dutySlider" min="0.05" max="0.95" step="0.01" value="0.5" />
+        </div>
+
+        <div class="control-group">
+          <label>Phase $\varphi$ (rad &middot; shifts signal in time): <span id="phaseVal" class="val-display">0.00&pi;</span></label>
+          <input type="range" id="phaseSlider" min="-3.14159" max="3.14159" step="0.01" value="0" />
+        </div>
+
+        <div class="readout-row">
+          <span class="label">$F_0$:</span><span class="val" id="F0Val">1.000 Hz</span>
+          <span class="label">$\Omega_0$:</span><span class="val" id="Omega0Val">6.283 rad/s</span>
+        </div>
+
+        <div id="freehandControls" style="display:none; margin-top:0.5rem;">
+          <button class="glass-btn primary" id="openDrawBtn" style="width:100%; padding:0.5rem; border-color:var(--accent-1); color:var(--accent-1);">
+            &#9999;&#65039; Open Drawing Window
+          </button>
+          <div class="help-text" style="margin-top:0.4rem;">
+            Draw within one period from $-T_0$ to $+T_0$; the system repeats it periodically.
+          </div>
+        </div>
+      </div>
+
+      <!-- Harmonic control -->
+      <div class="control-panel glass-panel">
+        <h3 class="panel-title"><span class="signal-dot" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span> Harmonics</h3>
+
+        <div class="control-group">
+          <label>Number of Included Harmonics N: <span id="NVal" class="val-display">5</span></label>
+          <input type="range" id="NSlider" min="0" max="50" step="1" value="5" />
+        </div>
+
+        <div class="help-text" style="margin-bottom:0.5rem;">
+          On the spectrum display, harmonics with <strong>|k| &le; N</strong> fall in the shaded area and are included in the sum.
+        </div>
+
+        <button class="sweep-btn" id="sweepBtn">&#9654; Auto Sweep (0 &rarr; max)</button>
+
+        <div class="control-group" style="margin-top:0.5rem;">
+          <label>Sweep Speed: <span id="sweepSpeedVal" class="val-display">1.0</span>x</label>
+          <input type="range" id="sweepSpeed" min="0.2" max="3" step="0.1" value="1" />
+        </div>
+
+        <h4 style="font-family:'Saira Condensed',sans-serif;font-size:0.65rem;letter-spacing:0.08em;color:var(--text-secondary);margin-top:0.7rem;margin-bottom:0.3rem;">SPECTRUM</h4>
+        <div class="control-group">
+          <label>Display:</label>
+          <select id="specMode" class="glass-select">
+            <option value="linear" selected>Linear |c_k|</option>
+            <option value="db">dB (20&middot;log10|c_k|)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Display Settings -->
+      <div class="control-panel glass-panel">
+        <h3 class="panel-title"><span class="signal-dot" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span> Display Settings</h3>
+
+        <div class="control-group">
+          <label>Maximum Harmonic $K_{max}$: <span id="KmaxVal" class="val-display">50</span></label>
+          <input type="range" id="KmaxSlider" min="10" max="200" step="5" value="50" />
+        </div>
+
+        <div class="control-group">
+          <label>Time Range (number of periods): <span id="periodsVal" class="val-display">3</span></label>
+          <input type="range" id="periodsSlider" min="1" max="8" step="1" value="3" />
+        </div>
+
+        <div class="control-group">
+          <label>Number of Samples: <span id="samplesVal" class="val-display">1024</span></label>
+          <input type="range" id="samplesSlider" min="256" max="4096" step="256" value="1024" />
+        </div>
+
+        <div class="control-group">
+          <label>Grid Opacity: <span id="gridAlphaVal" class="val-display">0.18</span></label>
+          <input type="range" id="gridAlpha" min="0.02" max="0.6" step="0.01" value="0.18" />
+        </div>
+
+        <div class="control-group">
+          <label>Canvas Height: <span id="canvasHeightVal" class="val-display">280</span>px</label>
+          <input type="range" id="canvasHeight" min="150" max="450" step="10" value="280" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 graphs — at BOTTOM, side by side -->
+    <div class="fourier-graphs">
+      <!-- Display 1: x(t) -->
+      <div class="graph-container glass-panel">
+        <div class="graph-header">
+          <span class="graph-label" style="color:#39ff85;">x(t) — Original Periodic Signal</span>
+          <span class="instant-value" id="periodReadout">$T_0 = 1.00\,s$</span>
+        </div>
+        <div class="formula-bar">
+          <span class="formula-display">$F_0 = \dfrac{1}{T_0}$ &middot; $\Omega_0 = \dfrac{2\pi}{T_0}$</span>
+          <span class="drag-hint" id="x_freqReadout">$F_0$ = 1.00 Hz</span>
+        </div>
+        <canvas id="canvasSignal"></canvas>
+      </div>
+
+      <!-- Display 2: |c_k| Fourier series coefficients -->
+      <div class="graph-container glass-panel">
+        <div class="graph-header">
+          <span class="graph-label" style="color:#ff8c42;">|c_k| — Fourier Series Coefficients</span>
+          <span class="instant-value" id="harmonicReadout">N = 0</span>
+        </div>
+        <div class="formula-bar">
+          <span class="formula-display">$c_k = \tfrac{1}{T_0}\!\int_{T_0}\!x(t)\,e^{-jk\Omega_0 t}\,dt$</span>
+          <span class="drag-hint">&larr; drag the bar &rarr;</span>
+        </div>
+        <canvas id="canvasSpectrum" class="canvas-spectrum"></canvas>
+      </div>
+
+      <!-- Display 3: original + partial overlaid -->
+      <div class="graph-container glass-panel">
+        <div class="graph-header">
+          <span class="graph-label" style="color:#7b8cff;">$x_N(t)$ vs $x(t)$ — Overlaid Comparison</span>
+          <span class="instant-value" id="errorReadout">RMSE = —</span>
+        </div>
+        <div class="formula-bar">
+          <span class="formula-display">$x_N(t) = \sum_{k=-N}^{+N} c_k e^{jk\Omega_0 t}$</span>
+          <span class="drag-hint">light: $x(t)$ &middot; dark: $x_N(t)$</span>
+        </div>
+        <canvas id="canvasPartial"></canvas>
+      </div>
+    </div>
+
+    <!-- Education card -->
+    <div class="edu-card glass-panel">
+      <h2 class="edu-title">Fourier Series</h2>
+      <p class="edu-text">
+        A periodic signal of period $T_0$ is expressed by means of the complex Fourier series as
+        $$x(t) = \sum_{k=-\infty}^{+\infty} c_k\,e^{jk\Omega_0 t}, \qquad \Omega_0 = \frac{2\pi}{T_0}$$
+        and the coefficients are obtained from
+        $$c_k = \frac{1}{T_0}\int_{T_0} x(t)\,e^{-jk\Omega_0 t}\,dt.$$
+        The <strong>two-sided magnitude spectrum</strong> $|c_k|$ is displayed as a stem plot for $k=-K,\ldots,+K$.
+        Since real-valued signals satisfy $c_{-k} = c_k^{*}$, the identity $|c_{-k}| = |c_k|$ holds and the spectrum exhibits even symmetry.
+        <br><br>
+        <strong>Partial sum:</strong>
+        $$x_N(t) = \sum_{k=-N}^{+N} c_k\,e^{jk\Omega_0 t}$$
+        As $N$ increases, the convergence $x_N(t) \to x(t)$ is attained. At discontinuity points of signals such as the square wave, the <em>Gibbs phenomenon</em> is observed: the overshoot of approximately 9% does not vanish but is progressively confined to a narrower interval.
+      </p>
+
+      <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.4rem;font-size:0.95rem;letter-spacing:0.04em;">Application Areas</h3>
+      <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+        <li><strong>Music recognition:</strong> in algorithms of the Shazam type, song fingerprints are obtained from spectral peaks.</li>
+        <li><strong>Medical imaging:</strong> in MRI, CT and ultrasound modalities, image formation is performed in the frequency domain (k-space).</li>
+        <li><strong>Image and video compression:</strong> in the JPEG, MPEG and HEIC standards, energy compaction is achieved via the DCT (a close relative of the Fourier transform).</li>
+        <li><strong>Radar and satellite systems:</strong> Doppler-shift computation, terrain mapping and range estimation in FMCW radars are carried out within this framework.</li>
+        <li><strong>Telecommunications:</strong> OFDM (4G/5G/WiFi) constitutes a Fourier-based scheme of transmission on parallel carrier frequencies.</li>
+        <li><strong>Spectrum analysers:</strong> signal-quality measurement and EMI/EMC testing are conducted via spectral analysis.</li>
+        <li><strong>Astronomy:</strong> spectral analysis of distant celestial bodies serves as the primary tool for determining stellar composition.</li>
+        <li><strong>Seismology:</strong> spectral analysis of seismic waves is employed in the estimation of source and epicentre locations.</li>
+        <li><strong>Speech synthesis and recognition:</strong> mel-spectrogram representations are used as inputs to deep-learning models.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Freehand modal -->
+  <div class="freehand-modal" id="freehandModal">
+    <div class="freehand-modal-content">
+      <h2>Draw One Period: from $-T_0$ to $+T_0$</h2>
+      <p>
+        Draw a single-period waveform with the mouse. The system will repeat the signal periodically.
+        When <strong>symmetric drawing</strong> is enabled, points drawn on the right are automatically mirrored to the left (even function).
+      </p>
+      <canvas id="canvasDraw"></canvas>
+      <div class="freehand-modal-controls">
+        <button class="glass-btn primary" id="drawApplyBtn">&#10003; Apply</button>
+        <button class="glass-btn danger" id="drawClearBtn">Clear</button>
+        <button class="glass-btn" id="drawSmoothBtn">Smooth</button>
+        <button class="glass-btn" id="drawNormalizeBtn">Normalize</button>
+        <div class="modal-sym-row">
+          <span>Symmetric drawing:</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="symDrawToggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <button class="glass-btn" id="drawCancelBtn" style="margin-left:0.4rem;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer"><span>Signal Processing Educational Simulation — Fourier Module</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/fourier.js"></script>
+</body>
+</html>

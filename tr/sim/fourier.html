@@ -1,0 +1,453 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fourier Serisi</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* Alt sekmeler */
+    .subtabs {
+      position: relative; z-index: 2;
+      display: flex; justify-content: center; gap: 0.4rem;
+      margin: 0.4rem auto; padding: 0 1rem; max-width: 1500px;
+    }
+    .subtab {
+      font-family: 'Consolas', monospace;
+      font-size: 0.74rem; padding: 0.4rem 1rem;
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      background: var(--select-bg);
+      color: var(--text-secondary); cursor: pointer;
+      transition: all var(--transition);
+    }
+    .subtab.active {
+      border-color: var(--color-h);
+      color: var(--color-h);
+      box-shadow: 0 0 10px rgba(255,140,66,0.18);
+    }
+    .subtab.disabled {
+      opacity: 0.45; cursor: not-allowed;
+    }
+    .subtab.disabled:hover { box-shadow: none; }
+
+    /* Tab içerikleri */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* "Yakında" placeholder kartı */
+    .placeholder-card {
+      max-width: 800px; margin: 3rem auto; padding: 2rem;
+      text-align: center;
+      position: relative; z-index: 2;
+    }
+    .placeholder-card h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-size: 1rem; color: var(--text-secondary);
+      margin-bottom: 0.6rem;
+    }
+    .placeholder-card p {
+      font-size: 0.85rem; color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* 3 grafik — YATAY (yan yana) */
+    .fourier-graphs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.7rem;
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .fourier-graphs .graph-container { padding: 0.55rem 0.75rem; }
+    .fourier-graphs canvas {
+      width: 100%;
+      height: 280px;
+      border-radius: var(--radius-sm);
+      background: var(--canvas-bg);
+      display: block;
+    }
+    .canvas-spectrum { cursor: ew-resize; }
+
+    /* Kontroller — ÜSTE alındı (3 sütun) */
+    .fourier-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.7rem;
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    @media (max-width: 1100px) {
+      .fourier-graphs { grid-template-columns: 1fr; }
+      .fourier-controls { grid-template-columns: 1fr; }
+    }
+    @media (min-width: 1100px) and (max-width: 1400px) {
+      .fourier-graphs { grid-template-columns: 1fr 1fr; }
+      .fourier-graphs .graph-container:last-child { grid-column: 1 / span 2; }
+    }
+
+    /* Freehand modal */
+    .freehand-modal {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 200;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(6px);
+    }
+    .freehand-modal.active { display: flex; }
+    .freehand-modal-content {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow-strong);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      max-width: 92vw; width: 800px;
+      max-height: 92vh; overflow-y: auto;
+    }
+    .freehand-modal h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-size: 1rem; letter-spacing: 0.06em;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+    .freehand-modal p {
+      font-size: 0.78rem; color: var(--text-secondary);
+      margin-bottom: 0.7rem; line-height: 1.5;
+    }
+    .freehand-modal canvas {
+      width: 100%; height: 340px;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      cursor: crosshair;
+      display: block;
+    }
+    .freehand-modal-controls {
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      margin-top: 0.8rem; align-items: center;
+    }
+    .freehand-modal-controls .glass-btn { font-size: 0.78rem; padding: 0.4rem 0.8rem; }
+    .freehand-modal-controls .primary {
+      border-color: var(--accent-1); color: var(--accent-1);
+      background: rgba(57,255,133,0.06);
+    }
+    .freehand-modal-controls .primary:hover { background: rgba(57,255,133,0.16); }
+    .freehand-modal-controls .danger {
+      border-color: #ff5577; color: #ff5577;
+      background: rgba(255,85,119,0.05);
+    }
+    .modal-sym-row {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-left: auto;
+      font-size: 0.75rem; color: var(--text-secondary);
+    }
+
+    /* Sweep buton */
+    .sweep-btn {
+      font-family: 'Consolas', monospace;
+      font-size: 0.78rem; padding: 0.45rem 0.9rem;
+      border: 1px solid var(--accent-2); color: var(--accent-2);
+      background: rgba(255,140,66,0.06);
+      border-radius: var(--radius-sm); cursor: pointer;
+      transition: all var(--transition);
+      width: 100%;
+    }
+    .sweep-btn:hover { background: rgba(255,140,66,0.16); box-shadow: 0 0 12px rgba(255,140,66,0.15); }
+    .sweep-btn.active {
+      background: rgba(255,140,66,0.25);
+      animation: sweepPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes sweepPulse {
+      0%, 100% { box-shadow: 0 0 8px rgba(255,140,66,0.3); }
+      50% { box-shadow: 0 0 20px rgba(255,140,66,0.6); }
+    }
+
+    .readout-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.3rem 0.6rem;
+      font-family: 'Consolas', monospace;
+      font-size: 0.78rem;
+      margin: 0.4rem 0;
+    }
+    .readout-row .label { color: var(--text-secondary); }
+    .readout-row .val { color: var(--accent-1); }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">𝓕</span> Fourier Serisi <span class="title-icon">∗</span>
+    </h1>
+    <p class="site-subtitle">Periyodik İşaret · Spektrum · Kısmi Toplam</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c active" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <!-- Alt sekmeler -->
+  <div class="subtabs">
+    <button class="subtab active" data-tab="series">Fourier Serisi</button>
+  </div>
+
+  <!-- Seri sekmesi -->
+  <div class="tab-content active" id="tab-series">
+    <!-- Kontroller — ÜSTTE -->
+    <div class="fourier-controls">
+      <!-- Sinyal -->
+      <div class="control-panel glass-panel">
+        <h3 class="panel-title"><span class="signal-dot" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span> Sinyal</h3>
+
+        <div class="control-group">
+          <label>İşaret Tipi:</label>
+          <select id="signalType" class="glass-select">
+            <option value="square">Kare Dalga</option>
+            <option value="triangle">Üçgen Dalga</option>
+            <option value="sawtooth">Testere Dişi</option>
+            <option value="sine">Sinüs</option>
+            <option value="cosine">Kosinüs</option>
+            <option value="halfwave">Yarım Dalga Doğrultulmuş</option>
+            <option value="fullwave">Tam Dalga Doğrultulmuş</option>
+            <option value="pulse">Darbe Dizisi (Rect)</option>
+            <option value="freehand">✏️ Serbest Çizim</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Periyot $T_0$ (s): <span id="T0Val" class="val-display">1.00</span></label>
+          <input type="range" id="T0Slider" min="0.1" max="4" step="0.05" value="1" />
+        </div>
+
+        <div class="control-group">
+          <label>Genlik A: <span id="ampVal" class="val-display">1.00</span></label>
+          <input type="range" id="ampSlider" min="0.1" max="5" step="0.05" value="1" />
+        </div>
+
+        <div class="control-group" id="dutyGroup" style="display:none;">
+          <label>Duty (kare için) / Genişlik: <span id="dutyVal" class="val-display">0.50</span></label>
+          <input type="range" id="dutySlider" min="0.05" max="0.95" step="0.01" value="0.5" />
+        </div>
+
+        <div class="control-group">
+          <label>Faz $\varphi$ (rad · sinyali zamanda kaydırır): <span id="phaseVal" class="val-display">0.00π</span></label>
+          <input type="range" id="phaseSlider" min="-3.14159" max="3.14159" step="0.01" value="0" />
+        </div>
+
+        <div class="readout-row">
+          <span class="label">$F_0$:</span><span class="val" id="F0Val">1.000 Hz</span>
+          <span class="label">$\Omega_0$:</span><span class="val" id="Omega0Val">6.283 rad/s</span>
+        </div>
+
+        <div id="freehandControls" style="display:none; margin-top:0.5rem;">
+          <button class="glass-btn primary" id="openDrawBtn" style="width:100%; padding:0.5rem; border-color:var(--accent-1); color:var(--accent-1);">
+            ✏️ Çizim Penceresini Aç
+          </button>
+          <div class="help-text" style="margin-top:0.4rem;">
+            Bir periyot içinde $-T_0$ ile $+T_0$ arasında çizim yaparsın, sistem periyodik tekrarlar.
+          </div>
+        </div>
+      </div>
+
+      <!-- Harmonik kontrol -->
+      <div class="control-panel glass-panel">
+        <h3 class="panel-title"><span class="signal-dot" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span> Harmonikler</h3>
+
+        <div class="control-group">
+          <label>Dahil Harmonik Sayısı N: <span id="NVal" class="val-display">5</span></label>
+          <input type="range" id="NSlider" min="0" max="50" step="1" value="5" />
+        </div>
+
+        <div class="help-text" style="margin-bottom:0.5rem;">
+          Spektrum ekranında <strong>|k| ≤ N</strong> harmonikler shaded alana düşer ve toplama dahil edilir.
+        </div>
+
+        <button class="sweep-btn" id="sweepBtn">▶ Otomatik Süpür (0 → max)</button>
+
+        <div class="control-group" style="margin-top:0.5rem;">
+          <label>Süpürme Hızı: <span id="sweepSpeedVal" class="val-display">1.0</span>x</label>
+          <input type="range" id="sweepSpeed" min="0.2" max="3" step="0.1" value="1" />
+        </div>
+
+        <h4 style="font-family:'Saira Condensed',sans-serif;font-size:0.65rem;letter-spacing:0.08em;color:var(--text-secondary);margin-top:0.7rem;margin-bottom:0.3rem;">SPEKTRUM</h4>
+        <div class="control-group">
+          <label>Gösterim:</label>
+          <select id="specMode" class="glass-select">
+            <option value="linear" selected>Lineer |c_k|</option>
+            <option value="db">dB (20·log10|c_k|)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Görüntü Ayarları -->
+      <div class="control-panel glass-panel">
+        <h3 class="panel-title"><span class="signal-dot" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span> Görüntü Ayarları</h3>
+
+        <div class="control-group">
+          <label>Maksimum Harmonik $K_{max}$: <span id="KmaxVal" class="val-display">50</span></label>
+          <input type="range" id="KmaxSlider" min="10" max="200" step="5" value="50" />
+        </div>
+
+        <div class="control-group">
+          <label>Zaman Aralığı (kaç periyot): <span id="periodsVal" class="val-display">3</span></label>
+          <input type="range" id="periodsSlider" min="1" max="8" step="1" value="3" />
+        </div>
+
+        <div class="control-group">
+          <label>Sample Sayısı: <span id="samplesVal" class="val-display">1024</span></label>
+          <input type="range" id="samplesSlider" min="256" max="4096" step="256" value="1024" />
+        </div>
+
+        <div class="control-group">
+          <label>Grid Opaklık: <span id="gridAlphaVal" class="val-display">0.18</span></label>
+          <input type="range" id="gridAlpha" min="0.02" max="0.6" step="0.01" value="0.18" />
+        </div>
+
+        <div class="control-group">
+          <label>Canvas Yükseklik: <span id="canvasHeightVal" class="val-display">280</span>px</label>
+          <input type="range" id="canvasHeight" min="150" max="450" step="10" value="280" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 grafik — ALTTA · yan yana -->
+    <div class="fourier-graphs">
+      <!-- Ekran 1: x(t) -->
+      <div class="graph-container glass-panel">
+        <div class="graph-header">
+          <span class="graph-label" style="color:#39ff85;">x(t) — Orijinal Periyodik İşaret</span>
+          <span class="instant-value" id="periodReadout">$T_0 = 1.00\,s$</span>
+        </div>
+        <div class="formula-bar">
+          <span class="formula-display">$F_0 = \dfrac{1}{T_0}$ · $\Omega_0 = \dfrac{2\pi}{T_0}$</span>
+          <span class="drag-hint" id="x_freqReadout">$F_0$ = 1.00 Hz</span>
+        </div>
+        <canvas id="canvasSignal"></canvas>
+      </div>
+
+      <!-- Ekran 2: |c_k| Fourier seri katsayıları -->
+      <div class="graph-container glass-panel">
+        <div class="graph-header">
+          <span class="graph-label" style="color:#ff8c42;">|c_k| — Fourier Seri Katsayıları</span>
+          <span class="instant-value" id="harmonicReadout">N = 0</span>
+        </div>
+        <div class="formula-bar">
+          <span class="formula-display">$c_k = \tfrac{1}{T_0}\!\int_{T_0}\!x(t)\,e^{-jk\Omega_0 t}\,dt$</span>
+          <span class="drag-hint">← çubuğu sürükle →</span>
+        </div>
+        <canvas id="canvasSpectrum" class="canvas-spectrum"></canvas>
+      </div>
+
+      <!-- Ekran 3: orijinal + partial üst üste -->
+      <div class="graph-container glass-panel">
+        <div class="graph-header">
+          <span class="graph-label" style="color:#7b8cff;">$x_N(t)$ vs $x(t)$ — Gerçek ile Üst Üste</span>
+          <span class="instant-value" id="errorReadout">RMSE = —</span>
+        </div>
+        <div class="formula-bar">
+          <span class="formula-display">$x_N(t) = \sum_{k=-N}^{+N} c_k e^{jk\Omega_0 t}$</span>
+          <span class="drag-hint">açık: $x(t)$ · koyu: $x_N(t)$</span>
+        </div>
+        <canvas id="canvasPartial"></canvas>
+      </div>
+    </div>
+
+    <!-- Eğitim kartı -->
+    <div class="edu-card glass-panel">
+      <h2 class="edu-title">Fourier Serisi</h2>
+      <p class="edu-text">
+        Periyodu $T_0$ olan bir periyodik işaret, karmaşık Fourier serisi yardımıyla
+        $$x(t) = \sum_{k=-\infty}^{+\infty} c_k\,e^{jk\Omega_0 t}, \qquad \Omega_0 = \frac{2\pi}{T_0}$$
+        biçiminde ifade edilmektedir. Katsayılar aşağıdaki bağıntıyla hesaplanır:
+        $$c_k = \frac{1}{T_0}\int_{T_0} x(t)\,e^{-jk\Omega_0 t}\,dt$$
+        <strong>Çift yanlı genlik spektrumu</strong> $|c_k|$, $k=-K,\ldots,+K$ aralığında çubuk (stem) gösterimiyle sunulur.
+        Reel değerli işaretler için $c_{-k} = c_k^{*}$ olduğundan $|c_{-k}| = |c_k|$ sağlanır ve spektrum çift simetri taşır.
+        <br><br>
+        <strong>Kısmi toplam:</strong>
+        $$x_N(t) = \sum_{k=-N}^{+N} c_k\,e^{jk\Omega_0 t}$$
+        $N$ arttıkça $x_N(t) \to x(t)$ yakınsaması elde edilir. Kare dalga gibi süreksizlik içeren işaretlerde, atlama noktalarında <em>Gibbs olgusu</em> gözlenmektedir: yaklaşık %9'luk üst sapma kaybolmamakta, fakat genişliği daralarak sıfıra yaklaşmaktadır.
+      </p>
+
+      <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.4rem;font-size:0.95rem;letter-spacing:0.04em;">📍 Uygulama Alanları</h3>
+      <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+        <li><strong>Müzik tanıma:</strong> Shazam türü algoritmalarda şarkı parmak izi, spektrumdaki tepe noktalarından çıkarılır.</li>
+        <li><strong>Tıbbi görüntüleme:</strong> MRI, BT ve ultrason yöntemlerinde görüntü oluşturma frekans düzleminde (k-uzayında) gerçekleştirilir.</li>
+        <li><strong>Görüntü ve video sıkıştırma:</strong> JPEG, MPEG ve HEIC standartlarında DCT (Fourier'in yakın akrabası) ile enerji yoğunlaştırması sağlanır.</li>
+        <li><strong>Radar ve uydu sistemleri:</strong> Doppler kayması hesaplama, yer haritalama ve FMCW radarlarda mesafe kestirimi bu çerçevede yapılır.</li>
+        <li><strong>Telekomünikasyon:</strong> OFDM (4G/5G/WiFi), paralel taşıyıcı frekanslarda iletime dayalı bir Fourier uygulamasıdır.</li>
+        <li><strong>Spektrum analizörleri:</strong> sinyal kalitesi ölçümü ve EMI/EMC testleri spektral analiz üzerinden yürütülür.</li>
+        <li><strong>Astronomi:</strong> uzak gök cisimlerinin tayfsal çözümlemesi, yıldız bileşimi tespitinde temel araç olarak kullanılmaktadır.</li>
+        <li><strong>Sismoloji:</strong> deprem dalgalarının spektrum analizi yoluyla odak ve merkez kestirimi yapılır.</li>
+        <li><strong>Konuşma sentezi ve tanıma:</strong> mel-spektrogram temsilleri derin öğrenme modellerinin girdisi olarak kullanılmaktadır.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Freehand modal -->
+  <div class="freehand-modal" id="freehandModal">
+    <div class="freehand-modal-content">
+      <h2>Bir Periyot Çiz: $-T_0$ ile $+T_0$ arası</h2>
+      <p>
+        Fare ile bir periyot şekli çiz. Sistem sinyali periyodik olarak tekrarlayacak.
+        <strong>Simetrik çizim</strong> açıkken sağa çizdiğin nokta otomatik olarak sola da yansıtılır (çift fonksiyon).
+      </p>
+      <canvas id="canvasDraw"></canvas>
+      <div class="freehand-modal-controls">
+        <button class="glass-btn primary" id="drawApplyBtn">✓ Uygula</button>
+        <button class="glass-btn danger" id="drawClearBtn">Temizle</button>
+        <button class="glass-btn" id="drawSmoothBtn">Düzgünleştir</button>
+        <button class="glass-btn" id="drawNormalizeBtn">Normalize</button>
+        <div class="modal-sym-row">
+          <span>Simetrik çizim:</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="symDrawToggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <button class="glass-btn" id="drawCancelBtn" style="margin-left:0.4rem;">İptal</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer"><span>Sinyal İşleme Eğitim Simülasyonu — Fourier Modülü</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/fourier.js"></script>
+</body>
+</html>

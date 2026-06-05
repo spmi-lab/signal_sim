@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Sitemap for "Signals & Systems — Interactive Simulation Platform"
+  SPMI Lab · Nurullah ÇALIK · İstanbul Medeniyet University
+  https://github.com/spmi-lab
+
+  NOTE: Replace https://spmi-lab.github.io/ with the actual deployment URL
+  before going live. URLs include both Turkish (/tr/) and English (/en/)
+  variants with hreflang annotations for proper search-engine indexing.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <!-- ============================================================
+       ROOT (auto-redirects by browser language preference)
+       ============================================================ -->
+  <url>
+    <loc>https://spmi-lab.github.io/</loc>
+    <lastmod>2026-06-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/index.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/index.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://spmi-lab.github.io/"/>
+  </url>
+
+  <!-- ============================================================
+       TURKISH LANDING + SIMULATIONS
+       ============================================================ -->
+  <url>
+    <loc>https://spmi-lab.github.io/tr/index.html</loc>
+    <lastmod>2026-06-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/index.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/index.html"/>
+  </url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/basic-signals.html</loc>      <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/basic-signals.html"/>     <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/basic-signals.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/system-properties.html</loc>  <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/system-properties.html"/> <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/system-properties.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/continuous.html</loc>         <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/continuous.html"/>        <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/continuous.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/fourier.html</loc>            <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/fourier.html"/>           <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/fourier.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/laplace.html</loc>            <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/laplace.html"/>           <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/laplace.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/discrete.html</loc>           <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/discrete.html"/>          <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/discrete.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/sampling.html</loc>           <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/sampling.html"/>          <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/sampling.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/dtft.html</loc>               <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/dtft.html"/>              <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/dtft.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/dft_fft.html</loc>            <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/dft_fft.html"/>           <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/dft_fft.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/z_transform.html</loc>        <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/z_transform.html"/>       <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/z_transform.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/radio.html</loc>              <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/radio.html"/>             <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/radio.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/spectrogram2.html</loc>       <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/spectrogram2.html"/>      <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/spectrogram2.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/dct.html</loc>                <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/dct.html"/>               <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/dct.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/hht.html</loc>                <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/hht.html"/>               <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/hht.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/doppler.html</loc>            <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/doppler.html"/>           <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/doppler.html"/></url>
+  <url><loc>https://spmi-lab.github.io/tr/sim/fractional-fourier.html</loc> <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/fractional-fourier.html"/><xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/fractional-fourier.html"/></url>
+
+  <!-- ============================================================
+       ENGLISH LANDING + SIMULATIONS
+       ============================================================ -->
+  <url>
+    <loc>https://spmi-lab.github.io/en/index.html</loc>
+    <lastmod>2026-06-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/index.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/index.html"/>
+  </url>
+  <url><loc>https://spmi-lab.github.io/en/sim/basic-signals.html</loc>      <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/basic-signals.html"/>     <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/basic-signals.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/system-properties.html</loc>  <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/system-properties.html"/> <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/system-properties.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/continuous.html</loc>         <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/continuous.html"/>        <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/continuous.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/fourier.html</loc>            <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/fourier.html"/>           <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/fourier.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/laplace.html</loc>            <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/laplace.html"/>           <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/laplace.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/discrete.html</loc>           <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/discrete.html"/>          <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/discrete.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/sampling.html</loc>           <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/sampling.html"/>          <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/sampling.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/dtft.html</loc>               <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/dtft.html"/>              <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/dtft.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/dft_fft.html</loc>            <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/dft_fft.html"/>           <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/dft_fft.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/z_transform.html</loc>        <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/z_transform.html"/>       <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/z_transform.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/radio.html</loc>              <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/radio.html"/>             <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/radio.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/spectrogram2.html</loc>       <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/spectrogram2.html"/>      <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/spectrogram2.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/dct.html</loc>                <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/dct.html"/>               <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/dct.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/hht.html</loc>                <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/hht.html"/>               <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/hht.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/doppler.html</loc>            <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/doppler.html"/>           <xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/doppler.html"/></url>
+  <url><loc>https://spmi-lab.github.io/en/sim/fractional-fourier.html</loc> <lastmod>2026-06-04</lastmod><changefreq>monthly</changefreq><priority>0.9</priority><xhtml:link rel="alternate" hreflang="tr" href="https://spmi-lab.github.io/tr/sim/fractional-fourier.html"/><xhtml:link rel="alternate" hreflang="en" href="https://spmi-lab.github.io/en/sim/fractional-fourier.html"/></url>
+
+</urlset>

@@ -1,0 +1,351 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ayrık Fourier Dönüşümü (DFT/FFT) — Sayısal Spektrum</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    .dft-grid {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0 0.8rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 0.55rem;
+      position: relative; z-index: 2;
+    }
+    .dft-grid .graph-container { padding: 0.5rem 0.7rem 0.6rem; }
+    .dft-grid canvas {
+      width: 100%; height: 215px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    .dft-grid .spans-wide { grid-column: 1 / span 2; }
+    #cvSpec { cursor: ew-resize; }
+    .draw-active { cursor: crosshair; }
+
+    .panel-xn   { color: var(--color-x); }
+    .panel-win  { color: #ffd166; }
+    .panel-spec { color: var(--color-h); }
+    .panel-tim  { color: var(--color-y); }
+
+    .timing-card {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0.7rem 1.2rem;
+      display: flex; flex-wrap: wrap; gap: 1rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      align-items: center;
+      position: relative; z-index: 2;
+    }
+    .timing-card .badge {
+      padding: 0.22rem 0.6rem; border-radius: 4px;
+      background: rgba(57,255,133,0.10);
+      color: var(--accent-1);
+      border: 1px solid rgba(57,255,133,0.35);
+    }
+    .timing-card .badge.slow {
+      background: rgba(255,79,154,0.10);
+      color: var(--color-marker);
+      border-color: rgba(255,79,154,0.4);
+    }
+    .timing-card .label { color: var(--text-secondary); }
+    .timing-card .val   { color: var(--text-primary); }
+
+    @media (max-width: 900px) {
+      .dft-grid { grid-template-columns: 1fr; }
+      .dft-grid .spans-wide { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">⏃</span> Ayrık Fourier Dönüşümü (DFT/FFT) — Sayısal Spektrum <span class="title-icon">⚙</span>
+    </h1>
+    <p class="site-subtitle">N-Nokta DFT · Sıfır-Doldurma · Sızıntı · DTFT Karşılaştırması</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d active" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <div class="dft-grid">
+    <!-- x[n] -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-xn">x[n] — Giriş işareti (N örnek)</span>
+        <span class="instant-value" id="NRO">N = 32</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$n = 0, 1, ..., N-1$</span>
+        <span class="drag-hint" id="xnHint">önset · işaret tipi seçili</span>
+      </div>
+      <canvas id="cvXn"></canvas>
+    </div>
+
+    <!-- Pencerelenmiş x[n] · w[n] -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-win">x[n]·w[n] — Pencerelenmiş + sıfır-doldurma</span>
+        <span class="instant-value" id="NzpRO">N_fft = 32</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$\tilde x[n] = w[n]\,x[n]$, sonra zero-pad</span>
+        <span class="drag-hint">turuncu: pencere · yeşil: pencerelenmiş x</span>
+      </div>
+      <canvas id="cvWin"></canvas>
+    </div>
+
+    <!-- |X[k]| spektrum (yan yana - sol) -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-spec">|X[k]| — DFT (stem) · DTFT (sürekli arka plan)</span>
+        <span class="instant-value" id="binRO">imleç bin: k = —</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$X[k]=\sum_{n=0}^{N-1} x[n]\,e^{-j2\pi kn/N}$</span>
+        <span class="drag-hint">DFT $=$ DTFT'nin $\omega_k$ örneklemesi</span>
+      </div>
+      <canvas id="cvSpec"></canvas>
+    </div>
+
+    <!-- IDFT geri inşa (yan yana - sağ) -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-tim">IDFT$(X[k])$ — Geri inşa (ilk M bin)</span>
+        <span class="instant-value" id="rmseRO">RMSE = —</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$\hat x[n]=\tfrac{1}{N}\sum_{k=0}^{N-1} X_M[k]\,e^{j2\pi kn/N}$</span>
+        <span class="drag-hint">açık: orijinal · koyu: rekonstrüksiyon</span>
+      </div>
+      <canvas id="cvIDFT"></canvas>
+    </div>
+  </div>
+
+  <!-- Kontroller — yukarı taşındı -->
+  <div class="controls-wrapper">
+    <!-- Sinyal -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> Sinyal</h3>
+
+      <div class="control-group">
+        <label>İşaret:</label>
+        <select id="signalType" class="glass-select">
+          <option value="cosine" selected>Kosinüs $\cos(2\pi k_0 n/N)$</option>
+          <option value="sumcos">İki Kosinüs Toplamı</option>
+          <option value="cosNonInt">Kosinüs (tam-sayı olmayan k₀) → sızıntı</option>
+          <option value="chirp">Doğrusal Chirp</option>
+          <option value="rect">Kare darbe</option>
+          <option value="delta">Dirac $\delta[n-n_0]$</option>
+          <option value="gauss">Gauss</option>
+          <option value="noise">Beyaz gürültü (rastgele)</option>
+          <option value="freehand">✏️ Serbest Çizim</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Bin frekansı $k_0$ (örnek): <span id="k0Val" class="val-display">4.0</span></label>
+        <input type="range" id="k0Slider" min="0" max="16" step="0.05" value="4" />
+      </div>
+
+      <div class="control-group" id="k1Group" style="display:none;">
+        <label>2. bin $k_1$: <span id="k1Val" class="val-display">10.0</span></label>
+        <input type="range" id="k1Slider" min="0" max="32" step="0.05" value="10" />
+      </div>
+
+      <div class="control-group">
+        <label>Genlik A: <span id="ampVal" class="val-display">1.00</span></label>
+        <input type="range" id="ampSlider" min="0.1" max="3" step="0.05" value="1" />
+      </div>
+
+      <div class="control-group" id="n0Group" style="display:none;">
+        <label>$n_0$ (delta yeri / merkez): <span id="n0Val" class="val-display">8</span></label>
+        <input type="range" id="n0Slider" min="0" max="64" step="1" value="8" />
+      </div>
+
+      <div class="freehand-controls" id="freehandControls" style="display:none;">
+        <p class="freehand-info">x[n] grafiğinde fare ile çizin.</p>
+        <button class="glass-btn" id="drawClear">Temizle</button>
+        <button class="glass-btn" id="drawSmooth">Düzgünleştir</button>
+        <button class="glass-btn" id="drawNormalize">Normalize</button>
+      </div>
+    </div>
+
+    <!-- DFT Parametreleri -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-h"></span> DFT</h3>
+
+      <div class="control-group">
+        <label>Sinyal uzunluğu N: <span id="NVal" class="val-display">32</span></label>
+        <input type="range" id="NSlider" min="8" max="256" step="1" value="32" />
+      </div>
+
+      <div class="control-group">
+        <label>FFT uzunluğu $N_{fft}$ (sıfır-doldurma · 2'nin kuvveti):</label>
+        <select id="NzpSlider" class="glass-select">
+          <option value="32" selected>32</option>
+          <option value="64">64</option>
+          <option value="128">128</option>
+          <option value="256">256</option>
+          <option value="512">512</option>
+          <option value="1024">1024</option>
+          <option value="2048">2048</option>
+          <option value="4096">4096</option>
+          <option value="8192">8192</option>
+        </select>
+        <span id="NzpVal" class="val-display" style="display:none;">32</span>
+      </div>
+
+      <div class="control-group">
+        <label>Pencere $w[n]$:</label>
+        <select id="windowType" class="glass-select">
+          <option value="rect" selected>Dikdörtgen (yok)</option>
+          <option value="hann">Hann</option>
+          <option value="hamming">Hamming</option>
+          <option value="blackman">Blackman</option>
+          <option value="flattop">Flat-top</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>IDFT geri inşa: ilk M bin tut <span id="MVal" class="val-display">16</span></label>
+        <input type="range" id="MSlider" min="1" max="64" step="1" value="16" />
+      </div>
+
+      <div class="periodic-row">
+        <span>DTFT'yi arka planda çiz:</span>
+        <label class="toggle-switch"><input type="checkbox" id="dtftOverlay" checked /><span class="toggle-slider"></span></label>
+      </div>
+
+      <div class="periodic-row">
+        <span>Çift yanlı spektrum ($-N/2..N/2$):</span>
+        <label class="toggle-switch"><input type="checkbox" id="twoSided" /><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Görüntü -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-settings"></span> Görüntü</h3>
+
+      <div class="control-group">
+        <label>Spektrum gösterim:</label>
+        <select id="specMode" class="glass-select">
+          <option value="linear" selected>Lineer |X|</option>
+          <option value="db">dB (20·log₁₀|X|)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>X ekseni:</label>
+        <select id="xAxisMode" class="glass-select">
+          <option value="bin" selected>Bin indis k</option>
+          <option value="omega">ω = 2πk/N (rad)</option>
+          <option value="cps">f = k/N (cyc/sample)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Grid Opaklık: <span id="gridAlphaVal" class="val-display">0.16</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.5" step="0.01" value="0.16" />
+      </div>
+
+      <div class="control-group">
+        <label>Canvas Yükseklik: <span id="canvasHeightVal" class="val-display">215</span>px</label>
+        <input type="range" id="canvasHeight" min="150" max="380" step="10" value="215" />
+      </div>
+
+      <div class="control-group">
+        <label>Stem nokta boyutu: <span id="dotSizeVal" class="val-display">3.0</span></label>
+        <input type="range" id="dotSize" min="1.5" max="6" step="0.5" value="3" />
+      </div>
+    </div>
+  </div>
+
+  <!-- DFT vs FFT N-atış benchmark -->
+  <div class="timing-card glass-panel">
+    <span class="badge" id="fftBadge">FFT μ±σ: — </span>
+    <span class="badge slow" id="dftBadge">DFT μ±σ: — </span>
+    <span class="label">hızlanma:</span><span class="val" id="speedup">— ×</span>
+    <span class="label">|</span>
+    <span class="label">karmaşıklık:</span>
+    <span class="val">FFT $O(N\log N)$ · DFT $O(N^2)$</span>
+    <div style="margin-left:auto; display:flex; gap:0.45rem; align-items:center;">
+      <label class="label" for="benchN">Iterasyon:</label>
+      <input type="number" id="benchN" class="num-input" min="3" max="500" value="10" style="width:70px;" />
+      <button class="glass-btn" id="benchBtn">🏃 N-atış Benchmark</button>
+    </div>
+  </div>
+
+  <!-- Eğitim -->
+  <div class="edu-card glass-panel">
+    <h2 class="edu-title">DFT / FFT — Sayısal Spektrum Analizi</h2>
+    <p class="edu-text">
+      $N$ örnekli ayrık dizinin <strong>DFT</strong>'si:
+      $$X[k]=\sum_{n=0}^{N-1} x[n]\,e^{-j2\pi kn/N},\quad k=0,1,\dots,N-1$$
+      ve tersi (IDFT):
+      $$x[n]=\dfrac{1}{N}\sum_{k=0}^{N-1} X[k]\,e^{+j2\pi kn/N}.$$
+      DFT, sonsuz nokta DTFT'nin yalnızca $\omega_k=2\pi k/N$ noktalarındaki <em>örneklenmiş</em> hâlidir:
+      $X[k]=X(e^{j\omega_k})$.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Sıfır-doldurma (zero-padding):</strong> $x[n]$'yi $N_{fft}>N$'e sıfır ekleyerek uzatınca DFT, DTFT'yi <em>daha sık</em> örneklemiş olur — yeni bilgi eklenmez, sadece "ekran çözünürlüğü" artar.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Sızıntı (leakage):</strong> $x[n]$'in tam periyodik olmadığı $N$ uzunlukta DFT, sürekli sinüsün spektrumunun ideal $\delta$'larını alamaz — enerji komşu bin'lere yayılır. Hann/Hamming gibi pencere fonksiyonları, kenar süreksizliğini yumuşatarak yan-lob seviyesini düşürür (ana-lob genişler).
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>FFT</strong> (Cooley–Tukey), DFT'yi $O(N\log N)$'de hesaplar; doğrudan formül $O(N^2)$'dir. Yukarıda her güncellemede her ikisi de canlı ölçülür: $N$ büyüdükçe hız farkı dramatik olur.
+    </p>
+
+    <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.2rem;font-size:0.95rem;letter-spacing:0.04em;">📍 Uygulama Alanları</h3>
+    <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+      <li><strong>Ses/müzik:</strong> EQ, pitch shift, vocoder — STFT (kayan FFT).</li>
+      <li><strong>Görüntü:</strong> 2D FFT — filtreleme, sıkıştırma, kırpma deseni analizi.</li>
+      <li><strong>Telekomünikasyon:</strong> OFDM (Wi-Fi/5G) sembol modülasyonu doğrudan IFFT/FFT.</li>
+      <li><strong>Bilim:</strong> Astronomi (pulsar dönemi), tıp (MRI k-space), titreşim/akustik analiz.</li>
+      <li><strong>ML:</strong> spektrogram, mel-spektrogram, conv-FFT hızlandırma.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Sinyal İşleme Eğitim Simülasyonu — DFT/FFT Modülü</span></footer>
+  <script src="../theme.js"></script>
+
+  <script src="dft_fft.js"></script>
+</body>
+</html>

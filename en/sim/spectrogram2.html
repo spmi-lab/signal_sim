@@ -1,0 +1,1004 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Real Time STFT — Window &amp; Overlap</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* === Spectrum2 page specific === */
+    .sp2-top {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 0.7rem;
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .sp2-main-wrap {
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+
+    .sp2-toolbar {
+      display: flex; align-items: center; gap: 0.5rem;
+      flex-wrap: wrap;
+      padding: 0.8rem 1rem;
+      margin-bottom: 0.6rem;
+    }
+    .sp2-btn {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      padding: 0.55rem 1.1rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      border: 1.5px solid;
+      background: transparent;
+      transition: all var(--transition);
+      display: inline-flex; align-items: center; gap: 0.35rem;
+    }
+    .sp2-btn.mic { color: var(--accent-1); border-color: var(--accent-1); background: rgba(57,255,133,0.06); }
+    .sp2-btn.mic:hover { background: rgba(57,255,133,0.18); transform: translateY(-2px); }
+    .sp2-btn.mic.active {
+      background: linear-gradient(135deg, var(--accent-1), var(--color-y));
+      color: #06060f; border-color: transparent;
+      animation: micGlow2 1.4s infinite;
+    }
+    @keyframes micGlow2 { 0%,100% { box-shadow: 0 0 8px rgba(57,255,133,0.3); } 50% { box-shadow: 0 0 22px rgba(57,255,133,0.7); } }
+    .sp2-btn.file { color: var(--color-y); border-color: var(--color-y); background: rgba(123,140,255,0.05); position: relative; overflow: hidden; }
+    .sp2-btn.file:hover { background: rgba(123,140,255,0.18); }
+    .sp2-btn.file input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .sp2-btn.stop { color: #ff5577; border-color: #ff5577; background: rgba(255,85,119,0.05); }
+    .sp2-btn.stop:hover { background: rgba(255,85,119,0.18); }
+    .sp2-btn.pause { color: var(--accent-2); border-color: var(--accent-2); background: rgba(255,140,66,0.05); }
+    .sp2-btn.pause:hover { background: rgba(255,140,66,0.18); }
+    .sp2-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .sp2-preset-select {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      padding: 0.5rem 0.9rem;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--color-marker);
+      color: var(--color-marker);
+      background: rgba(255,79,154,0.05);
+      cursor: pointer;
+      transition: all var(--transition);
+      min-width: 200px;
+    }
+    .sp2-preset-select:hover { background: rgba(255,79,154,0.15); }
+    .sp2-preset-select:focus { outline: none; box-shadow: 0 0 10px rgba(255,79,154,0.25); }
+    .sp2-preset-select option { background: var(--select-bg); color: var(--text-primary); }
+
+    .sp2-status {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-left: 0.5rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+      background: var(--select-bg);
+    }
+    .sp2-status.live { color: var(--accent-1); }
+    .sp2-status.err  { color: #ff5577; }
+
+    .sp2-volume {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      margin-left: 0.5rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+      background: var(--select-bg);
+      border: 1px solid var(--border-glow);
+    }
+    .sp2-volume input[type=range] { width: 110px; accent-color: var(--accent-1); }
+    .sp2-volume-icon { font-size: 0.95rem; line-height: 1; }
+    .sp2-volume-val {
+      font-family: 'Fira Code', monospace; font-size: 0.72rem;
+      color: var(--accent-1); min-width: 2.8em; text-align: right;
+    }
+
+    /* Control panel */
+    .sp2-controls {
+      padding: 0.9rem 1.1rem;
+    }
+    .sp2-controls .control-group { margin-bottom: 0.5rem; }
+    .sp2-controls .control-group:last-child { margin-bottom: 0; }
+    .sp2-controls label {
+      display: block;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 0.2rem;
+    }
+    .sp2-controls .val-display {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      color: var(--accent-2);
+      padding: 0.05rem 0.4rem;
+      background: rgba(255,140,66,0.08);
+      border-radius: 3px;
+      margin-left: 0.3rem;
+    }
+    .sp2-controls select {
+      width: 100%;
+      padding: 0.35rem 0.55rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .sp2-controls select:focus { outline: none; border-color: var(--accent-1); }
+    .sp2-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .sp2-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    /* Frequency range (min/max input) */
+    .freq-range-row {
+      display: flex; align-items: center; gap: 0.3rem;
+      position: relative;
+    }
+    .freq-range-row input {
+      flex: 1; min-width: 0;
+      padding: 0.35rem 0.45rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+    }
+    .freq-range-row input:focus { outline: none; border-color: var(--accent-1); }
+    .freq-range-sep { color: var(--text-dim); font-family: 'Fira Code', monospace; font-weight: 700; }
+    .freq-preset-btn {
+      background: rgba(57,255,133,0.08);
+      color: var(--accent-1);
+      border: 1px solid var(--accent-1);
+      border-radius: 4px;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .freq-preset-btn:hover { background: rgba(57,255,133,0.22); }
+    .freq-preset-menu {
+      position: absolute;
+      top: calc(100% + 4px); right: 0;
+      background: var(--select-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: 6px;
+      padding: 0.3rem;
+      z-index: 50;
+      min-width: 220px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+      display: flex; flex-direction: column;
+    }
+    .freq-preset-menu button {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 0;
+      text-align: left;
+      padding: 0.4rem 0.7rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all var(--transition);
+    }
+    .freq-preset-menu button:hover {
+      background: rgba(57,255,133,0.18);
+      color: var(--accent-1);
+    }
+
+    /* Window |W(f)| dB/Linear toggle */
+    .win-scale-toggle {
+      display: inline-flex; align-items: center;
+      gap: 0.25rem; margin-left: auto;
+      padding: 0.15rem;
+      background: var(--select-bg);
+      border-radius: 5px;
+      border: 1px solid var(--border-glow);
+    }
+    .win-scale-toggle button {
+      background: transparent;
+      color: var(--text-dim);
+      border: 0;
+      padding: 0.25rem 0.55rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.74rem;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all var(--transition);
+      letter-spacing: 0.04em;
+    }
+    .win-scale-toggle button.active {
+      background: linear-gradient(135deg, var(--accent-1), var(--color-y));
+      color: #06060f; font-weight: 700;
+    }
+    .win-scale-toggle button:hover:not(.active) { color: var(--accent-1); }
+    .win-panel-header {
+      display: flex; align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Right panel — window shape + live spectrum */
+    .sp2-side-panel {
+      padding: 0.9rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+    .sp2-side-panel .panel-sub-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.82rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    #cvWindow {
+      width: 100%; height: 110px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    #cvLive2 {
+      width: 100%; height: 175px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    .sp2-win-info {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 0.3rem;
+      line-height: 1.5;
+    }
+    .sp2-win-info .k { color: var(--accent-2); }
+    .sp2-win-info .v { color: var(--color-y); }
+
+    /* Main 2D waterfall canvas + right side live column */
+    .sp2-waterfall-wrap {
+      display: grid;
+      grid-template-columns: 1fr 130px;
+      gap: 0.5rem;
+      padding: 0.6rem;
+    }
+    #cvWaterfall {
+      width: 100%; height: 540px;
+      background: #050518;
+      border-radius: var(--radius-sm);
+      display: block;
+      cursor: crosshair;
+    }
+    body.light-theme #cvWaterfall { background: #f5f7fb; }
+    #cvSpecVert {
+      width: 100%; height: 540px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+
+    /* Color scale legend */
+    .palette-legend2 {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-top: 0.5rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+    .palette-bar2 {
+      flex: 1; height: 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border-glow);
+    }
+
+    /* Theory */
+    .edu-card { max-width: 1500px; margin: 1.2rem auto; padding: 1.4rem 1.8rem; position: relative; z-index: 2; }
+    .edu-card h2 {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 700;
+      font-size: 1.05rem; letter-spacing: 0.04em;
+      background: linear-gradient(90deg, var(--accent-1), var(--color-y));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.7rem;
+    }
+    .edu-card h3 {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 700;
+      font-size: 0.92rem; color: var(--accent-2);
+      margin-top: 1rem; margin-bottom: 0.35rem;
+      letter-spacing: 0.04em;
+    }
+    .edu-card p, .edu-card li {
+      font-size: 0.88rem; line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .edu-card ul { margin-left: 1.4rem; margin-bottom: 0.6rem; }
+    .edu-card strong { color: var(--text-primary); }
+
+    /* Window table */
+    .win-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.5rem 0;
+      font-size: 0.82rem;
+    }
+    .win-table th, .win-table td {
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid var(--border-glow);
+      text-align: left;
+    }
+    .win-table th {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      color: var(--accent-1);
+      letter-spacing: 0.04em;
+    }
+    .win-table td {
+      font-family: 'Fira Code', monospace;
+      color: var(--text-secondary);
+    }
+    .win-table td.win-name { color: var(--color-y); font-weight: 600; }
+
+    /* === Custom Signal Builder === */
+    .custom-builder {
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.6rem;
+    }
+    .custom-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.7rem; flex-wrap: wrap;
+      margin-bottom: 0.7rem;
+    }
+    .custom-header .panel-title { margin: 0; }
+    .custom-actions {
+      display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+    }
+    .custom-actions select, .custom-actions button {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      padding: 0.4rem 0.8rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .custom-actions select {
+      background: rgba(255,79,154,0.05);
+      color: var(--color-marker);
+      border: 1.5px solid var(--color-marker);
+      min-width: 220px;
+    }
+    .custom-actions select:hover { background: rgba(255,79,154,0.15); }
+    .custom-actions select option { background: var(--select-bg); color: var(--text-primary); }
+    .custom-actions .btn-add {
+      background: rgba(57,255,133,0.08);
+      color: var(--accent-1);
+      border: 1.5px solid var(--accent-1);
+    }
+    .custom-actions .btn-add:hover { background: rgba(57,255,133,0.22); transform: translateY(-1px); }
+    .custom-actions .btn-play {
+      background: linear-gradient(135deg, var(--accent-1), var(--color-y));
+      color: #06060f;
+      border: 1.5px solid transparent;
+      font-weight: 700;
+    }
+    .custom-actions .btn-play:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(57,255,133,0.35); }
+    .custom-actions .btn-clear {
+      background: rgba(255,85,119,0.05);
+      color: #ff5577;
+      border: 1.5px solid #ff5577;
+    }
+    .custom-actions .btn-clear:hover { background: rgba(255,85,119,0.18); }
+
+    .custom-components {
+      display: flex; flex-direction: column; gap: 0.4rem;
+    }
+    .custom-empty {
+      padding: 1rem;
+      text-align: center;
+      color: var(--text-dim);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.82rem;
+      border: 1px dashed var(--border-glow);
+      border-radius: 4px;
+    }
+    .comp-row {
+      display: grid;
+      grid-template-columns: 32px 1fr 1fr 1fr 32px;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.5rem 0.7rem;
+      background: rgba(123,140,255,0.04);
+      border: 1px solid var(--border-glow);
+      border-radius: 5px;
+      transition: background var(--transition);
+    }
+    .comp-row:hover { background: rgba(123,140,255,0.10); }
+    .comp-idx {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      color: var(--color-y);
+      text-align: center;
+      font-size: 0.95rem;
+    }
+    .comp-field {
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+    .comp-field-label {
+      font-family: 'Saira Condensed', sans-serif;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      min-width: 22px;
+    }
+    .comp-field input {
+      flex: 1; min-width: 0;
+      padding: 0.3rem 0.45rem;
+      background: var(--select-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: 3px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.82rem;
+      color: var(--text-primary);
+    }
+    .comp-field input:focus { outline: none; border-color: var(--accent-1); }
+    .comp-field-unit {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+    .comp-del {
+      background: rgba(255,85,119,0.08);
+      color: #ff5577;
+      border: 1px solid #ff5577;
+      border-radius: 50%;
+      width: 26px; height: 26px;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      transition: all var(--transition);
+    }
+    .comp-del:hover { background: rgba(255,85,119,0.3); transform: scale(1.1); }
+    .custom-note {
+      margin-top: 0.5rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .custom-note .k { color: var(--accent-2); }
+
+    /* === DTMF table === */
+    .dtmf-table {
+      width: auto;
+      margin: 0.7rem 0;
+      border-collapse: collapse;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.88rem;
+    }
+    .dtmf-table th, .dtmf-table td {
+      padding: 0.55rem 1rem;
+      border: 1px solid var(--border-glow);
+      text-align: center;
+    }
+    .dtmf-table thead th {
+      background: rgba(57,255,133,0.10);
+      color: var(--accent-1);
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .dtmf-table tbody th {
+      background: rgba(255,140,66,0.10);
+      color: var(--accent-2);
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+    }
+    .dtmf-table tbody td {
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 1.05rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .dtmf-table tbody td:hover {
+      background: rgba(123,140,255,0.18);
+      color: var(--color-y);
+      transform: scale(1.05);
+    }
+    .dtmf-hint {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-top: 0.4rem;
+    }
+    .dtmf-hint code {
+      background: rgba(57,255,133,0.08);
+      color: var(--accent-1);
+      padding: 0.05rem 0.4rem;
+      border-radius: 3px;
+      font-family: 'Fira Code', monospace;
+    }
+
+    @media (max-width: 1100px) {
+      .sp2-top { grid-template-columns: 1fr; }
+      .sp2-waterfall-wrap { grid-template-columns: 1fr; }
+      #cvSpecVert { height: 200px; }
+      .comp-row { grid-template-columns: 24px 1fr 1fr; row-gap: 0.4rem; }
+      .comp-row .comp-del { grid-column: 3; justify-self: end; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon"><svg class="sim-ico sim-ico-lg sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg></span> Real Time STFT <span class="title-icon">⇄</span>
+    </h1>
+    <p class="site-subtitle">Window function &amp; overlap controlled live STFT — $X[m,k] = \sum_{n=0}^{N-1} x[mH+n]\, w[n]\, e^{-j 2\pi kn/N}$</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o active" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <!-- TOP: Controls + Window shape + Instantaneous spectrum -->
+  <div class="sp2-top">
+    <!-- Controls -->
+    <div class="sp2-controls glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> STFT Parameters</h3>
+
+      <div class="sp2-row-2">
+        <div class="control-group">
+          <label>FFT Size (N)</label>
+          <select id="fftSize2">
+            <option value="256">256</option>
+            <option value="512">512</option>
+            <option value="1024">1024</option>
+            <option value="2048" selected>2048</option>
+            <option value="4096">4096</option>
+            <option value="8192">8192</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Window Function</label>
+          <select id="windowType">
+            <option value="hann">Hann (~cos²)</option>
+            <option value="hamming">Hamming (0.54/0.46)</option>
+            <option value="blackman" selected>Blackman (3-term)</option>
+            <option value="blackmanHarris">Blackman-Harris (4-term, -92 dB)</option>
+            <option value="nuttall">Nuttall (4-term, continuous)</option>
+            <option value="flatTop">Flat-top (5-term, amplitude calibration)</option>
+            <option value="tukey">Tukey (cosine-tapered, α=0.5)</option>
+            <option value="rectangular">Rectangular (none — reference)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sp2-row-2">
+        <div class="control-group">
+          <label>Overlap: <span id="overlapVal" class="val-display">50%</span></label>
+          <input type="range" id="overlap" min="0" max="90" step="5" value="50" />
+        </div>
+        <div class="control-group">
+          <label>Frequency Axis</label>
+          <select id="freqScale2">
+            <option value="log">Logarithmic</option>
+            <option value="linear" selected>Linear</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Frequency Range (Hz): <span id="freqRangeVal" class="val-display">100 — 15000</span></label>
+        <div class="freq-range-row">
+          <input type="number" id="minFreqInput" min="0" max="24000" step="10" value="100" />
+          <span class="freq-range-sep">—</span>
+          <input type="number" id="maxFreqInput" min="100" max="24000" step="100" value="15000" />
+          <button type="button" id="freqPresetBtn" class="freq-preset-btn" title="Preset ranges">⚙</button>
+          <div id="freqPresetMenu" class="freq-preset-menu" style="display:none;">
+            <button type="button" data-min="20" data-max="20000">20 Hz – 20 kHz (full)</button>
+            <button type="button" data-min="80" data-max="1100">80 – 1100 Hz (bass)</button>
+            <button type="button" data-min="200" data-max="3500">200 – 3500 Hz (speech)</button>
+            <button type="button" data-min="200" data-max="15000">200 Hz – 15 kHz (music)</button>
+            <button type="button" data-min="500" data-max="8000">500 Hz – 8 kHz</button>
+            <button type="button" data-min="1000" data-max="5000">1 – 5 kHz (telephone)</button>
+            <button type="button" data-min="2000" data-max="20000">2 – 20 kHz (treble)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sp2-row-2">
+        <div class="control-group">
+          <label>Waterfall Palette</label>
+          <select id="palette2">
+            <option value="inferno" selected>Inferno (warm)</option>
+            <option value="viridis">Viridis</option>
+            <option value="plasma">Plasma</option>
+            <option value="magma">Magma</option>
+            <option value="jet">Jet (classic)</option>
+            <option value="turbo">Turbo (improved jet)</option>
+            <option value="grayscale">Grayscale</option>
+            <option value="cyber">Cyber Neon</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Instantaneous Spectrum Color</label>
+          <select id="liveColor">
+            <option value="auto" selected>Automatic (from palette)</option>
+            <option value="green">Neon Green</option>
+            <option value="cyan">Cyan</option>
+            <option value="orange">Orange</option>
+            <option value="magenta">Magenta</option>
+            <option value="gold">Gold</option>
+            <option value="red">Red</option>
+            <option value="white">White</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sp2-row-2">
+        <div class="control-group">
+          <label>Min dB: <span id="minDb2Val" class="val-display">-100</span></label>
+          <input type="range" id="minDb2" min="-130" max="-40" step="2" value="-100" />
+        </div>
+        <div class="control-group">
+          <label>Max dB: <span id="maxDb2Val" class="val-display">-10</span></label>
+          <input type="range" id="maxDb2" min="-60" max="20" step="2" value="-10" />
+        </div>
+      </div>
+
+      <div class="sp2-row-2">
+        <div class="control-group">
+          <label>Smoothing (time): <span id="smoothing2Val" class="val-display">0.0</span></label>
+          <input type="range" id="smoothing2" min="0" max="0.9" step="0.05" value="0.0" />
+        </div>
+        <div class="control-group">
+          <label>Hop: <span id="hopVal" class="val-display">1024</span> n</label>
+          <input type="range" id="hopInfo" min="0" max="0" disabled />
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel: Window shape + Instantaneous spectrum -->
+    <div class="sp2-side-panel glass-panel">
+      <div>
+        <div class="win-panel-header">
+          <div class="panel-sub-title" style="margin:0;"><span class="signal-dot" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span> Window Shape w[n] &amp; |W(f)|</div>
+          <div class="win-scale-toggle">
+            <button type="button" id="winScaleDb" class="active">dB</button>
+            <button type="button" id="winScaleLin">Linear</button>
+          </div>
+        </div>
+        <canvas id="cvWindow"></canvas>
+        <div class="sp2-win-info" id="winInfo">
+          <span class="k">Main lobe width:</span> <span class="v" id="mainLobeBins">—</span> bin
+          &nbsp;&nbsp; <span class="k">Side lobe:</span> <span class="v" id="sideLobeDb">—</span> dB
+          &nbsp;&nbsp; <span class="k">Effective noise BW:</span> <span class="v" id="enbw">—</span>
+        </div>
+      </div>
+      <div>
+        <div class="panel-sub-title"><span class="signal-dot" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span> Instantaneous Spectrum |X(f)| dB</div>
+        <canvas id="cvLive2"></canvas>
+        <div class="palette-legend2">
+          <span id="minDbLabel">-100 dB</span>
+          <div class="palette-bar2" id="paletteBar2"></div>
+          <span id="maxDbLabel">-10 dB</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="sp2-main-wrap">
+    <div class="sp2-toolbar glass-panel">
+      <button class="sp2-btn mic" id="btnMic2">Microphone</button>
+      <label class="sp2-btn file">
+        Load MP3/WAV
+        <input type="file" id="fileInput2" accept="audio/*,.mp3,.wav,.ogg,.m4a" />
+      </label>
+
+      <select id="presetSelect2" class="sp2-preset-select" title="Synthetic audio sample">
+        <option value="">Select Sample Signal...</option>
+        <optgroup label="Pure Tones">
+          <option value="sine440">Pure Tone (440 Hz)</option>
+          <option value="doubleTone">Two Tones (440 + 554 Hz)</option>
+          <option value="closeTones">Close Tones (1000 + 1020 Hz)</option>
+        </optgroup>
+        <optgroup label="Time-Varying">
+          <option value="chirpUp">Frequency Sweep (200→4000 Hz)</option>
+          <option value="vibrato">Vibrato (440 ± 30 Hz)</option>
+          <option value="birdChirp">Bird Chirp (chirp packets)</option>
+        </optgroup>
+        <optgroup label="Harmonic / Rich">
+          <option value="square220">Square Wave (220 Hz)</option>
+          <option value="saw330">Sawtooth (330 Hz)</option>
+          <option value="harmonicStack">Harmonic Stack (220 Hz × 8)</option>
+          <option value="fmTone">FM Synthesis (660 × 110 Hz)</option>
+        </optgroup>
+        <optgroup label="Speech / Telephone">
+          <option value="vowelA">Vowel "A" (formant)</option>
+          <option value="dtmf1">DTMF "1" (697 + 1209 Hz)</option>
+        </optgroup>
+        <optgroup label="Noise">
+          <option value="whiteNoise">White Noise</option>
+          <option value="pinkNoise">Pink Noise (1/f)</option>
+        </optgroup>
+      </select>
+
+      <button class="sp2-btn pause" id="btnPause2" disabled>Pause</button>
+      <button class="sp2-btn stop" id="btnStop2" disabled>■ Stop</button>
+
+      <span class="sp2-status" id="status2">Ready — select a source</span>
+
+      <div class="sp2-volume" title="Output Volume">
+        <span class="sp2-volume-icon">🔊</span>
+        <input type="range" id="outVol2" min="0" max="100" step="1" value="100" />
+        <span class="sp2-volume-val" id="outVolVal">100%</span>
+      </div>
+    </div>
+
+    <!-- CUSTOM SIGNAL BUILDER -->
+    <div class="custom-builder glass-panel">
+      <div class="custom-header">
+        <h3 class="panel-title" style="margin:0;"><span class="signal-dot" style="background:var(--color-y);box-shadow:0 0 8px var(--color-y);"></span> Custom Signal Builder &nbsp;<span style="font-family:'Fira Code',monospace;color:var(--text-dim);font-size:0.78rem;">x(t) = Σ aᵢ·sin(2π·fᵢ·t + φᵢ)</span></h3>
+        <div class="custom-actions">
+          <select id="customPresetSelect" title="Ready-made combinations">
+            <option value="">Select Preset Combination...</option>
+            <optgroup label="Window tests">
+              <option value="closeRes">Close 2-tone (1000 + 1020 Hz)</option>
+              <option value="triClose">Close 3-tone (1000 + 1015 + 1040 Hz)</option>
+              <option value="dynRange">Dynamic range (1000 @0dB + 1100 @-60dB)</option>
+              <option value="dynRange2">Wide dynamic (1k @0 + 1.5k @-40 + 3k @-80)</option>
+              <option value="offBin">Off-bin scalloping (1023.456 Hz)</option>
+            </optgroup>
+            <optgroup label="DTMF (phone keys)">
+              <option value="dtmf1">DTMF "1" (697 + 1209)</option>
+              <option value="dtmf5">DTMF "5" (770 + 1336)</option>
+              <option value="dtmf9">DTMF "9" (852 + 1477)</option>
+              <option value="dtmf0">DTMF "0" (941 + 1336)</option>
+              <option value="dtmfStar">DTMF "*" (941 + 1209)</option>
+            </optgroup>
+            <optgroup label="Music">
+              <option value="cmajor">C-major chord (C-E-G)</option>
+              <option value="aminor">A-minor chord (A-C-E)</option>
+              <option value="octaveStack">Octave stack (1k → 8k)</option>
+              <option value="harmonic">Harmonic series (220 × 1..6)</option>
+            </optgroup>
+            <optgroup label="Phase experiments">
+              <option value="cancel">Canceling 2 tones (440 + 440, φ=180°)</option>
+              <option value="quadrature">Quadrature (440 cos + 440 sin)</option>
+              <option value="beat">Beat (440 + 442 Hz)</option>
+            </optgroup>
+          </select>
+          <button type="button" id="customAddBtn" class="btn-add">+ Component</button>
+          <button type="button" id="customClearBtn" class="btn-clear">Clear</button>
+          <button type="button" id="customPlayBtn" class="btn-play">▶ Play / Refresh</button>
+        </div>
+      </div>
+      <div class="custom-components" id="customComponents"></div>
+      <div class="custom-note">
+        <span class="k">Tip:</span> While playing, <strong>amplitude</strong> and <strong>frequency</strong> changes are applied <em>smoothly</em> (click-free);
+        <strong>phase</strong> or component add/remove changes are applied with "▶ Play/Refresh".
+        Phase is meaningful when you have two components at the same frequency (interference/cancellation).
+      </div>
+    </div>
+
+    <!-- 2D Waterfall + vertical live spectrum -->
+    <div class="glass-panel sp2-waterfall-wrap">
+      <canvas id="cvWaterfall"></canvas>
+      <canvas id="cvSpecVert"></canvas>
+    </div>
+  </div>
+
+  <!-- THEORY -->
+  <div class="edu-card glass-panel">
+    <h2>Windowing, Overlap, and STFT — An Engineering Perspective</h2>
+
+    <p>
+      The classical DFT, defined by $X[k] = \sum_{n=0}^{N-1} x[n]\, e^{-j 2\pi kn/N}$, presupposes a signal of infinite length and stationary behaviour. Real-world signals (speech, music, vibration, radar returns), in contrast, exhibit <strong>time-varying</strong> characteristics. This limitation is addressed by partitioning the signal into short windows and computing the DFT of each window separately; the resulting procedure is referred to as the <strong>Short-Time Fourier Transform (STFT)</strong>:
+      $$\boxed{\, X[m, k] \;=\; \sum_{n=0}^{N-1} x[mH + n]\, w[n]\, e^{-j 2\pi kn/N} \,}.$$
+    </p>
+    <ul>
+      <li><strong>$N$:</strong> the FFT length; the frequency resolution is given by $\Delta f = f_s/N$.</li>
+      <li><strong>$H$:</strong> the hop size between consecutive windows; $H = N\,(1-\text{overlap ratio})$ samples.</li>
+      <li><strong>$w[n]$:</strong> the window function, applied in order to smooth the discontinuities at the frame boundaries.</li>
+    </ul>
+
+    <h3>1. The Need for Windowing</h3>
+    <p>
+      Truncating a signal with a rectangular window corresponds, in the frequency domain, to <strong>convolution</strong> with the $\mathrm{sinc}$ function. Since the side lobes of $\mathrm{sinc}$ lie only −13 dB below the main lobe, pronounced <strong>spectral leakage</strong> appears around the true tone. Window functions are used to suppress this leakage; in return, a broadening of the main lobe (and hence a degradation of the frequency resolution) is observed.
+    </p>
+
+    <h3>2. Window Functions — Comparison</h3>
+    <table class="win-table">
+      <thead>
+        <tr><th>Window</th><th>Main lobe (bin)</th><th>Side lobe (dB)</th><th>Side lobe decay</th><th>Usage</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="win-name">Rectangular</td><td>0.89</td><td>-13</td><td>-6 dB/oct</td><td>reference (poor)</td></tr>
+        <tr><td class="win-name">Hann</td><td>1.44</td><td>-31</td><td>-18 dB/oct</td><td>general purpose, audio</td></tr>
+        <tr><td class="win-name">Hamming</td><td>1.30</td><td>-43</td><td>-6 dB/oct</td><td>speech, MFCC</td></tr>
+        <tr><td class="win-name">Blackman</td><td>1.68</td><td>-58</td><td>-18 dB/oct</td><td>low leakage</td></tr>
+        <tr><td class="win-name">Blackman-Harris</td><td>1.90</td><td>-92</td><td>-6 dB/oct</td><td>very low side lobe</td></tr>
+        <tr><td class="win-name">Nuttall</td><td>1.98</td><td>-98</td><td>-18 dB/oct</td><td>continuous derivative, precise</td></tr>
+        <tr><td class="win-name">Flat-top</td><td>3.86</td><td>-93</td><td>-6 dB/oct</td><td>amplitude calibration</td></tr>
+        <tr><td class="win-name">Tukey (α=0.5)</td><td>1.15</td><td>-15</td><td>—</td><td>transient analysis</td></tr>
+      </tbody>
+    </table>
+
+    <h3>3. The Role of the Overlap Ratio</h3>
+    <p>
+      The window function decays towards zero at its edges, so that the signal information in those regions is effectively suppressed. <strong>Overlap</strong> ensures that consecutive windows partially cover one another; consequently, each sample is represented with weight in several windows. When the <em>Constant OverLap Add</em> (COLA) condition is satisfied, the signal can be perfectly reconstructed.
+    </p>
+    <ul>
+      <li><strong>0% overlap</strong> ($H=N$): the procedure is fast but information is lost at the window boundaries, and COLA is not satisfied.</li>
+      <li><strong>50% overlap</strong> ($H=N/2$): the COLA condition is satisfied for the Hann window and this configuration is sufficient for the majority of applications.</li>
+      <li><strong>75% overlap</strong> ($H=N/4$): produces a smoother stream and is well suited to Blackman-type windows.</li>
+      <li><strong>87.5% overlap</strong> ($H=N/8$): yields high temporal resolution and is preferred in machine-learning and audio-synthesis applications.</li>
+    </ul>
+
+    <h3>4. Heisenberg-Type Uncertainty</h3>
+    <p>
+      The inequality $\Delta t \cdot \Delta f \geq 1/(4\pi)$ implies that the time and frequency resolutions cannot be jointly improved. Increasing the FFT length $N$ improves the frequency resolution ($\Delta f = f_s/N$) but degrades the temporal resolution ($\Delta t = N/f_s$). The overlap ratio enhances visual smoothness along the time axis without genuinely improving the temporal resolution; it merely increases the <strong>sampling density</strong>.
+    </p>
+
+    <h3>5. The Visualisation on This Page</h3>
+    <ul>
+      <li><strong>Left large canvas:</strong> the two-dimensional waterfall; a new slice is generated at the right edge and flows leftwards (time axis ◀).</li>
+      <li><strong>Vertical axis:</strong> frequency, on a logarithmic or linear scale.</li>
+      <li><strong>Colour:</strong> $|X[m,k]|$ in dB; the colour palette is shown in the upper panel.</li>
+      <li><strong>Right narrow canvas:</strong> the vertical spectrum strip of the most recent slice (horizontal axis: dB; vertical axis: frequency, aligned with the left canvas).</li>
+      <li><strong>Upper section:</strong> the time-domain shape $w[n]$ of the window together with its frequency response $|W(f)|$; when the window is changed, the main-lobe and side-lobe levels are updated simultaneously.</li>
+    </ul>
+
+    <h3>Application Notes</h3>
+    <ul>
+      <li><strong>Speech analysis:</strong> a Hamming window with 50% overlap constitutes a standard configuration in MFCC computation.</li>
+      <li><strong>Music analysis:</strong> a Hann window with 75% overlap yields a smooth spectrogram stream.</li>
+      <li><strong>Measurement applications:</strong> the Flat-top window is preferred for amplitude calibration, since it permits the true amplitude of sinusoidal peaks to be read directly.</li>
+      <li><strong>Frequency separation:</strong> two closely spaced tones (e.g. 1000 Hz and 1020 Hz) merge under the Hann window but can be resolved with Blackman-Harris (the main-lobe / side-lobe trade-off).</li>
+      <li><strong>Low SNR:</strong> when side-lobe suppression is critical, Nuttall or Blackman-Harris windows are recommended.</li>
+    </ul>
+
+    <h3>A Suggested Experiment</h3>
+    <p>
+      With the "Close Tones (1000 + 1020 Hz)" preset selected, the <strong>Rectangular</strong> window produces a single broad peak in which the two tones cannot be resolved. Switching to <strong>Hann</strong> reveals two distinct peaks together with visible side lobes; the <strong>Blackman-Harris</strong> window yields a clean separation of the two peaks. Finally, with the <strong>Flat-top</strong> window the main lobe broadens while the peak amplitudes can be read with calibrated accuracy.
+    </p>
+
+    <h3>DTMF (Dual-Tone Multi-Frequency) Key Codes</h3>
+    <p>
+      When you press a key on a telephone, <strong>two pure sinusoids are produced simultaneously</strong>: one is a "row" frequency (697–941 Hz),
+      the other is a "column" frequency (1209–1633 Hz). The two tones are specifically chosen to have <em>no harmonic relationship</em> —
+      they cannot be confused with vocal cords, music, or noise. You can click on the table below to add the two tones of a key
+      to the "Custom Signal Builder" and observe how different windows resolve them.
+    </p>
+    <table class="dtmf-table" id="dtmfTable">
+      <thead>
+        <tr>
+          <th>↓ row / column →</th>
+          <th>1209 Hz</th>
+          <th>1336 Hz</th>
+          <th>1477 Hz</th>
+          <th>1633 Hz</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>697 Hz</th>
+          <td data-row="697" data-col="1209" data-label="1">1</td>
+          <td data-row="697" data-col="1336" data-label="2">2</td>
+          <td data-row="697" data-col="1477" data-label="3">3</td>
+          <td data-row="697" data-col="1633" data-label="A">A</td>
+        </tr>
+        <tr>
+          <th>770 Hz</th>
+          <td data-row="770" data-col="1209" data-label="4">4</td>
+          <td data-row="770" data-col="1336" data-label="5">5</td>
+          <td data-row="770" data-col="1477" data-label="6">6</td>
+          <td data-row="770" data-col="1633" data-label="B">B</td>
+        </tr>
+        <tr>
+          <th>852 Hz</th>
+          <td data-row="852" data-col="1209" data-label="7">7</td>
+          <td data-row="852" data-col="1336" data-label="8">8</td>
+          <td data-row="852" data-col="1477" data-label="9">9</td>
+          <td data-row="852" data-col="1633" data-label="C">C</td>
+        </tr>
+        <tr>
+          <th>941 Hz</th>
+          <td data-row="941" data-col="1209" data-label="*">*</td>
+          <td data-row="941" data-col="1336" data-label="0">0</td>
+          <td data-row="941" data-col="1477" data-label="#">#</td>
+          <td data-row="941" data-col="1633" data-label="D">D</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="dtmf-hint">
+      <strong>Click</strong> a key → its two tones are added to the Custom Signal Builder.
+      Then press "▶ Play / Refresh" to listen and observe. For tone separation, <code>FFT ≥ 2048</code> and
+      <code>Hann/Blackman</code> are recommended; both peaks should be visible with at least 80 dB SNR
+      (they should not be lost among the side lobes).
+    </div>
+
+    <h3>Window Experiments with the Custom Signal Builder</h3>
+    <ul>
+      <li><strong>Dynamic range:</strong> Add 1000 Hz @ 0 dB + 1100 Hz @ -60 dB. With <em>Rectangular</em>,
+        the weak tone (1100) is buried in the side lobes of the strong one. Switch to <em>Blackman-Harris</em> → it emerges.</li>
+      <li><strong>3-tone resolution:</strong> 1000, 1015, 1040 Hz all at 0 dB. Only <em>Blackman-Harris</em>
+        or <em>Nuttall</em> shows three separate peaks. Others produce a merged hump.</li>
+      <li><strong>Off-bin scalloping:</strong> Single component with frequency not at a bin center
+        (e.g. 1023.456 Hz). With <em>Hann</em> the peak reads slightly low; switch to <em>Flat-top</em> and
+        the peak amplitude "snaps" to the correct value.</li>
+      <li><strong>Phase cancellation:</strong> Add 440 Hz @ 0 dB, φ=0° and 440 Hz @ 0 dB, φ=180°. The spectrum
+        should be nearly empty (signal power ≈ 0). Set φ to 90° and power returns.</li>
+      <li><strong>Beating:</strong> 440 + 442 Hz two components → audible 2 Hz amplitude modulation;
+        two close peaks in the spectrum. Increase <em>FFT</em> to 8192 to see the separation.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer">Signal Processing Educational Simulation — 2D Spectrum Stream (Window &amp; Overlap)</footer>
+
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/spectrogram2.js"></script>
+
+  <!-- spmi-privacy-note -->
+  <div class="privacy-note" style="max-width:900px;margin:1.2rem auto 1.6rem;padding:0.85rem 1.2rem;border:1px dashed rgba(120,140,200,0.35);border-radius:8px;font-family:'Saira',sans-serif;font-size:0.78rem;line-height:1.6;color:var(--text-secondary,#9aa3bf);text-align:center;position:relative;z-index:2;background:rgba(20,25,45,0.25);">
+    🔒 <strong>TR:</strong> Yüklediğiniz tüm dosyalar (ses, görüntü vb.) yalnızca tarayıcınızda işlenir; hiçbir sunucuya gönderilmez ve kaydedilmez.
+    <br/>
+    🔒 <strong>EN:</strong> All files you upload (audio, image, etc.) are processed only in your browser; nothing is sent to or stored on any server.
+  </div>
+</body>
+</html>

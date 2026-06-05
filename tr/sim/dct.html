@@ -1,0 +1,416 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ayrık Kosinüs Dönüşümü (DCT) — Ses Sıkıştırma</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    .dct-controls {
+      display: grid; grid-template-columns: 1.1fr 1fr 0.9fr;
+      gap: 0.7rem; max-width: 1500px;
+      margin: 0.7rem auto; padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .file-strip-wrap {
+      max-width: 1500px; margin: 0.7rem auto 0; padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .file-strip-wrap .graph-container { padding: 0.6rem; }
+    .file-strip-wrap canvas {
+      width: 100%; height: 130px;
+      border-radius: var(--radius-sm);
+      background: var(--canvas-bg); display: block;
+      cursor: ew-resize;
+    }
+    .dct-graphs {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.7rem; max-width: 1500px;
+      margin: 0.7rem auto; padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .dct-graphs .graph-container { padding: 0.6rem; }
+    .dct-graphs canvas {
+      width: 100%; height: 230px;
+      border-radius: var(--radius-sm);
+      background: var(--canvas-bg); display: block;
+    }
+    canvas.bar-select { cursor: ew-resize; }
+
+    .file-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.4rem; }
+    .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
+    .file-input-wrapper input[type=file] { position: absolute; left:0; top:0; opacity:0; width:100%; height:100%; cursor:pointer; }
+    .file-label {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.4rem 0.8rem;
+      border:1px solid var(--accent-1); color:var(--accent-1);
+      background:rgba(57,255,133,0.05); border-radius:var(--radius-sm);
+      cursor:pointer; display:inline-block; transition:all var(--transition);
+    }
+    .file-label:hover { background:rgba(57,255,133,0.15); }
+    .mic-btn {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.4rem 0.8rem;
+      border:1px solid var(--color-marker); color:var(--color-marker);
+      background:rgba(255,79,154,0.05); border-radius:var(--radius-sm); cursor:pointer;
+      transition:all var(--transition);
+    }
+    .mic-btn:hover { background:rgba(255,79,154,0.15); }
+    .mic-btn.recording { background:rgba(255,79,154,0.3); animation:micP 1s ease-in-out infinite; }
+    @keyframes micP { 0%,100%{box-shadow:0 0 8px rgba(255,79,154,0.3);} 50%{box-shadow:0 0 20px rgba(255,79,154,0.6);} }
+    .status-msg { font-family:'Consolas',monospace; font-size:0.72rem; color:var(--accent-2); padding:0.2rem 0; }
+    .status-msg.ok { color:var(--accent-1); } .status-msg.err { color:#ff5577; }
+
+    .play-row { display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem; }
+    .pbtn {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.38rem 0.75rem;
+      border-radius:var(--radius-sm); cursor:pointer; border:1px solid; transition:all var(--transition);
+    }
+    .pbtn:disabled { opacity:0.3; cursor:not-allowed; }
+    .pbtn.orig { border-color:var(--color-x); color:var(--color-x); background:rgba(57,255,133,0.05); }
+    .pbtn.orig:hover { background:rgba(57,255,133,0.15); }
+    .pbtn.recon { border-color:var(--color-y); color:var(--color-y); background:rgba(123,140,255,0.05); }
+    .pbtn.recon:hover { background:rgba(123,140,255,0.15); }
+    .pbtn.stop { border-color:#ff5577; color:#ff5577; background:rgba(255,85,119,0.05); }
+    .pbtn.dl { border-color:var(--color-y); color:var(--color-y); background:rgba(123,140,255,0.05); }
+
+    .stats-grid {
+      display:grid; grid-template-columns:auto 1fr; gap:0.15rem 0.6rem;
+      font-family:'Consolas',monospace; font-size:0.78rem; margin-top:0.5rem;
+    }
+    .stats-grid .lbl { color:var(--text-secondary); }
+    .stats-grid .val { color:var(--accent-1); font-weight:500; }
+
+    .help-text { font-size:0.7rem; color:var(--text-dim); line-height:1.5; margin-top:0.3rem; }
+    .help-text strong { color:var(--accent-2); }
+
+    .sr-row { display: flex; align-items: center; gap: 0.4rem; margin: 0.4rem 0; }
+    .sr-row label { font-size: 0.74rem; color: var(--text-secondary); white-space: nowrap; }
+    .sr-row select { flex: 1; }
+
+    .theory-card {
+      max-width: 1500px; margin: 1rem auto;
+      padding: 1.5rem 2rem;
+      position: relative; z-index: 2;
+    }
+    .theory-card h2 {
+      font-family:'Saira Condensed',sans-serif;
+      font-size:1rem; font-weight:700; margin-bottom:0.8rem;
+      background:linear-gradient(90deg,var(--accent-1),var(--color-y));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .theory-card h3 {
+      font-family:'Saira Condensed',sans-serif;
+      font-size:0.78rem; font-weight:700; letter-spacing:0.06em;
+      margin-top:1rem; margin-bottom:0.4rem;
+      color: var(--accent-2);
+    }
+    .theory-card p {
+      font-size:0.84rem; line-height:1.7; color:var(--text-secondary);
+      margin-bottom: 0.8rem;
+    }
+    .theory-card strong { color: var(--text-primary); }
+    .theory-card em { color: var(--accent-2); font-style: normal; }
+    .theory-card ul {
+      font-size: 0.82rem; line-height: 1.7;
+      color: var(--text-secondary);
+      margin-left: 1.2rem; margin-bottom: 0.8rem;
+    }
+    .theory-card li { margin-bottom: 0.3rem; }
+    .theory-card .ref-list { list-style: none; margin-left: 0; font-family: 'Consolas', monospace; font-size: 0.74rem; color: var(--text-dim); }
+    .theory-card .ref-list li { padding: 0.25rem 0; border-bottom: 1px dashed var(--border-glow); }
+    .theory-card .ref-list li:last-child { border-bottom: none; }
+    .theory-card .ref-list a { color: var(--color-y); text-decoration: none; }
+    .theory-card .ref-list a:hover { color: var(--accent-1); text-decoration: underline; }
+
+    @media(max-width:1100px) {
+      .dct-graphs { grid-template-columns:1fr; }
+      .dct-controls { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">𝒟</span> Ayrık Kosinüs Dönüşümü (DCT) <span class="title-icon">∗</span>
+    </h1>
+    <p class="site-subtitle">Ayrık Kosinüs Dönüşümü — Ses Sıkıştırma Laboratuvarı</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o active" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <!-- KONTROLLER (üstte) -->
+  <div class="dct-controls">
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span> Ses Kaynağı</h3>
+
+      <div class="sr-row">
+        <label>Hedef Örnekleme Hızı:</label>
+        <select id="targetSR" class="glass-select">
+          <option value="8000">8 kHz (telefon)</option>
+          <option value="16000" selected>16 kHz (geniş bant)</option>
+          <option value="22050">22.05 kHz (yarım CD)</option>
+          <option value="32000">32 kHz (FM)</option>
+          <option value="44100">44.1 kHz (CD)</option>
+        </select>
+      </div>
+
+      <div class="file-row">
+        <div class="file-input-wrapper">
+          <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a" />
+          <span class="file-label">📁 Dosya Yükle</span>
+        </div>
+        <button class="mic-btn" id="micBtn">🎤 Kaydı Başlat</button>
+      </div>
+      <div class="status-msg" id="statusMsg">Bir dosya yükle ya da mikrofon ile kaydet (durdurana kadar)</div>
+
+      <div class="control-group" style="margin-top:0.5rem;">
+        <label>Kesim Başlangıcı (s): <span id="cutStartVal" class="val-display">0.00</span></label>
+        <input type="range" id="cutStart" min="0" max="10" step="0.01" value="0" disabled />
+      </div>
+      <div class="control-group">
+        <label>Parça Uzunluğu (s, max 7): <span id="cutLenVal" class="val-display">2.00</span></label>
+        <input type="range" id="cutLen" min="0.1" max="7" step="0.05" value="2" disabled />
+      </div>
+
+      <div class="play-row">
+        <button class="pbtn orig" id="playOrig" disabled>▶ Orijinal</button>
+        <button class="pbtn recon" id="playRecon" disabled>▶ Geri Oluşturulan</button>
+        <button class="pbtn stop" id="stopAll">■ Dur</button>
+        <button class="pbtn dl" id="dlRecon" disabled>💾 WAV</button>
+      </div>
+    </div>
+
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span> DCT Parametreleri</h3>
+      <div class="control-group">
+        <label>DCT Tipi:</label>
+        <select id="dctType" class="glass-select">
+          <option value="2" selected>DCT-II (en yaygın, MP3/JPEG)</option>
+          <option value="1">DCT-I</option>
+          <option value="3">DCT-III (= IDCT-II)</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Tutulan Katsayı Sayısı K: <span id="keepVal" class="val-display">—</span></label>
+        <input type="range" id="keepSlider" min="1" max="1000" step="1" value="500" disabled />
+      </div>
+      <div class="control-group">
+        <label>Eşikleme Modu:</label>
+        <select id="threshMode" class="glass-select">
+          <option value="topK" selected>En büyük K katsayı (Top-K)</option>
+          <option value="firstK">İlk K katsayı (Low-pass)</option>
+        </select>
+      </div>
+
+      <div class="stats-grid" id="statsGrid">
+        <span class="lbl">Toplam katsayı N:</span><span class="val" id="statTotal">—</span>
+        <span class="lbl">Tutulan K:</span><span class="val" id="statKept">—</span>
+        <span class="lbl">Sıkıştırma oranı:</span><span class="val" id="statRatio">—</span>
+        <span class="lbl">RMSE:</span><span class="val" id="statRMSE">—</span>
+        <span class="lbl">SNR:</span><span class="val" id="statSNR">—</span>
+        <span class="lbl">İşlem süresi:</span><span class="val" id="statTime">—</span>
+      </div>
+    </div>
+
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span> Görüntü Ayarları</h3>
+      <div class="control-group">
+        <label>Grid Opaklık: <span id="gridAlphaVal" class="val-display">0.18</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.6" step="0.01" value="0.18" />
+      </div>
+      <div class="control-group">
+        <label>Çizgi Kalınlığı: <span id="lineWVal" class="val-display">1.0</span></label>
+        <input type="range" id="lineW" min="0.3" max="3" step="0.1" value="1" />
+      </div>
+      <div class="control-group">
+        <label>Katsayı Gösterimi:</label>
+        <select id="coefDisplay" class="glass-select">
+          <option value="linear" selected>Lineer |X[k]|</option>
+          <option value="log">Log₁₀ |X[k]|</option>
+        </select>
+      </div>
+      <div class="help-text" style="margin-top:0.5rem;">
+        Düşük örnekleme hızı (8/16 kHz) konuşma için yeterlidir ve çok hızlıdır.
+        44.1 kHz müzik kalitesi verir ama hesap uzun sürer.
+      </div>
+    </div>
+  </div>
+
+  <!-- TÜM DOSYA — SEÇİM ŞERİDİ -->
+  <div class="file-strip-wrap">
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#39ff85;">📂 Tüm Dosya — fareyle sürükleyerek bölge seç</span>
+        <span class="instant-value" id="stripInfo">dosya yüklenmedi</span>
+      </div>
+      <canvas id="cvFull" class="bar-select"></canvas>
+    </div>
+  </div>
+
+  <!-- 4 EKRAN -->
+  <div class="dct-graphs">
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#39ff85;">x[n] — Seçili Ses Parçası</span>
+        <span class="instant-value" id="origInfo">—</span>
+      </div>
+      <canvas id="cvOrig"></canvas>
+    </div>
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#b490ff;">x̃[n] — Simetrik Uzatılmış</span>
+        <span class="instant-value" id="symInfo">—</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display" id="symFormula">DCT-II simetrisi</span>
+      </div>
+      <canvas id="cvSym"></canvas>
+    </div>
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#ff8c42;">X[k] — DCT Katsayıları</span>
+        <span class="instant-value" id="coefInfo">N = — / —</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display" id="dctFormula">$X[k] = \sum_n x[n]\cos\!\bigl[\tfrac{\pi}{N}(n+\tfrac{1}{2})k\bigr]$</span>
+        <span class="drag-hint">← çubuğu sürükle →</span>
+      </div>
+      <canvas id="cvCoef" class="bar-select"></canvas>
+    </div>
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#7b8cff;">x̂[n] — Geri Oluşturulmuş</span>
+        <span class="instant-value" id="reconInfo">RMSE = —</span>
+      </div>
+      <canvas id="cvRecon"></canvas>
+    </div>
+  </div>
+
+  <!-- TEORİK AÇIKLAMA -->
+  <div class="theory-card glass-panel">
+    <h2>Ayrık Kosinüs Dönüşümü (DCT) — Teorik Arka Plan</h2>
+
+    <h3>1. DCT'ye Duyulan İhtiyaç</h3>
+    <p>
+      <strong>Ayrık Fourier Dönüşümü (DFT)</strong>, bir sinyali sinüs ve kosinüs bileşenlerinin toplamı olarak ifade etmekte; ancak periyodik uzatma varsaymaktadır. Sonlu uzunluktaki bir sinyalin periyodik kabul edilmesi durumunda ilk ve son örnek arasında bir <em>atlama</em> meydana gelmektedir. Söz konusu süreksizlik, frekans düzleminde yüksek frekanslı yan loblara (Gibbs olgusu) yol açmakta; sinyal enerjisinin çok sayıda katsayıya dağılmasına ve sıkıştırma veriminin düşmesine neden olmaktadır.
+    </p>
+    <p>
+      DCT, sinyali <em>çift simetrik</em> biçimde uzatarak bu sorunu ortadan kaldırmaktadır. Simetrik uzatmada herhangi bir atlama bulunmamakta ve sinyal sonsuza dek sürekli biçimde tekrarlanmaktadır. Bu yapı sayesinde <strong>enerji yoğunlaşması (energy compaction)</strong> özelliği elde edilmekte; birkaç düşük frekanslı katsayı sinyal enerjisinin büyük bölümünü taşımaktadır. Söz konusu özellik DCT'yi <strong>JPEG, MP3, MPEG, H.264/H.265, HEIC, AAC, WebP</strong> gibi standartların temel bileşeni hâline getirmektedir. Kuramsal olarak DCT, birinci dereceden Markov sinyalleri için <em>Karhunen–Loève dönüşümüne (KLT)</em> oldukça yakın bir yaklaşım sağlamaktadır; KLT, optimum dekorelasyon vermekle birlikte sinyale bağımlıdır, oysa DCT sabit bir taban kullanarak neredeyse aynı başarımı elde etmektedir.
+    </p>
+
+    <h3>2. DCT Türleri ve Formülleri</h3>
+    <p>Ahmed, Natarajan ve Rao'nun 1974'teki orijinal makalesinden bu yana sekiz farklı DCT türü tanımlanmıştır (DCT-I … DCT-VIII). Pratikte en çok kullanılan üçü:</p>
+
+    <p><strong>DCT-I:</strong> Sinyalin uçlarındaki örnekleri <em>tam-sample simetrik</em> yansıtır (period $2(N-1)$).</p>
+    $$X[k] = \tfrac{1}{2}\bigl(x[0] + (-1)^k x[N{-}1]\bigr) + \sum_{n=1}^{N-2} x[n]\cos\!\left[\frac{\pi k n}{N-1}\right], \quad k = 0, 1, \dots, N-1$$
+
+    <p><strong>DCT-II:</strong> <em>Yarım-sample simetrik</em> uzantı (period $2N$). En yaygın türdür — MP3, JPEG, MPEG bunu kullanır.</p>
+    $$X[k] = \sum_{n=0}^{N-1} x[n]\cos\!\left[\frac{\pi}{N}\!\left(n+\tfrac{1}{2}\right)k\right], \quad k = 0, 1, \dots, N-1$$
+
+    <p><strong>DCT-III:</strong> DCT-II'nin tersidir (skala faktörü dışında). "Inverse DCT" (IDCT) genelde bu anlamda kullanılır.</p>
+    $$x[n] = \tfrac{1}{2}X[0] + \sum_{k=1}^{N-1} X[k]\cos\!\left[\frac{\pi}{N}\!\left(n+\tfrac{1}{2}\right)k\right], \quad n = 0, 1, \dots, N-1$$
+
+    <p>
+      <strong>Ortonormal form:</strong> Yukarıdaki formüller "klasik" yazılımdır. Ortonormal versiyonda $X[k]$'ya $\sqrt{2/N}$ (ve $k=0$ için $\sqrt{1/N}$) faktörü uygulanır; bu durumda DCT matrisi $\mathbf{C}$ ortogonaldir, yani $\mathbf{C}^T\mathbf{C} = \mathbf{I}$. Pratikte bu, <em>Parseval teoreminin</em> sağlanmasını ve nicelendirme analizini kolaylaştırır.
+    </p>
+
+    <h3>3. Hızlı Algoritma — FFT ile İlişki</h3>
+    <p>
+      DCT-II'nin doğrudan hesaplanması $\mathcal{O}(N^2)$ karmaşıklıktadır. Bununla birlikte Makhoul'un 1980'de gösterdiği üzere $N$ noktalı bir DCT-II, $2N$ noktalı bir FFT yardımıyla
+      $$X[k] = \mathrm{Re}\!\left\{e^{-j\pi k/(2N)} \cdot \mathrm{FFT}_{2N}\bigl(\tilde{x}\bigr)[k]\right\}$$
+      bağıntısıyla hesaplanabilmektedir (burada $\tilde{x}[n] = x[n]$ için $n < N$, $\tilde{x}[n] = 0$ için $n \ge N$). Bu yöntemle karmaşıklık $\mathcal{O}(N \log N)$ düzeyine indirilmektedir. Bu sayfada DCT-I, DCT-II ve DCT-III için söz konusu FFT tabanlı yöntem kullanılmakta; 7 saniyelik bir ses parçası dahi yaklaşık 100 ms içinde işlenebilmektedir.
+    </p>
+
+    <h3>4. Simetrik Uzatma ve Periyodiklik</h3>
+    <p>İkinci ekranda görselleştirilen "simetrik uzatma", DCT'nin matematiksel temelini oluşturmaktadır. Üç temel türün simetri yapısı aşağıdaki gibidir:</p>
+    <ul>
+      <li><strong>DCT-I:</strong> $x[0], x[1], \dots, x[N-1], x[N-2], \dots, x[1]$ dizisi tekrarlanır; uçlar tam-örnek (whole-sample) simetrik biçimde yansıtılır.</li>
+      <li><strong>DCT-II:</strong> $x[0], x[1], \dots, x[N-1], x[N-1], x[N-2], \dots, x[0]$ dizisi tekrarlanır; uçlar yarım-örnek (half-sample) simetrik olarak yansıtılır.</li>
+      <li><strong>DCT-III:</strong> ters simetrik yarım-örnek yapıya sahip olup, DCT-II'nin frekans düzlemindeki karşılığını oluşturur.</li>
+    </ul>
+
+    <h3>5. Sıkıştırma — Top-K ve Alçak Geçiren Yaklaşımlar</h3>
+    <p>
+      Tüm $N$ adet DCT katsayısının saklanması veri boyutunu değiştirmediğinden, doğrudan bir sıkıştırma sağlamaz. Sıkıştırma, yalnızca <strong>en önemli</strong> katsayıların seçilip geri kalanlarının sıfırlanmasıyla elde edilmektedir. Bu sayfada iki farklı eşikleme yöntemi sunulmaktadır:
+    </p>
+    <ul>
+      <li><strong>Top-K (en büyük $K$ katsayı):</strong> $|X[k]|$ değerlerine göre sıralama yapılır ve en büyük $K$ katsayı korunur. Bu yaklaşım <em>kareler ortalama hatasını (RMSE) en aza indirir</em> ve en yüksek SNR'ı sağlar.</li>
+      <li><strong>Alçak geçiren (ilk $K$ katsayı):</strong> yalnızca $k = 0, 1, \dots, K-1$ katsayıları korunur. Yüksek frekanslar atıldığı için konuşma sinyallerinde başarılı sonuçlar elde edilirken müzikteki üst harmonikler kaybolmaktadır.</li>
+    </ul>
+    <p>
+      <strong>Sıkıştırma oranı</strong> $N/K$ ile tanımlanmaktadır. Uygulamada JPEG ve MP3 yalnızca eşiklemeyi değil, <em>nicelendirme ve entropi kodlaması</em> (Huffman, aritmetik kodlama) gibi adımları da içermektedir. Bu sayfa, söz konusu kodeklerin ilk basamağı olan eşikleme adımını göstermektedir.
+    </p>
+
+    <h3>6. Örnekleme Hızı ve Örtüşme Önleyici Süzgeçleme</h3>
+    <p>
+      <strong>Nyquist teoremi</strong> uyarınca, bir sinyalin bilgi kaybı olmaksızın temsil edilebilmesi için örnekleme hızının, sinyalin en yüksek frekansının en az iki katı olması gerekmektedir. 8 kHz örnekleme 4 kHz'e kadar olan frekansları yakalamakta (telefon kalitesi için yeterli), 16 kHz 8 kHz'e kadar (konuşma için ferah bir aralık), 44.1 kHz ise 22 kHz'e kadar (CD kalitesi, insan işitme sınırının üstü) içerik sağlamaktadır.
+    </p>
+    <p>
+      Bu sayfada yüksek örnekleme hızındaki bir sinyal düşük hıza dönüştürülürken <strong>örtüşme önleyici (anti-aliasing) süzgeç</strong> uygulanmaktadır: önce frekans düzleminde ideal bir alçak geçiren süzgeç uygulanarak Nyquist üstündeki bileşenler sıfırlanmakta, ardından örnek atlama (decimation) işlemi gerçekleştirilmektedir. Bu süzgeçleme uygulanmadığında yüksek frekanslar düşük frekanslar gibi görünmekte (aliasing) ve sinyal bozulmaktadır.
+    </p>
+
+    <h3>📍 Uygulama Alanları</h3>
+    <ul>
+      <li><strong>JPEG/HEIC:</strong> görüntü sıkıştırmanın temeli — 8×8 bloklarda 2D DCT, sonra nicelendirme + entropi kodlama. Tüm dijital fotoğraflar.</li>
+      <li><strong>MP3/AAC/Vorbis:</strong> ses sıkıştırma — modifiye DCT (MDCT) ile algısal kodlama; insanın duymadığı frekansları atar.</li>
+      <li><strong>MPEG-1/2/4 (video):</strong> her kare için DCT; H.264/HEVC'de daha gelişmiş integer DCT.</li>
+      <li><strong>WebP, AVIF:</strong> modern web formatları — DCT'nin akrabası dönüşümler.</li>
+      <li><strong>Görüntü filigranı:</strong> orta-frekans DCT katsayılarına bilgi gömme (steganografi).</li>
+      <li><strong>Makine öğrenmesi:</strong> klasik özellik çıkarımı — yüz tanımada DCT katsayıları (eigenfaces öncesi).</li>
+      <li><strong>Tıbbi görüntü sıkıştırma:</strong> DICOM, mamografi, MRI sıkıştırma standardlarında.</li>
+      <li><strong>Bandwidth tasarrufu:</strong> uzay aracı/uydudan dünyaya görüntü transferi.</li>
+    </ul>
+
+    <h3>Kaynakça</h3>
+    <ul class="ref-list">
+      <li>Ahmed, N., Natarajan, T., Rao, K. R. (1974). "Discrete Cosine Transform". <em>IEEE Transactions on Computers</em>, C-23(1), 90-93. — DCT'nin orijinal yayını.</li>
+      <li>Rao, K. R., Yip, P. (1990). <em>Discrete Cosine Transform: Algorithms, Advantages, Applications</em>. Academic Press.</li>
+      <li>Makhoul, J. (1980). "A Fast Cosine Transform in One and Two Dimensions". <em>IEEE Trans. ASSP</em>, 28(1), 27-34. — FFT tabanlı O(N log N) DCT.</li>
+      <li>Wang, Z. (1984). "Fast Algorithms for the Discrete W Transform and for the Discrete Fourier Transform". <em>IEEE Trans. ASSP</em>, 32(4), 803-816.</li>
+      <li>Britanak, V., Yip, P., Rao, K. R. (2007). <em>Discrete Cosine and Sine Transforms: General Properties, Fast Algorithms and Integer Approximations</em>. Academic Press.</li>
+      <li>Oppenheim, A. V., Schafer, R. W. (2010). <em>Discrete-Time Signal Processing</em> (3rd ed.). Pearson.</li>
+      <li>Salomon, D. (2007). <em>Data Compression: The Complete Reference</em> (4th ed.). Springer.</li>
+      <li>ISO/IEC 10918-1 (JPEG); ISO/IEC 11172-3 (MPEG-1 Audio Layer III / MP3).</li>
+      <li>Wikipedia: <a href="https://en.wikipedia.org/wiki/Discrete_cosine_transform" target="_blank">Discrete cosine transform</a>; <a href="https://en.wikipedia.org/wiki/Modified_discrete_cosine_transform" target="_blank">Modified DCT</a>.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Sinyal İşleme Eğitim Simülasyonu — DCT Modülü</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/dct.js"></script>
+</body>
+</html>

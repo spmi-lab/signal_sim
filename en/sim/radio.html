@@ -1,0 +1,575 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Radio � Frequency-Division Multiplexing and Synchronous Demodulation</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* === RADIO page specific === */
+    .radio-top {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 0.7rem;
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .radio-channels-wrap {
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .add-channel-btn {
+      display: block; margin: 0.6rem auto;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; letter-spacing: 0.06em;
+      font-size: 0.9rem; padding: 0.6rem 1.5rem;
+      border-radius: var(--radius-sm);
+      border: 1.5px dashed var(--accent-1);
+      color: var(--accent-1);
+      background: rgba(57,255,133,0.05);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .add-channel-btn:hover:not(:disabled) {
+      background: rgba(57,255,133,0.15);
+      box-shadow: 0 0 14px rgba(57,255,133,0.18);
+    }
+    .add-channel-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* Channel card */
+    .channel-card {
+      padding: 0.8rem 1rem;
+      margin-bottom: 0.7rem;
+    }
+    .channel-header {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .channel-num {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 1rem;
+      letter-spacing: 0.04em;
+      color: var(--accent-2);
+      background: rgba(255,140,66,0.1);
+      border: 1px solid var(--accent-2);
+      padding: 0.25rem 0.7rem;
+      border-radius: 4px;
+    }
+    .channel-input-group {
+      display: flex; align-items: center; gap: 0.35rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .channel-input-group input[type=number] {
+      width: 80px;
+      font-family: 'Fira Code', monospace; font-size: 0.78rem;
+      padding: 0.3rem 0.45rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: 4px;
+    }
+    .channel-input-group input:focus { outline: none; border-color: var(--accent-1); }
+    .channel-rm {
+      margin-left: auto;
+      font-family: 'Saira Condensed', sans-serif; font-weight: 600;
+      font-size: 0.78rem; padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+      border: 1px solid #ff5577;
+      color: #ff5577;
+      background: rgba(255,85,119,0.05);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .channel-rm:hover { background: rgba(255,85,119,0.18); }
+
+    .channel-toolbar {
+      display: flex; align-items: center; gap: 0.4rem;
+      margin-bottom: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .ch-file-wrap { position: relative; overflow: hidden; }
+    .ch-file-wrap input[type=file] {
+      position: absolute; left: 0; top: 0; opacity: 0;
+      width: 100%; height: 100%; cursor: pointer;
+    }
+    .ch-btn {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.76rem; letter-spacing: 0.04em;
+      padding: 0.35rem 0.7rem;
+      border-radius: 4px;
+      border: 1px solid;
+      background: transparent; cursor: pointer;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+    .ch-btn.file { border-color: var(--accent-1); color: var(--accent-1); background: rgba(57,255,133,0.05); }
+    .ch-btn.file:hover { background: rgba(57,255,133,0.15); }
+    .ch-btn.mic  { border-color: var(--color-marker); color: var(--color-marker); background: rgba(255,79,154,0.05); }
+    .ch-btn.mic:hover { background: rgba(255,79,154,0.18); }
+    .ch-btn.mic.recording { background: rgba(255,79,154,0.3); animation: micP 1s infinite; }
+    @keyframes micP { 0%,100%{ box-shadow: 0 0 8px rgba(255,79,154,0.3); } 50% { box-shadow: 0 0 20px rgba(255,79,154,0.7); } }
+    .ch-btn.play { border-color: var(--color-y); color: var(--color-y); background: rgba(123,140,255,0.05); padding: 0.25rem 0.55rem; min-width: 32px; }
+    .ch-btn.play:hover { background: rgba(123,140,255,0.18); }
+    .ch-btn.play:disabled { opacity: 0.3; cursor: not-allowed; }
+    .ch-btn.play.stopping {
+      border-color: #ff5577; color: #ff5577;
+      background: rgba(255,85,119,0.15);
+      animation: playPulse 1s ease-in-out infinite;
+    }
+    @keyframes playPulse { 0%,100% { box-shadow: 0 0 6px rgba(255,85,119,0.4); } 50% { box-shadow: 0 0 14px rgba(255,85,119,0.7); } }
+    .ch-status {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      margin-left: 0.3rem;
+    }
+    .ch-status.ok { color: var(--accent-1); }
+    .ch-status.err { color: #ff5577; }
+
+    .ch-antialias {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 0.4rem;
+      font-family: 'Saira', sans-serif; font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+    .ch-antialias input { accent-color: var(--accent-1); }
+
+    .channel-graphs {
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .ch-graph {
+      padding: 0.45rem;
+      background: rgba(120,140,200,0.04);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+    }
+    .ch-graph-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 0.25rem;
+    }
+    .ch-graph-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.7rem;
+      letter-spacing: 0.06em;
+    }
+    .ch-graph-title.orig { color: var(--accent-1); }
+    .ch-graph-title.spec { color: var(--accent-2); }
+    .ch-graph-title.mod  { color: var(--color-y); }
+    .ch-graph canvas {
+      width: 100%; height: 100px;
+      background: var(--canvas-bg);
+      border-radius: 4px;
+      display: block;
+    }
+    .ch-graph canvas.selectable { cursor: ew-resize; }
+    .ch-graph-info {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      margin-top: 0.2rem;
+      display: flex; flex-wrap: wrap; gap: 0.4rem;
+      align-items: center;
+    }
+    .ch-region-controls {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      margin-left: auto;
+    }
+    .ch-region-controls label {
+      display: inline-flex; align-items: center; gap: 0.25rem;
+      color: var(--text-dim);
+    }
+    .ch-region-controls input {
+      width: 52px;
+      padding: 1px 4px;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: 3px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.65rem;
+    }
+    .ch-region-controls input:focus { outline: none; border-color: var(--accent-1); }
+    .ch-region-controls input:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* Composite */
+    .composite-card {
+      max-width: 1500px;
+      margin: 1rem auto;
+      padding: 1rem 1.2rem;
+      position: relative; z-index: 2;
+    }
+    .composite-card h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 1rem;
+      letter-spacing: 0.04em;
+      color: var(--accent-2);
+      margin-bottom: 0.6rem;
+    }
+    #cvComposite {
+      width: 100%; height: 200px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      cursor: ew-resize;
+    }
+    .tuner-row {
+      display: flex; align-items: center; gap: 0.7rem;
+      margin-top: 0.7rem;
+      flex-wrap: wrap;
+    }
+    .tuner-row label {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      color: var(--accent-1);
+    }
+    .tuner-row .tuner-val {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.95rem;
+      color: var(--accent-2);
+      min-width: 90px;
+      padding: 0.25rem 0.55rem;
+      background: rgba(255,140,66,0.08);
+      border-radius: 4px;
+    }
+    .tuner-row input[type=range] {
+      flex: 1; min-width: 200px;
+    }
+    .tuner-row .q-input {
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+    .tuner-row .q-input input[type=range] {
+      flex: none; width: 100px; min-width: 100px;
+    }
+
+    /* Top row - general settings */
+    .general-settings { padding: 0.9rem 1.1rem; }
+    .general-settings .control-group { margin-bottom: 0.4rem; }
+    .help-tag {
+      display: inline-block;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: 0.3rem;
+    }
+
+    /* Towers */
+    .towers-card { padding: 0.9rem 1.1rem; }
+    #cvTowers {
+      width: 100%; height: 180px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    .tower-legend {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      margin-top: 0.5rem;
+      font-family: 'Fira Code', monospace; font-size: 0.7rem;
+    }
+    .tower-legend-item {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-glow);
+      background: rgba(120,140,200,0.05);
+    }
+    .tower-legend-color {
+      display: inline-block; width: 10px; height: 10px;
+      border-radius: 2px;
+    }
+
+    /* Main playback controls */
+    .play-controls-big {
+      display: flex; align-items: center; gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .btn-broadcast {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.95rem; letter-spacing: 0.06em;
+      padding: 0.6rem 1.2rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .btn-broadcast.start {
+      background: linear-gradient(135deg, var(--accent-1), var(--color-y));
+      color: #06060f;
+      border: 1px solid transparent;
+    }
+    .btn-broadcast.start:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(57,255,133,0.3); }
+    .btn-broadcast.stop {
+      background: transparent;
+      color: #ff5577;
+      border: 1.5px solid #ff5577;
+    }
+    .btn-broadcast.stop:hover { background: rgba(255,85,119,0.15); }
+
+    .vol-slider {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-family: 'Saira', sans-serif; font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .vol-slider input[type=range] { width: 120px; }
+
+    /* Selection overlay (shaded region) */
+    .ch-graph.selecting { position: relative; }
+
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-dim);
+      font-family: 'Saira', sans-serif;
+      font-style: italic;
+    }
+
+    /* Edu/Theory section */
+    .edu-card { max-width: 1500px; margin: 1rem auto; padding: 1.3rem 1.8rem; position: relative; z-index: 2; }
+    .edu-card h2 {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 700;
+      font-size: 1rem; letter-spacing: 0.04em;
+      background: linear-gradient(90deg, var(--accent-1), var(--color-y));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.6rem;
+    }
+    .edu-card h3 {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 700;
+      font-size: 0.85rem; color: var(--accent-2);
+      margin-top: 0.9rem; margin-bottom: 0.3rem;
+      letter-spacing: 0.04em;
+    }
+    .edu-card p, .edu-card li {
+      font-size: 0.85rem; line-height: 1.65;
+      color: var(--text-secondary);
+    }
+    .edu-card ul { margin-left: 1.3rem; margin-bottom: 0.6rem; }
+    .edu-card strong { color: var(--text-primary); }
+
+    @media (max-width: 1100px) {
+      .radio-top { grid-template-columns: 1fr; }
+      .channel-graphs { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon"><svg class="sim-ico sim-ico-lg sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg></span> Radio: Frequency-Division Multiplexing <span class="title-icon">∗</span>
+    </h1>
+    <p class="site-subtitle">Frequency Division Multiplexing · DSB-SC · Synchronous Demodulation — $s_n(t)=m_n(t)\cos(2\pi f_n t)$</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o active" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <!-- TOP: General Settings + Towers -->
+  <div class="radio-top">
+    <!-- General settings -->
+    <div class="general-settings glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> General Settings</h3>
+
+      <div class="control-group">
+        <label>Default Bandwidth: <span id="defaultBwVal" class="val-display">800</span> Hz</label>
+        <input type="range" id="defaultBw" min="200" max="2000" step="50" value="800" />
+        <span class="help-tag">New channels start with this BW (you can customize per channel)</span>
+      </div>
+
+      <div class="control-group">
+        <label>Noise Power: <span id="noiseLevelVal" class="val-display">0.05</span></label>
+        <input type="range" id="noiseLevel" min="0" max="0.5" step="0.01" value="0.05" />
+        <span class="help-tag">White noise level heard between broadcasts</span>
+      </div>
+
+      <div class="control-group">
+        <label>Max Frequency (Tuner Range): <span id="maxFreqVal" class="val-display">16000</span> Hz</label>
+        <input type="range" id="maxFreq" min="4000" max="16000" step="500" value="16000" />
+        <span class="help-tag">Sampling 32 kHz → Nyquist = 16 kHz (max displayable spectrum)</span>
+      </div>
+
+      <div class="control-group">
+        <label>Loop Duration: <span id="loopDurVal" class="val-display">10</span> sec</label>
+        <input type="range" id="loopDur" min="5" max="20" step="1" value="10" />
+      </div>
+
+      <div style="font-family:'Fira Code',monospace; font-size:0.72rem; color: var(--text-dim); margin-top:0.7rem; padding-top:0.7rem; border-top: 1px dashed var(--border-glow);">
+        Tip: You can enter the center frequency and bandwidth individually for each channel. Frequencies must be different, and keep channels sufficiently separated by bandwidth so they don't overlap.
+      </div>
+    </div>
+
+    <!-- Towers -->
+    <div class="towers-card glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span> Radio Towers (Spectrum View)</h3>
+      <canvas id="cvTowers"></canvas>
+      <div class="tower-legend" id="towerLegend">
+        <span style="color:var(--text-dim); font-style:italic;">No channels yet — add one below</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHANNELS -->
+  <div class="radio-channels-wrap">
+    <div id="channelsList">
+      <!-- Dynamic channels go here -->
+    </div>
+    <button class="add-channel-btn" id="addChannelBtn">+ Add Channel</button>
+  </div>
+
+  <!-- COMPOSITE -->
+  <div class="composite-card glass-panel">
+    <h3>Composite (All Broadcasts) — Frequency Spectrum</h3>
+    <canvas id="cvComposite"></canvas>
+
+    <div class="tuner-row">
+      <label>Tuner Center Freq:</label>
+      <input type="range" id="tunerFreq" min="0" max="16000" step="50" value="4000" />
+      <span class="tuner-val" id="tunerFreqVal">4000 Hz</span>
+
+      <div class="q-input">
+        <label style="font-size:0.78rem; color: var(--text-secondary);">Tuner BW:</label>
+        <input type="range" id="tunerBW" min="100" max="3000" step="50" value="800" />
+        <span class="tuner-val" id="tunerBWVal" style="min-width:60px;">800 Hz</span>
+      </div>
+    </div>
+
+    <div class="play-controls-big" style="margin-top:0.7rem;">
+      <button class="btn-broadcast start" id="btnBroadcast">▶ Start Broadcast</button>
+      <button class="btn-broadcast stop" id="btnStopAll" disabled>■ Stop</button>
+
+      <div class="vol-slider">
+        <span>🔊</span>
+        <input type="range" id="volume" min="0" max="1" step="0.05" value="0.7" />
+        <span id="volumeVal" style="font-family:'Fira Code',monospace; font-size:0.75rem;">0.70</span>
+      </div>
+
+      <div style="font-family:'Saira',sans-serif; font-size:0.78rem; color: var(--text-secondary); margin-left:auto;">
+        Status: <span id="broadcastStatus" style="color:var(--accent-2);">Not ready — add a channel</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- THEORY -->
+  <div class="edu-card glass-panel">
+    <h2>Frequency Division Multiplexing and Synchronous Demodulation</h2>
+
+    <p>
+      In order to share a single <strong>transmission medium</strong> (air, cable, fibre) among multiple signals, each signal is shifted to a distinct <em>carrier frequency</em>. Provided that the receiver is aware of the carrier of interest, the corresponding signal may be recovered. On this page the underlying mechanism is simulated using baseband audio signals.
+    </p>
+
+    <h3>1. Modulation — Multiplication in Time</h3>
+    <p>
+      Each baseband signal $m_n(t)$ is multiplied by its dedicated carrier $\cos(2\pi f_n t)$:
+      $$\boxed{\, s_n(t) = m_n(t) \cdot \cos(2\pi f_n t) \,}.$$
+      This operation modulates the <strong>amplitude</strong> of the carrier by the baseband message; in the absence of a message, no carrier is transmitted (DSB-SC, <em>Double-Sideband Suppressed-Carrier</em>).
+    </p>
+
+    <h3>2. Convolution in Frequency (Modulation Theorem)</h3>
+    <p>
+      By a fundamental property of the Fourier transform, <strong>multiplication in the time domain corresponds to convolution in the frequency domain</strong>. For $\mathcal{F}\{m(t)\}=M(f)$ and $c(t)=\cos(2\pi f_c t)$,
+      $$\mathcal{F}\{c(t)\}=C(f)=\tfrac{1}{2}\bigl[\delta(f-f_c)+\delta(f+f_c)\bigr]$$
+      and consequently
+      $$s(t)=m(t)\,c(t)\;\xleftrightarrow{\mathcal{F}}\;S(f)=M(f)\;\ast\;C(f)
+              =\tfrac{1}{2}\bigl[M(f-f_c)+M(f+f_c)\bigr].$$
+    </p>
+    <p>
+      Equivalently, <strong>convolution with a Dirac distribution translates the spectrum to that frequency</strong>. As a result, two copies of the baseband spectrum $M(f)$ are obtained, located around $+f_c$ and $-f_c$. The bandwidth of the modulated signal becomes $2W$, where $W$ is the one-sided bandwidth of $m(t)$. The anti-aliasing low-pass filter restricts $m_n(t)$ to $W = BW/2$ so that adjacent channels do not overlap.
+    </p>
+
+    <h3>3. Composite Broadcast — Summation</h3>
+    <p>
+      The modulated signals are summed together with channel noise $w(t)$ and presented to the transmission medium:
+      $$z(t) = \sum_{n=1}^{N} m_n(t)\cos(2\pi f_n t) + w(t).$$
+      In the frequency domain, each channel forms a distinct "tower" around $f_n$ (see the Towers graph above). To prevent overlap between channels, the condition $|f_n - f_k| \ge BW$ must be satisfied.
+    </p>
+
+    <h3>4. Synchronous Demodulation — Multiplication by the Same Frequency</h3>
+    <p>
+      The receiver multiplies the composite signal by a local oscillator (LO) at frequency $f_t$:
+      $$r(t) = z(t)\cdot\cos(2\pi f_t t).$$
+      Using the trigonometric identity $\cos A\cos B = \tfrac12[\cos(A-B)+\cos(A+B)]$, the contribution of the target channel becomes
+      $$m_n(t)\cos(2\pi f_n t)\cos(2\pi f_t t)
+        = \tfrac{m_n(t)}{2}\bigl[\cos\bigl(2\pi(f_n-f_t)t\bigr)+\cos\bigl(2\pi(f_n+f_t)t\bigr)\bigr].$$
+      A subsequent <strong>low-pass filter</strong> (cut-off $\approx BW/2$) suppresses the high-frequency $(f_n+f_t)$ component as well as the contributions of all other channels with $|f_n-f_t|>BW/2$. Only the baseband copy of the channel satisfying $f_t \approx f_n$ remains:
+      $$\hat{m}_n(t) = \text{LPF}\{r(t)\} \;\approx\; \tfrac{1}{2}\,m_n(t).$$
+      In the frequency domain, this operation corresponds to a further shift of $S(f)$ by $\pm f_t$: when $f_t = f_n$, one of the copies is brought exactly to baseband, while the remaining contributions remain at high frequencies and are eliminated by the low-pass filter.
+    </p>
+
+    <h3>5. Web Audio Demodulation Chain</h3>
+    <p>The real-time demodulation chain implemented on this page is composed of the following blocks:</p>
+    <ul>
+      <li><strong>AudioBufferSourceNode</strong> — plays the offline-synthesised composite signal in a loop.</li>
+      <li><strong>OscillatorNode</strong> (sine at $f_t$) combined with a <strong>GainNode</strong> (audio-rate parameter modulation) forms the heterodyne multiplier.</li>
+      <li><strong>BiquadFilterNode</strong> cascade of three sections — a sixth-order Butterworth low-pass filter (36 dB/octave) with cut-off $BW/2$.</li>
+      <li><strong>GainNode</strong> — control of the output volume.</li>
+    </ul>
+
+    <h3>Application Areas</h3>
+    <ul>
+      <li><strong>AM/FM broadcasting:</strong> classical analogue radio is built upon the same modulation–demodulation architecture.</li>
+      <li><strong>OFDM (4G/5G LTE, Wi-Fi 802.11 a/g/n/ac/ax, DVB-T, ADSL):</strong> thousands of <em>orthogonal</em> subcarriers are modulated in parallel. Choosing the subcarrier frequencies as $f_k = k/T$ yields $\int_0^T \cos(2\pi f_k t)\cos(2\pi f_m t)\,dt = 0$ ($k\ne m$), so that synchronous demodulation can be carried out by a single IFFT/FFT operation. This constitutes the foundation of high-rate digital communications.</li>
+      <li><strong>I/Q and QAM modulation:</strong> in order to transmit two orthogonal signals on the same carrier $f_c$, $\cos$ and $\sin$ carriers are employed in parallel, doubling the spectral efficiency.</li>
+      <li><strong>Cable TV and DOCSIS:</strong> the transmission of hundreds of TV channels over a single coaxial cable constitutes a pure frequency-division multiplexing application.</li>
+      <li><strong>WDM (optical communications):</strong> more than 80 wavelengths are transmitted over a single fibre, each acting as a separate carrier.</li>
+      <li><strong>Radar and SDR:</strong> in software-defined radios, the modulation–demodulation chain is implemented entirely in software.</li>
+    </ul>
+
+    <h3>Conceptual Summary</h3>
+    <p>
+      In a single sentence: <strong>multiplication in time corresponds to convolution with a Dirac distribution in frequency, and therefore to a translation of the spectrum.</strong> Modulation shifts the spectrum upwards; synchronous demodulation, through multiplication by the same $f_c$, shifts it back to baseband while also generating a $2f_c$ component, which is removed by the low-pass filter. This principle constitutes the mathematical core of all carrier-based communications, ranging from simple radio receivers to modern OFDM-based broadband wireless systems.
+    </p>
+  </div>
+
+  <footer class="site-footer">Signal Processing Educational Simulation — Radio: Frequency Division Multiplexing & Synchronous Demodulation</footer>
+
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/radio.js"></script>
+
+  <!-- spmi-privacy-note -->
+  <div class="privacy-note" style="max-width:900px;margin:1.2rem auto 1.6rem;padding:0.85rem 1.2rem;border:1px dashed rgba(120,140,200,0.35);border-radius:8px;font-family:'Saira',sans-serif;font-size:0.78rem;line-height:1.6;color:var(--text-secondary,#9aa3bf);text-align:center;position:relative;z-index:2;background:rgba(20,25,45,0.25);">
+    🔒 <strong>TR:</strong> Yüklediğiniz tüm dosyalar (ses, görüntü vb.) yalnızca tarayıcınızda işlenir; hiçbir sunucuya gönderilmez ve kaydedilmez.
+    <br/>
+    🔒 <strong>EN:</strong> All files you upload (audio, image, etc.) are processed only in your browser; nothing is sent to or stored on any server.
+  </div>
+</body>
+</html>

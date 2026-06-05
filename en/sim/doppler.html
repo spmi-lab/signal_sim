@@ -1,0 +1,612 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doppler Radar Velocity Detection</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== DOPPLER page-specific ===== */
+    .dp-wrap {
+      max-width: 1500px;
+      margin: 1rem auto;
+      padding: 0 1rem;
+      position: relative; z-index: 2;
+    }
+
+    .dp-top-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 0.9rem;
+      margin-bottom: 0.9rem;
+    }
+    .dp-panel { padding: 0.8rem 1rem; }
+    .dp-panel h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.98rem;
+      letter-spacing: 0.04em;
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .dp-panel h3 .badge {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.66rem;
+      padding: 0.18rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(120,140,200,0.08);
+      border: 1px solid var(--border-glow);
+      color: var(--text-dim);
+      margin-left: auto;
+    }
+    .dp-panel .scene-title { color: var(--accent-1); }
+    .dp-panel .dop-title   { color: var(--accent-2); }
+    .dp-panel .tx-title    { color: var(--color-y); }
+    .dp-panel .rx-title    { color: var(--color-marker); }
+    .dp-panel .wf-title    { color: var(--accent-2); }
+
+    #cvScene {
+      width: 100%; height: 420px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    #cvDoppler {
+      width: 100%; height: 420px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+
+    .dp-mid-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.9rem;
+      margin-bottom: 0.9rem;
+    }
+    #cvTx, #cvRx {
+      width: 100%; height: 160px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+
+    #cvWaterfall {
+      width: 100%; height: 200px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+
+    /* Read-outs */
+    .dp-readout {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.4rem 0.6rem;
+      margin-top: 0.55rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+    }
+    .dp-readout .item {
+      background: rgba(120,140,200,0.05);
+      border: 1px solid var(--border-glow);
+      border-radius: 6px;
+      padding: 0.35rem 0.55rem;
+    }
+    .dp-readout .lbl { color: var(--text-dim); display: block; font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    .dp-readout .val { color: var(--text-primary); font-weight: 600; font-size: 0.85rem; }
+    .dp-readout .val.acc { color: var(--accent-1); }
+    .dp-readout .val.warn { color: var(--accent-2); }
+    .dp-readout .val.err { color: #ff5577; }
+
+    /* Controls */
+    .dp-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.7rem;
+      margin-bottom: 0.9rem;
+    }
+    .dp-ctrl-card { padding: 0.9rem 1rem; }
+    .dp-ctrl-card h4 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.55rem;
+      display: flex; align-items: center; gap: 0.45rem;
+      text-transform: uppercase;
+    }
+    .dp-ctrl-card h4 .ico {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .dp-ctrl-card.plane h4 .ico { background: var(--accent-1); box-shadow: 0 0 8px var(--accent-1); }
+    .dp-ctrl-card.radar h4 .ico { background: var(--accent-2); box-shadow: 0 0 8px var(--accent-2); }
+    .dp-ctrl-card.chan  h4 .ico { background: var(--color-marker); box-shadow: 0 0 8px var(--color-marker); }
+    .dp-ctrl-card.chan h4 .sep {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border-glow), transparent);
+      margin: 0 0.4rem;
+    }
+    .dp-row {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 0.45rem; flex-wrap: wrap;
+    }
+    .dp-row label {
+      font-size: 0.74rem;
+      color: var(--text-secondary);
+      flex: 1 1 auto;
+    }
+    .dp-row .v {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem; font-weight: 600;
+      color: var(--text-primary);
+      padding: 0.15rem 0.5rem;
+      background: rgba(120,140,200,0.07);
+      border-radius: 4px;
+      min-width: 60px; text-align: right;
+    }
+    .dp-row input[type=range] { flex: 1 1 100%; }
+    .dp-row select {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: 6px;
+      padding: 0.3rem 0.5rem;
+      outline: none;
+      cursor: pointer;
+    }
+    .dp-row select:focus { border-color: var(--accent-1); }
+    .dp-toggle {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.74rem; color: var(--text-secondary);
+      margin-bottom: 0.45rem;
+    }
+    .dp-toggle input { accent-color: var(--accent-1); width: 14px; height: 14px; }
+
+    .dp-btn {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      border: 1px solid var(--accent-1);
+      background: rgba(57,255,133,0.07);
+      color: var(--accent-1);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .dp-btn:hover { background: rgba(57,255,133,0.18); box-shadow: 0 0 12px rgba(57,255,133,0.2); }
+    .dp-btn.ghost {
+      border-color: var(--accent-2);
+      color: var(--accent-2);
+      background: rgba(255,140,66,0.05);
+    }
+    .dp-btn.ghost:hover { background: rgba(255,140,66,0.15); }
+    .dp-btn.danger {
+      border-color: #ff5577; color: #ff5577;
+      background: rgba(255,85,119,0.05);
+    }
+    .dp-btn.danger:hover { background: rgba(255,85,119,0.15); }
+
+    .dp-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.4rem; }
+
+    .hint-bar {
+      display: flex; align-items: center; gap: 0.7rem;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.9rem;
+      background: rgba(57,255,133,0.04);
+      border: 1px dashed rgba(57,255,133,0.4);
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.9rem;
+    }
+    .hint-bar .key {
+      font-family: 'Fira Code', monospace;
+      background: rgba(57,255,133,0.12);
+      color: var(--accent-1);
+      padding: 0.15rem 0.45rem; border-radius: 4px;
+      border: 1px solid rgba(57,255,133,0.35);
+      font-size: 0.72rem;
+    }
+
+    /* Theory section */
+    .dp-theory {
+      padding: 1.1rem 1.4rem;
+      margin-top: 0.6rem;
+    }
+    .dp-theory h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 1.15rem;
+      letter-spacing: 0.03em;
+      background: linear-gradient(90deg, var(--accent-1), var(--color-y));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.4rem;
+    }
+    .dp-theory h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.95rem;
+      letter-spacing: 0.03em;
+      color: var(--accent-2);
+      margin: 0.9rem 0 0.4rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .dp-theory p, .dp-theory li {
+      font-size: 0.86rem; line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .dp-theory strong { color: var(--text-primary); }
+    .dp-theory em { color: var(--accent-2); font-style: normal; }
+    .dp-theory ul, .dp-theory ol { margin: 0.3rem 0 0.7rem 1.2rem; }
+    .dp-theory .pipeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.55rem;
+      margin: 0.7rem 0;
+    }
+    .dp-theory .step {
+      padding: 0.6rem 0.7rem;
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      background: rgba(120,140,200,0.04);
+    }
+    .dp-theory .step .num {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--accent-1);
+      letter-spacing: 0.1em;
+    }
+    .dp-theory .step .ttl {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.85rem;
+      color: var(--text-primary);
+      margin: 0.2rem 0 0.25rem;
+    }
+    .dp-theory .step .dsc {
+      font-size: 0.74rem; color: var(--text-secondary); line-height: 1.55;
+    }
+    .dp-theory .formula-block {
+      padding: 0.55rem 0.9rem;
+      margin: 0.5rem 0;
+      background: rgba(120,140,200,0.04);
+      border-left: 3px solid var(--accent-1);
+      border-radius: 4px;
+      font-size: 0.86rem;
+    }
+
+    @media (max-width: 1100px) {
+      .dp-top-grid, .dp-mid-grid { grid-template-columns: 1fr; }
+      .dp-controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon"><svg class="sim-ico sim-ico-lg sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg></span> Doppler Radar Velocity Detection <span class="title-icon">✈</span>
+    </h1>
+    <p class="site-subtitle">Moving target · Doppler shift · Signal processing chain — Interactive simulation</p>
+  </header>
+
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o active" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <div class="dp-wrap">
+
+    <div class="hint-bar">
+      <span><span class="key">Left click</span> on scene → turns the aircraft's <strong>nose direction</strong> toward the clicked point</span>
+      <span><span class="key">Drag radar</span> → change radar position, see range</span>
+      <span><span class="key">Space</span> → pause / resume</span>
+    </div>
+
+    <!-- ====== TOP: SCENE + DOPPLER SPECTRUM ====== -->
+    <div class="dp-top-grid">
+      <div class="dp-panel glass-panel">
+        <h3>
+          <span class="scene-title">🛰  Top View — Scene</span>
+          <span class="badge" id="badgeScene">live</span>
+        </h3>
+        <canvas id="cvScene"></canvas>
+        <div class="dp-readout">
+          <div class="item"><span class="lbl">True range $R$</span><span class="val" id="rdRange">— m</span></div>
+          <div class="item"><span class="lbl">Estimated range $\hat R$</span><span class="val acc" id="rdRangeEst">— m</span></div>
+          <div class="item"><span class="lbl">Radial velocity $v_r$</span><span class="val" id="rdVr">— m/s</span></div>
+          <div class="item"><span class="lbl">Arrival angle</span><span class="val" id="rdAng">— °</span></div>
+          <div class="item"><span class="lbl">Aspect $\cos\theta$</span><span class="val" id="rdCos">—</span></div>
+          <div class="item"><span class="lbl">Range res. $\Delta R$</span><span class="val" id="rdDR">— m</span></div>
+        </div>
+      </div>
+
+      <div class="dp-panel glass-panel">
+        <h3>
+          <span class="dop-title">📈 Doppler Spectrum — $|S(f)|$</span>
+          <span class="badge" id="badgeDop">FFT N=512</span>
+        </h3>
+        <canvas id="cvDoppler"></canvas>
+        <div class="dp-readout">
+          <div class="item"><span class="lbl">Measured $f_d$</span><span class="val acc" id="rdFd">— Hz</span></div>
+          <div class="item"><span class="lbl">Estimated velocity</span><span class="val acc" id="rdVest">— m/s</span></div>
+          <div class="item"><span class="lbl">True $f_d$</span><span class="val" id="rdFdTrue">— Hz</span></div>
+          <div class="item"><span class="lbl">Error</span><span class="val" id="rdErr">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== MIDDLE: TX + RX (time) ====== -->
+    <div class="dp-mid-grid">
+      <div class="dp-panel glass-panel">
+        <h3><span class="tx-title">📤 Transmit Signal $s_{TX}(t)$</span><span class="badge">carrier $f_c$</span></h3>
+        <canvas id="cvTx"></canvas>
+      </div>
+      <div class="dp-panel glass-panel">
+        <h3><span class="rx-title">📥 Received Echo $s_{RX}(t)$</span><span class="badge">$f_c + f_d$ + noise + clutter</span></h3>
+        <canvas id="cvRx"></canvas>
+      </div>
+    </div>
+
+    <!-- ====== BOTTOM: WATERFALL (time-velocity) ====== -->
+    <div class="dp-panel glass-panel" style="margin-bottom: 0.9rem;">
+      <h3><span class="wf-title">🌊 Time-Velocity Waterfall</span><span class="badge">top = now · bottom = past</span></h3>
+      <canvas id="cvWaterfall"></canvas>
+    </div>
+
+    <!-- ====== CONTROLS ====== -->
+    <div class="dp-controls">
+      <!-- Aircraft -->
+      <div class="dp-ctrl-card plane glass-panel">
+        <h4><span class="ico"></span> ✈ Aircraft (Target)</h4>
+
+        <div class="dp-row">
+          <label>Speed $|\vec{v}|$ (m/s)</label>
+          <span class="v" id="vSpdVal">100</span>
+        </div>
+        <input type="range" id="vSpd" min="0" max="300" step="1" value="100" style="width:100%;margin-bottom:0.5rem;" />
+
+        <div class="dp-row">
+          <label>Heading $\phi$ (°)</label>
+          <span class="v" id="vHdgVal">45</span>
+        </div>
+        <input type="range" id="vHdg" min="0" max="359" step="1" value="45" style="width:100%;margin-bottom:0.5rem;" />
+
+        <div class="dp-toggle">
+          <input type="checkbox" id="trail" checked />
+          <label for="trail">Show flight trail</label>
+        </div>
+
+        <div class="dp-actions">
+          <button class="dp-btn" id="btnResetPlane">↺ Reset aircraft</button>
+          <button class="dp-btn ghost" id="btnPause">⏸ Pause</button>
+        </div>
+      </div>
+
+      <!-- Radar -->
+      <div class="dp-ctrl-card radar glass-panel">
+        <h4><span class="ico"></span> <svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Radar</h4>
+
+        <div class="dp-row">
+          <label>Carrier $f_c$ (GHz)</label>
+          <span class="v" id="fcVal">2.0</span>
+        </div>
+        <input type="range" id="fc" min="0.5" max="35" step="0.1" value="2.0" style="width:100%;margin-bottom:0.5rem;" />
+
+        <div class="dp-row">
+          <label>PRF (Hz) — pulse repetition</label>
+          <span class="v" id="prfVal">4000</span>
+        </div>
+        <input type="range" id="prf" min="500" max="20000" step="100" value="4000" style="width:100%;margin-bottom:0.5rem;" />
+
+        <div class="dp-row">
+          <label>Max range indicator (km)</label>
+          <span class="v" id="rmaxVal">8</span>
+        </div>
+        <input type="range" id="rmax" min="2" max="30" step="0.5" value="8" style="width:100%;margin-bottom:0.5rem;" />
+
+        <div class="dp-readout" style="margin-top:0.2rem;">
+          <div class="item"><span class="lbl">Wavelength $\lambda$</span><span class="val" id="rdLam">— cm</span></div>
+          <div class="item"><span class="lbl">Ambiguous $v_{max}$</span><span class="val" id="rdVmax">— m/s</span></div>
+        </div>
+      </div>
+
+      <!-- Channel -->
+      <div class="dp-ctrl-card chan glass-panel">
+        <h4><span class="ico"></span> 🌊 Channel — Noise and Clutter</h4>
+
+        <div class="dp-toggle">
+          <input type="checkbox" id="noiseless" />
+          <label for="noiseless">Noiseless mode (SNR = ∞)</label>
+        </div>
+
+        <div class="dp-row">
+          <label>SNR (dB)</label>
+          <span class="v" id="snrVal">+5</span>
+        </div>
+        <input type="range" id="snr" min="-30" max="10" step="2" value="5" style="width:100%;margin-bottom:0.7rem;" />
+
+        <div style="height:1px;background:var(--border-glow);margin:0.3rem 0 0.55rem;"></div>
+
+        <div class="dp-toggle">
+          <input type="checkbox" id="clutterOn" checked />
+          <label for="clutterOn">Ground/rain clutter (zero-Doppler peak)</label>
+        </div>
+
+        <div class="dp-row">
+          <label>Clutter intensity (dB, above target)</label>
+          <span class="v" id="cluVal">+10</span>
+        </div>
+        <input type="range" id="cluLvl" min="-20" max="30" step="1" value="10" style="width:100%;margin-bottom:0.4rem;" />
+
+        <div class="dp-toggle">
+          <input type="checkbox" id="mti" />
+          <label for="mti">Apply MTI (suppress stationary clutter)</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== THEORY ====== -->
+    <section class="dp-panel dp-theory glass-panel">
+      <h2>Signal Processing Framework of Doppler Radar</h2>
+      <p>
+        A radar system transmits a pulse train or a continuous wave (CW) at a known <strong>carrier frequency</strong> $f_c$, and the echo scattered from a moving target returns with a <em>Doppler shift</em> $f_d$ that is directly proportional to the target's <strong>radial velocity</strong>. The signal-processing chain at the receiver measures this small frequency shift and determines the velocity of the target along the radar line of sight.
+      </p>
+
+      <h3>1) Doppler Shift — Fundamental Relation</h3>
+      <p>
+        With the radial velocity $v_r$ taken as positive towards the radar, the two-way path doubles the shift and introduces a factor of <em>2$\times$</em> in the fundamental relation:
+      </p>
+      <div class="formula-block">
+        $$ f_d \;=\; \frac{2\,v_r}{\lambda} \;=\; \frac{2\,v_r\,f_c}{c}, \qquad \lambda = \frac{c}{f_c} $$
+      </div>
+      <ul>
+        <li>For an <strong>approaching</strong> target (towards the radar) $f_d > 0$, whereas for a <strong>receding</strong> target $f_d < 0$.</li>
+        <li>If $\theta$ denotes the angle between the radar line of sight and the target's velocity vector, the radial velocity is given by $v_r = |\vec{v}|\cos\theta$.</li>
+        <li>At $\theta = 90°$ (tangential flight) the radial velocity vanishes ($v_r = 0$), producing a <em>Doppler blind spot</em> in which the target peak falls onto the DC bin of the spectrum.</li>
+      </ul>
+
+      <h3>2) Signal Model</h3>
+      <p>The transmitted carrier and the received echo are modelled in idealised form as follows:</p>
+      <div class="formula-block">
+        $$ s_{TX}(t) = \cos(2\pi f_c\,t), \qquad
+           s_{RX}(t) = A\,\cos\!\big(2\pi(f_c + f_d)(t - \tau)\big) + n(t) + c(t) $$
+      </div>
+      <ul>
+        <li>$\tau = 2R/c$ — the round-trip delay, which carries the range information.</li>
+        <li>$n(t)$ — thermal noise (AWGN); its power is controlled by the <strong>SNR</strong> parameter.</li>
+        <li>$c(t)$ — <strong>clutter</strong>: strong echoes returning from <em>stationary</em> scatterers such as the ground, sea surface, rain or buildings; they accumulate around $f \approx 0$ in the spectrum.</li>
+      </ul>
+
+      <h3>3) Processing Chain</h3>
+      <div class="pipeline">
+        <div class="step"><div class="num">STEP 1</div><div class="ttl">RF Mixing (Mixer)</div>
+          <div class="dsc">$s_{RX}(t)$ is multiplied with the carrier at the receiver → intermediate frequency (IF) or I/Q baseband. The Doppler difference $f_d$ is now at <em>baseband</em>.</div></div>
+        <div class="step"><div class="num">STEP 2</div><div class="ttl">Range Gate</div>
+          <div class="dsc">A sample window corresponding to delay $\tau$ is selected. Only target contributions at that range pass through.</div></div>
+        <div class="step"><div class="num">STEP 3</div><div class="ttl">Pulse-to-Pulse Sampling</div>
+          <div class="dsc">At the end of each PRI (= 1/PRF), <em>one</em> complex sample is collected. Doppler processing operates on this <em>slow-time</em> sequence.</div></div>
+        <div class="step"><div class="num">STEP 4</div><div class="ttl">MTI / High-Pass</div>
+          <div class="dsc">Difference filter to suppress stationary clutter: $h[n]=\{1,-1\}$ type, $y[n]=x[n]-x[n-1]$. DC is nulled.</div></div>
+        <div class="step"><div class="num">STEP 5</div><div class="ttl">Window + FFT</div>
+          <div class="dsc">Hann/Hamming window → $N$-point FFT. Bin resolution $\Delta f = \text{PRF}/N$.</div></div>
+        <div class="step"><div class="num">STEP 6</div><div class="ttl">Peak Detection (CFAR)</div>
+          <div class="dsc">Strongest bin in spectrum → $\hat{f}_d$. Velocity: $\hat v_r = c\,\hat f_d / (2 f_c)$.</div></div>
+      </div>
+
+      <h3>4) Ambiguity and Resolution Limits</h3>
+      <ul>
+        <li><strong>Doppler ambiguity:</strong> a pulsed radar samples the slow-time axis at the PRF; consequently, by the Nyquist criterion, the shift can only be resolved unambiguously within $|f_d| < \text{PRF}/2$. Doppler values outside this interval are folded back (aliasing) and lead to erroneous velocity readings.</li>
+        <li>The corresponding ambiguous velocity is $v_{\max} = \dfrac{c\,\text{PRF}}{4 f_c}$ and is reported live in the upper panel.</li>
+        <li><strong>Velocity resolution:</strong> according to $\Delta v = \dfrac{c}{2 f_c}\cdot\dfrac{\text{PRF}}{N}$, the resolution improves as the observation length $N$ increases.</li>
+        <li><strong>SNR and detection:</strong> in order for the target peak to be distinguishable from the noise floor, a sufficient integration gain must be achieved. Coherent integration over $N$ samples increases the SNR by $10\log_{10} N$ dB.</li>
+      </ul>
+
+      <h3>5) Quantities Visualised in This Simulation</h3>
+      <ol>
+        <li><strong>Scene panel:</strong> a top-down view is provided; the speed $|\vec v|$ and heading angle $\phi$ of the aircraft are controlled by the user. The radar illuminates the target with concentric wave rings and the echo is returned.</li>
+        <li><strong>$s_{TX}, s_{RX}$ panel:</strong> the transmitted carrier and the received echo are shown in the time domain. Since the Doppler shift is small, it is not directly visible to the naked eye; however, the phase accumulated within each PRI is extracted by the Doppler-processing chain.</li>
+        <li><strong>Doppler spectrum:</strong> the FFT of the slow-time sequence is computed; the target peak appears at $f_d$, while clutter (when present) appears as a broad peak around $f = 0$ on a uniformly distributed noise floor.</li>
+        <li><strong>Waterfall:</strong> the evolution of the spectrum over time is displayed. As the heading of the target is changed, the peak line may be observed to shift and to cross the "zero-Doppler" condition at $f = 0$.</li>
+      </ol>
+
+      <h3>6) Suggested Experiments</h3>
+      <ul>
+        <li>The SNR may be set to −15 dB to observe whether the target peak becomes buried in noise; the corresponding case with SNR = ∞ may then be used for comparison.</li>
+        <li>Under high-clutter conditions, the MTI filter may be activated and deactivated in turn so as to study the suppression of the DC peak.</li>
+        <li>When the aircraft is steered to pass directly beside the radar, the sign reversal of $v_r$ can be tracked on the waterfall display.</li>
+        <li>The carrier frequency $f_c$ may be varied from 0.5 GHz up to 35 GHz so as to observe how $f_d$ scales for a fixed velocity (the wavelength $\lambda$ decreases accordingly).</li>
+        <li>By lowering the PRF, the ambiguous velocity may be brought below the actual velocity of the aircraft, so that the folding of the spectral peak can be directly observed.</li>
+      </ul>
+    </section>
+
+    <!-- ====== VIDEO GUIDE ====== -->
+    <div id="videoSection" class="dp-panel glass-panel" style="margin-top:0.9rem; display:none;">
+      <h3 style="margin-bottom:0.7rem;">
+        <span style="color:var(--color-marker);">▶ Video Guide</span>
+        <span class="badge">how to use?</span>
+      </h3>
+      <div style="position:relative; width:100%; padding-bottom:56.25%; border-radius:var(--radius-sm); overflow:hidden; background:#000;">
+        <iframe
+          id="videoFrame"
+          src=""
+          style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          loading="lazy">
+        </iframe>
+      </div>
+      <p style="margin-top:0.55rem; font-size:0.78rem; color:var(--text-secondary); line-height:1.6;">
+        A step-by-step video guide showing how to use the simulation.
+        We recommend watching it to learn the controls, observe the Doppler shift,
+        and apply experiment scenarios.
+      </p>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    Signals &amp; Systems Simulation Platform · <svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler Module
+  </footer>
+
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/doppler.js"></script>
+  <script>
+    /* Load video section from videos.json */
+    (function () {
+      const SIM_KEY = 'doppler';
+      fetch('../videos.json')
+        .then(r => r.json())
+        .then(data => {
+          const url = (data[SIM_KEY] || '').trim();
+          if (!url) return;
+          // Convert YouTube URL to embed format
+          let embedUrl = url;
+          const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+          if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+          const dmMatch = url.match(/dailymotion\.com\/video\/([^?/]+)/);
+          if (dmMatch) embedUrl = `https://www.dailymotion.com/embed/video/${dmMatch[1]}`;
+          const frame = document.getElementById('videoFrame');
+          const section = document.getElementById('videoSection');
+          frame.src = embedUrl;
+          section.style.display = 'block';
+        })
+        .catch(() => { /* silently skip if video.json doesn't exist */ });
+    })();
+  </script>
+</body>
+</html>

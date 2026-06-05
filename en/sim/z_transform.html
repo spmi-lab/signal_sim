@@ -1,0 +1,1020 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Z-Transform — z-Plane &amp; DTFT on the Unit Circle</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== SINGLE-SCREEN LAYOUT ===== */
+    .zt-layout {
+      max-width: 1700px;
+      margin: 0.4rem auto;
+      padding: 0 0.6rem;
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 0.5rem;
+      position: relative; z-index: 2;
+      height: calc(100vh - 165px);
+      min-height: 600px;
+    }
+    .zt-left {
+      display: flex; flex-direction: column;
+      gap: 0.5rem; min-height: 0;
+    }
+    .zt-controls {
+      padding: 0.6rem 0.75rem;
+      overflow-y: auto;
+      flex: 1 1 auto; min-height: 0;
+    }
+    .zt-playback {
+      padding: 0.55rem 0.75rem;
+      flex-shrink: 0;
+    }
+    .zt-right {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      gap: 0.5rem;
+      min-height: 0;
+    }
+    .zt-right-top, .zt-right-bot {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem; min-height: 0;
+    }
+    .canvas-card {
+      padding: 0.4rem 0.55rem 0.5rem;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .canvas-card canvas {
+      flex: 1; width: 100%;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      min-height: 0;
+    }
+    #cv2d { cursor: crosshair; }
+    #cv3d { cursor: grab; }
+    #cv3d:active { cursor: grabbing; }
+    #cvFreq { cursor: ew-resize; }
+
+    .canvas-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.4rem; margin-bottom: 0.25rem;
+      flex-wrap: nowrap;
+    }
+    .canvas-header .canvas-title { flex-shrink: 0; }
+    .canvas-header .canvas-hint { flex-shrink: 0; }
+    .canvas-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.78rem;
+      letter-spacing: 0.05em;
+    }
+    .canvas-title.t-2d   { color: #7b8cff; }
+    .canvas-title.t-3d   { color: #ff8c42; }
+    .canvas-title.t-freq { color: #39ff85; }
+    .canvas-title.t-imp  { color: #ff5577; }
+    .canvas-hint {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.62rem; color: var(--text-dim);
+    }
+    .freq-live {
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #39ff85;
+      background: rgba(57,255,133,0.10);
+      border: 1px solid rgba(57,255,133,0.45);
+      border-radius: 6px;
+      padding: 0.18rem 0.55rem;
+      margin-left: auto;
+      box-shadow: 0 0 8px rgba(57,255,133,0.15);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    body.light-theme .freq-live {
+      color: #0e6e2e;
+      background: rgba(14,110,46,0.08);
+      border-color: rgba(14,110,46,0.5);
+    }
+
+    /* ===== LEFT PANEL ===== */
+    .panel-title-sm {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      color: var(--text-primary);
+      margin: 0.45rem 0 0.3rem;
+      display: flex; align-items: center; gap: 0.4rem;
+      text-transform: uppercase;
+    }
+    .panel-title-sm:first-child { margin-top: 0; }
+    .signal-dot-sm {
+      width: 7px; height: 7px; border-radius: 50%;
+      display: inline-block;
+    }
+
+    .preset-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.3rem; margin-bottom: 0.4rem;
+    }
+    .preset-row button {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 600;
+      font-size: 0.68rem; padding: 0.3rem 0.4rem;
+      border-radius: 6px; cursor: pointer;
+      border: 1px solid var(--border-glow);
+      background: rgba(120,140,200,0.06);
+      color: var(--text-primary);
+      transition: all var(--transition);
+    }
+    .preset-row button:hover { border-color: var(--accent-2); color: var(--accent-2); }
+
+    .add-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; margin-bottom: 0.35rem; }
+    .add-row input {
+      font-family: 'Fira Code', monospace; font-size: 0.72rem;
+      padding: 0.3rem 0.45rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      width: 100%;
+    }
+    .add-btn {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 600;
+      font-size: 0.72rem; padding: 0.3rem 0.55rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid; cursor: pointer;
+      transition: all var(--transition);
+    }
+    .add-btn.pole { border-color: #ff4f9a; color: #ff4f9a; background: rgba(255,79,154,0.05); }
+    .add-btn.pole:hover, .add-btn.pole.active { background: rgba(255,79,154,0.18); }
+    .add-btn.zero { border-color: #39ff85; color: #39ff85; background: rgba(57,255,133,0.05); }
+    .add-btn.zero:hover, .add-btn.zero.active { background: rgba(57,255,133,0.18); }
+
+    .pole-zero-list {
+      max-height: 110px; overflow-y: auto;
+      margin: 0.25rem 0 0.4rem;
+      display: flex; flex-direction: column; gap: 0.2rem;
+    }
+    .pz-item {
+      display: flex; align-items: center; gap: 0.35rem;
+      padding: 0.25rem 0.45rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-glow);
+      background: rgba(120,140,200,0.06);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.68rem;
+    }
+    .pz-item.pole   { border-left: 3px solid #ff4f9a; }
+    .pz-item.zero   { border-left: 3px solid #39ff85; }
+    .pz-tag { font-weight: 700; padding: 0.05rem 0.28rem; border-radius: 3px; font-size: 0.66rem; }
+    .pz-tag.p { color: #ff4f9a; background: rgba(255,79,154,0.1); }
+    .pz-tag.z { color: #39ff85; background: rgba(57,255,133,0.1); }
+    .pz-coords { color: var(--text-primary); flex: 1; }
+    .pz-rm { cursor: pointer; color: #ff5577; font-weight: bold; user-select: none; }
+
+    /* Mode selector (mouse add) */
+    .mode-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.3rem; margin: 0.25rem 0 0.5rem;
+    }
+    .mode-row .mode-btn {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 600;
+      font-size: 0.7rem; padding: 0.3rem 0.4rem;
+      border: 1px dashed var(--border-glow); border-radius: 6px;
+      background: transparent; color: var(--text-secondary);
+      cursor: pointer; transition: all var(--transition);
+    }
+    .mode-btn.active.mp { border-color: #ff4f9a; color: #ff4f9a; background: rgba(255,79,154,0.08); border-style: solid; }
+    .mode-btn.active.mz { border-color: #39ff85; color: #39ff85; background: rgba(57,255,133,0.08); border-style: solid; }
+
+    /* Mini slider groups */
+    .ctl { margin-bottom: 0.3rem; }
+    .ctl label {
+      display: flex; justify-content: space-between;
+      font-size: 0.68rem; color: var(--text-secondary);
+      margin-bottom: 0.1rem;
+    }
+    .ctl label .vv { color: var(--accent-1); font-family: 'Fira Code', monospace; font-size: 0.66rem; }
+    .ctl input[type=range] {
+      width: 100%;
+      -webkit-appearance: none; appearance: none;
+      height: 4px; border-radius: 4px;
+      background: var(--slider-track);
+      outline: none;
+    }
+    .ctl input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 13px; height: 13px; border-radius: 50%;
+      background: var(--accent-1);
+      cursor: pointer; border: 0;
+      box-shadow: 0 0 6px rgba(57,255,133,0.5);
+    }
+    .ctl input[type=range]::-moz-range-thumb {
+      width: 13px; height: 13px; border-radius: 50%;
+      background: var(--accent-1); cursor: pointer; border: 0;
+    }
+
+    .checkbox-row {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.7rem; margin: 0.15rem 0;
+      color: var(--text-secondary);
+    }
+    .checkbox-row input[type=checkbox] { accent-color: var(--accent-2); }
+
+    .info-grid {
+      display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.5rem;
+      font-family: 'Fira Code', monospace; font-size: 0.66rem;
+      margin: 0.3rem 0 0.1rem;
+    }
+    .info-grid .lbl { color: var(--text-secondary); }
+    .info-grid .val { color: var(--accent-1); }
+
+    /* === PLAYBACK PANEL === */
+    .pb-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.78rem;
+      color: #39ff85; letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .pb-row {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 0.4rem; align-items: center;
+      margin-bottom: 0.35rem;
+    }
+    .play-btn {
+      width: 36px; height: 32px;
+      border-radius: 6px;
+      border: 1px solid #39ff85;
+      background: rgba(57,255,133,0.08);
+      color: #39ff85; cursor: pointer;
+      font-size: 0.85rem;
+      transition: all var(--transition);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .play-btn:hover { background: rgba(57,255,133,0.2); }
+    .play-btn.playing { background: rgba(57,255,133,0.25); }
+
+    .omega-display {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: #39ff85;
+      text-align: center;
+      padding: 0.2rem;
+      background: rgba(57,255,133,0.06);
+      border-radius: 4px;
+      margin-top: 0.2rem;
+    }
+
+    /* ===========================================
+       SIGNAL TEST PANEL
+       =========================================== */
+    .signal-test-layout {
+      max-width: 1700px;
+      margin: 0.6rem auto 1.2rem;
+      padding: 0 0.6rem;
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 0.5rem;
+      position: relative; z-index: 2;
+      height: calc(100vh - 165px);
+      min-height: 600px;
+    }
+    .signal-test-layout > * { min-height: 0; }
+
+    .sig-builder {
+      padding: 0.6rem 0.75rem;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    /* Right area — component strip on top, 2x2 equal grid below */
+    .sig-right-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 230px 1fr 1fr;
+      gap: 0.5rem;
+      min-height: 0;
+    }
+    .sig-right-area > * { min-height: 0; }
+    .sig-comps-row {
+      grid-column: 1 / -1;
+      padding: 0.4rem 0.55rem 0.5rem;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .sig-comps-row canvas {
+      flex: 1; width: 100%;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      min-height: 0;
+    }
+    .sig-card {
+      padding: 0.4rem 0.55rem 0.5rem;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .sig-card canvas {
+      flex: 1; width: 100%;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      min-height: 0;
+    }
+
+    .sig-select, .sig-num {
+      width: 100%;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.74rem;
+      padding: 0.32rem 0.5rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      outline: none;
+    }
+    .sig-num:focus { border-color: var(--accent-2); }
+
+    .ap-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+      margin: 0.3rem 0;
+    }
+    .ap-lbl {
+      display: block;
+      font-size: 0.66rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.18rem;
+    }
+
+    .draw-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      display: none;
+      align-items: center; justify-content: center;
+    }
+    .draw-modal-overlay.active { display: flex; }
+    .draw-modal {
+      background: var(--bg-panel);
+      backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--border-glow-strong);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      width: 720px; max-width: 92vw;
+    }
+    .draw-modal h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 1rem;
+      letter-spacing: 0.04em;
+      color: var(--accent-2);
+      margin-bottom: 0.5rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .draw-modal .close {
+      cursor: pointer; color: #ff5577;
+      font-weight: bold; padding: 0 0.4rem;
+      user-select: none;
+    }
+    #drawCanvas {
+      width: 100%; height: 260px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      cursor: crosshair;
+      display: block;
+    }
+    .draw-modal-footer {
+      display: flex; gap: 0.5rem;
+      margin-top: 0.7rem;
+    }
+    .draw-modal-footer .sig-btn { margin-bottom: 0; flex: 1; }
+    .draw-help {
+      font-size: 0.7rem; color: var(--text-dim);
+      margin: 0.4rem 0;
+    }
+    .sig-comp-list {
+      margin: 0.4rem 0;
+      max-height: 170px;
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+      gap: 0.2rem;
+    }
+    .sig-comp-item {
+      display: flex; align-items: center; gap: 0.35rem;
+      padding: 0.26rem 0.45rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-glow);
+      background: rgba(120,140,200,0.06);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.66rem;
+      border-left: 3px solid #7b8cff;
+    }
+    .sig-comp-tag {
+      font-weight: 700;
+      padding: 0.05rem 0.32rem;
+      border-radius: 3px;
+      color: #7b8cff;
+      background: rgba(123,140,255,0.14);
+      font-size: 0.64rem;
+    }
+    .sig-comp-coords { flex: 1; color: var(--text-primary); }
+    .sig-comp-rm { cursor: pointer; color: #ff5577; font-weight: bold; user-select: none; }
+    .sig-comp-rm:hover { color: #ff8aa0; }
+
+    .sig-btn {
+      width: 100%;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.74rem;
+      padding: 0.36rem 0.6rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid;
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-bottom: 0.3rem;
+    }
+    .sig-btn.primary {
+      border-color: #7b8cff; color: #7b8cff;
+      background: rgba(123,140,255,0.08);
+    }
+    .sig-btn.primary:hover { background: rgba(123,140,255,0.2); }
+    .sig-btn.ghost {
+      border-color: var(--border-glow);
+      color: var(--text-secondary);
+      background: transparent;
+    }
+    .sig-btn.ghost:hover { border-color: var(--accent-2); color: var(--accent-2); }
+    .sig-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    @media (max-width: 1200px) {
+      .signal-test-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .sig-right-area {
+        grid-template-rows: 230px 280px 280px;
+      }
+    }
+    @media (max-width: 760px) {
+      .sig-right-area {
+        grid-template-columns: 1fr;
+        grid-template-rows: 230px 200px 200px 200px 200px;
+      }
+      .sig-comps-row { grid-column: auto; }
+    }
+
+    /* === THEORY === */
+    .theory-block {
+      max-width: 1700px; margin: 1.5rem auto;
+      padding: 1.5rem 2rem;
+      position: relative; z-index: 2;
+    }
+    .theory-block h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 1.2rem;
+      letter-spacing: 0.03em;
+      background: linear-gradient(90deg, var(--accent-1), var(--color-y));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.7rem;
+    }
+    .theory-block h3 {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 700;
+      font-size: 0.95rem; color: var(--accent-2);
+      margin-top: 1rem; margin-bottom: 0.4rem;
+      letter-spacing: 0.04em;
+    }
+    .theory-block p, .theory-block li {
+      font-size: 0.88rem; line-height: 1.65;
+      color: var(--text-secondary);
+    }
+    .theory-block ul { margin-left: 1.3rem; margin-bottom: 0.8rem; }
+    .theory-block strong { color: var(--text-primary); }
+
+    .site-header { padding: 0.7rem 1rem 0.2rem; }
+    .nav-tabs { margin: 0.3rem auto; }
+
+    @media (max-width: 1200px) {
+      .zt-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .zt-right { grid-template-rows: 400px 320px; }
+    }
+    @media (max-width: 760px) {
+      .zt-right-top, .zt-right-bot { grid-template-columns: 1fr; }
+      .zt-right { grid-template-rows: 320px 320px 220px 220px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">𝒵</span> Z-Transform (3D z-Plane) <span class="title-icon">∗</span>
+    </h1>
+    <p class="site-subtitle">$z$-Plane · Poles &amp; Zeros · DTFT on the Unit Circle</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d active" href="z_transform.html">𝒵 Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <div class="zt-layout">
+
+    <!-- ============== LEFT ============== -->
+    <div class="zt-left">
+
+      <!-- CONTROL PANEL -->
+      <div class="zt-controls glass-panel">
+        <div class="panel-title-sm">
+          <span class="signal-dot-sm" style="background:#ff4f9a;box-shadow:0 0 8px #ff4f9a;"></span>
+          Poles &amp; Zeros
+        </div>
+
+        <div class="preset-row">
+          <button onclick="loadPreset('ma3')">FIR 3-MA</button>
+          <button onclick="loadPreset('lp1')">LP 1st-order IIR</button>
+          <button onclick="loadPreset('lp2')">LP 2nd-order IIR</button>
+          <button onclick="loadPreset('hp1')">HP 1st-order IIR</button>
+          <button onclick="loadPreset('bp')">Band-Pass</button>
+          <button onclick="loadPreset('notch')">Notch</button>
+          <button onclick="loadPreset('allpass')">All-Pass</button>
+          <button onclick="loadPreset('clear')">Clear</button>
+        </div>
+
+        <div class="add-row">
+          <input type="number" id="addRe" placeholder="Re(z)" step="0.05" value="0.8" />
+          <input type="number" id="addIm" placeholder="Im(z)" step="0.05" value="0" />
+        </div>
+        <div class="add-row">
+          <button class="add-btn pole" onclick="addPoint('pole')">+ Pole ✕</button>
+          <button class="add-btn zero" onclick="addPoint('zero')">+ Zero ◯</button>
+        </div>
+
+        <div style="font-size:0.66rem; color:var(--text-dim); margin-bottom:0.15rem;">
+          Mouse mode (click on z-plane):
+        </div>
+        <div class="mode-row">
+          <button class="mode-btn mp active" id="modePole" onclick="setMouseMode('pole')">✕ Pole</button>
+          <button class="mode-btn mz" id="modeZero" onclick="setMouseMode('zero')">◯ Zero</button>
+        </div>
+
+        <div class="pole-zero-list" id="pzList"></div>
+
+        <div class="panel-title-sm">
+          <span class="signal-dot-sm" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span>
+          Display Settings
+        </div>
+
+        <div class="ctl">
+          <label>3D Grid resolution <span class="vv" id="gridResVal">60</span></label>
+          <input type="range" id="gridRes" min="20" max="120" step="2" value="60" />
+        </div>
+        <div class="ctl">
+          <label>Pitch (tilt toward me) <span class="vv" id="rotXVal">-23°</span></label>
+          <input type="range" id="rotX" min="-180" max="180" step="1" value="-23" />
+        </div>
+        <div class="ctl">
+          <label>Yaw (horizontal rotation) <span class="vv" id="rotYVal">35°</span></label>
+          <input type="range" id="rotY" min="-180" max="180" step="1" value="35" />
+        </div>
+        <div class="ctl">
+          <label>Zoom <span class="vv" id="zoomVal">1.00</span></label>
+          <input type="range" id="zoom" min="0.4" max="2.5" step="0.05" value="1" />
+        </div>
+        <div class="ctl">
+          <label>Height cap <span class="vv" id="capVal">30.0</span></label>
+          <input type="range" id="cap" min="1" max="30" step="0.5" value="30" />
+        </div>
+        <div class="ctl">
+          <label>z-plane radius <span class="vv" id="rangeVal">1.50</span></label>
+          <input type="range" id="range" min="1.1" max="3" step="0.05" value="1.5" />
+        </div>
+        <div class="ctl">
+          <label>h[n] length <span class="vv" id="hLenVal">40</span></label>
+          <input type="range" id="hLen" min="10" max="120" step="2" value="40" />
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="showSurface" checked />
+          <label for="showSurface">Show $|H(z)|$ surface</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="showUnitCircle" checked />
+          <label for="showUnitCircle">Unit circle curve (3D)</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="showGrid" checked />
+          <label for="showGrid">$z$-plane grid</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="autoRot" />
+          <label for="autoRot">🔄 3D auto-rotate (own axis)</label>
+        </div>
+
+        <div class="info-grid">
+          <span class="lbl">Pole count:</span><span class="val" id="nPoles">0</span>
+          <span class="lbl">Zero count:</span><span class="val" id="nZeros">0</span>
+          <span class="lbl">Stability:</span><span class="val" id="stability">—</span>
+        </div>
+      </div>
+
+      <!-- PLAYBACK PANEL -->
+      <div class="zt-playback glass-panel">
+        <div class="pb-title">
+          <span class="signal-dot-sm" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span>
+          $\omega$ on Unit Circle — Playback
+        </div>
+
+        <div class="pb-row">
+          <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+          <input type="range" id="omegaSlider" min="-3.1416" max="3.1416" step="0.01" value="0" style="width:100%;" />
+        </div>
+
+        <div class="ctl">
+          <label>Speed <span class="vv" id="speedVal">1.0×</span></label>
+          <input type="range" id="speed" min="0.1" max="5" step="0.1" value="1" />
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="showDist" checked />
+          <label for="showDist">Show distances to poles &amp; zeros</label>
+        </div>
+
+        <div class="omega-display" id="omegaDisplay">ω = 0.00 · |H(e^jω)| = —</div>
+      </div>
+
+    </div>
+
+    <!-- ============== RIGHT ============== -->
+    <div class="zt-right">
+
+      <div class="zt-right-top">
+        <!-- 2D z-plane -->
+        <div class="canvas-card glass-panel">
+          <div class="canvas-header">
+            <span class="canvas-title t-2d">$z$-Plane 2D — click to add poles/zeros</span>
+            <span class="canvas-hint">left click: add/drag · right click: remove</span>
+          </div>
+          <canvas id="cv2d"></canvas>
+        </div>
+
+        <!-- 3D surface -->
+        <div class="canvas-card glass-panel">
+          <div class="canvas-header">
+            <span class="canvas-title t-3d">$|H(z)|$ 3D Surface</span>
+            <span class="canvas-hint">drag: rotate · scroll: zoom</span>
+          </div>
+          <canvas id="cv3d"></canvas>
+        </div>
+      </div>
+
+      <div class="zt-right-bot">
+        <!-- Frequency response (animated) -->
+        <div class="canvas-card glass-panel">
+          <div class="canvas-header">
+            <span class="canvas-title t-freq">$|H(e^{j\omega})|$ — DTFT magnitude response</span>
+            <span class="freq-live" id="freqLive">|H(e^jω)| = — · ω = 0.00</span>
+            <span class="canvas-hint" id="freqHint">click: select ω</span>
+          </div>
+          <canvas id="cvFreq"></canvas>
+        </div>
+        <!-- Impulse response h[n] stem -->
+        <div class="canvas-card glass-panel">
+          <div class="canvas-header">
+            <span class="canvas-title t-imp">$h[n]$ — impulse response (stem)</span>
+            <span class="canvas-hint">N = <span id="hNcount">40</span> samples</span>
+          </div>
+          <canvas id="cvImp"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       SIGNAL TEST — passing a discrete signal through the filter above
+       ============================================================ -->
+  <div class="signal-test-layout">
+
+    <!-- Left: Component builder -->
+    <div class="sig-builder glass-panel">
+      <div class="panel-title-sm">
+        <span class="signal-dot-sm" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span>
+        Discrete Signal Builder Module
+      </div>
+
+      <div class="ctl">
+        <label>Signal type</label>
+        <select id="sigType" class="sig-select">
+          <option value="sin" selected>Sine (periodic)</option>
+          <option value="cos">Cosine (periodic)</option>
+          <option value="square">Square</option>
+          <option value="triangle">Triangle</option>
+          <option value="gauss">Gaussian</option>
+          <option value="impulse">Unit impulse δ[n]</option>
+          <option value="step">Unit step u[n]</option>
+          <option value="custom">Draw my own</option>
+        </select>
+      </div>
+
+      <!-- Aperiodic parameters — zero-centered A | W -->
+      <div class="ap-row" id="ctlAperiodic" style="display:none;">
+        <div>
+          <label class="ap-lbl">Amplitude A</label>
+          <input type="number" id="sigA_ap" class="sig-num" min="-10" max="10" step="0.1" value="1" />
+        </div>
+        <div>
+          <label class="ap-lbl">Width W (samples)</label>
+          <input type="number" id="sigW_ap" class="sig-num" min="2" max="2000" step="1" value="30" />
+        </div>
+      </div>
+
+      <!-- Custom — freehand drawing -->
+      <div id="ctlCustom" style="display:none;">
+        <button class="sig-btn primary" id="openDrawBtn" onclick="openDrawModal()" style="margin-top:0.3rem;">📝 Draw by Hand</button>
+        <div style="font-size:0.62rem; color:var(--text-dim); margin-top:0.15rem;" id="drawStatus">
+          No drawing yet — use the button to draw
+        </div>
+      </div>
+
+      <!-- Periodicity switch (for square/triangle/gauss/custom) -->
+      <div class="checkbox-row" id="ctlPeriodic" style="display:none; margin: 0.4rem 0 0.25rem;">
+        <input type="checkbox" id="sigPeriodic" />
+        <label for="sigPeriodic">🔁 Repeat periodically</label>
+      </div>
+
+      <!-- Periodic sliders (amplitude + ω + phase) -->
+      <div id="ctlPeriodicCtl">
+        <div class="ctl">
+          <label>Amplitude A <span class="vv" id="sigAval">1.0</span></label>
+          <input type="range" id="sigA" min="0.1" max="5" step="0.05" value="1" />
+        </div>
+        <div class="ctl">
+          <label>ω₀ (rad/sample) <span class="vv" id="sigFval">0.30</span></label>
+          <input type="range" id="sigF" min="0" max="3.1416" step="0.01" value="0.3" />
+        </div>
+        <div class="ctl">
+          <label>Phase φ (rad) <span class="vv" id="sigPval">0.00</span></label>
+          <input type="range" id="sigP" min="-3.14" max="3.14" step="0.05" value="0" />
+        </div>
+      </div>
+
+      <button class="sig-btn primary" id="sigAddBtn" onclick="addSignalComp()">+ Add Component</button>
+      <button class="sig-btn ghost" onclick="clearSignalComps()">Clear</button>
+
+      <div class="sig-comp-list" id="sigCompList"></div>
+
+      <div class="info-grid">
+        <span class="lbl">Components:</span><span class="val"><span id="sigCount">0</span> / 8</span>
+      </div>
+
+      <div class="panel-title-sm" style="margin-top:0.5rem;">
+        <span class="signal-dot-sm" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span>
+        Sampling / Resolution
+      </div>
+
+      <div class="ctl">
+        <label>Record length N (samples) <span class="vv" id="sigNval">512</span></label>
+        <input type="range" id="sigN" min="128" max="4096" step="128" value="512" />
+      </div>
+      <div class="info-grid" style="margin: 0.1rem 0 0.35rem;">
+        <span class="lbl">FFT N:</span>      <span class="val" id="sigNinfo">512</span>
+        <span class="lbl">dω:</span>          <span class="val"><span id="sigDomega">0.012</span> rad/sample</span>
+      </div>
+      <div class="ctl">
+        <label>n plot range n<sub>plot</sub> <span class="vv" id="sigNplotVal">120</span></label>
+        <input type="range" id="sigNplot" min="20" max="1000" step="10" value="120" />
+      </div>
+      <div class="ctl">
+        <label>ω display range (±π multiple) <span class="vv" id="sigOmegaMaxVal">1.0π</span></label>
+        <input type="range" id="sigOmegaMax" min="0.25" max="1" step="0.05" value="1" />
+      </div>
+      <div class="ctl">
+        <label>Spectrum y-cap (clamp) <span class="vv" id="sigSpecCapVal">∞</span></label>
+        <input type="range" id="sigSpecCap" min="0.05" max="5.05" step="0.05" value="5.05" />
+        <div style="font-size:0.6rem; color:var(--text-dim); margin-top:0.1rem;">
+          Clamp if sin/cos component peaks are too high (rightmost = unlimited)
+        </div>
+      </div>
+      <div class="ctl">
+        <label>y[n] zoom <span class="vv" id="sigYzoomVal">1.0×</span></label>
+        <input type="range" id="sigYzoom" min="0.2" max="5" step="0.1" value="1" />
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="sigOverlayX" checked />
+        <label for="sigOverlayX">Draw translucent x[n] behind y[n]</label>
+      </div>
+
+      <div class="panel-title-sm" style="margin-top:0.4rem;">
+        <span class="signal-dot-sm" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span>
+        Grid Settings
+      </div>
+      <div class="ctl">
+        <label>Grid density <span class="vv" id="sigGridDensVal">2</span></label>
+        <input type="range" id="sigGridDens" min="1" max="5" step="1" value="2" />
+      </div>
+      <div class="ctl">
+        <label>Grid opacity <span class="vv" id="sigGridAlphaVal">0.45</span></label>
+        <input type="range" id="sigGridAlpha" min="0" max="1" step="0.05" value="0.45" />
+      </div>
+
+      <div class="panel-title-sm" style="margin-top:0.6rem;">
+        <span class="signal-dot-sm" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span>
+        |Y(e^jω)| overlay |H(e^jω)|
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="sigShowH" checked />
+        <label for="sigShowH">Show filter characteristic</label>
+      </div>
+      <div class="ctl">
+        <label>H transparency <span class="vv" id="sigHAlphaVal">0.40</span></label>
+        <input type="range" id="sigHAlpha" min="0" max="1" step="0.05" value="0.4" />
+      </div>
+
+      <div style="font-size:0.62rem; color:var(--text-dim); margin-top:0.3rem; line-height:1.45;">
+        Total $x[n] = \sum A_k \cdot f_k(\omega_k n + \varphi_k)$ — passed through the filter above to obtain $y[n]$.
+      </div>
+    </div>
+
+    <!-- Right large area: component strip on top, 2x2 graphs below -->
+    <div class="sig-right-area">
+
+      <!-- Component strip -->
+      <div class="sig-comps-row glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#7b8cff;">Components — $A_k f_k(\omega_k n + \varphi_k)$ individually</span>
+          <span class="canvas-hint">EMD-style offset stack</span>
+        </div>
+        <canvas id="cvComps"></canvas>
+      </div>
+
+      <!-- x[n] -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#39ff85;">Total input $x[n]$</span>
+          <span class="canvas-hint">filter input (stem)</span>
+        </div>
+        <canvas id="cvXt"></canvas>
+      </div>
+
+      <!-- y[n] -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#ff8c42;">Filter output $y[n]$</span>
+          <span class="canvas-hint">$y[n] = h[n] * x[n]$</span>
+        </div>
+        <canvas id="cvYt"></canvas>
+      </div>
+
+      <!-- |X(e^jω)| -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#39ff85;">$|X(e^{j\omega})|$</span>
+          <span class="canvas-hint">input DTFT magnitude</span>
+        </div>
+        <canvas id="cvXf"></canvas>
+      </div>
+
+      <!-- |Y(e^jω)| -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#ff8c42;">$|Y(e^{j\omega})|$</span>
+          <span class="canvas-hint">sin/cos analytic · others FFT (H dashed)</span>
+        </div>
+        <canvas id="cvYf"></canvas>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- THEORY + APPLICATION -->
+  <div class="theory-block glass-panel">
+    <h2>Z-Transform — $z$-Plane &amp; DTFT on the Unit Circle</h2>
+
+    <h3>Fundamental Relationship</h3>
+    <p>
+      The Z-transform of a discrete-time signal $x[n]$ is defined by
+      $$X(z) = \sum_{n=-\infty}^{\infty} x[n]\, z^{-n},$$
+      where the complex variable $z = r\,e^{j\omega}$ denotes a point in the <strong>$z$-plane</strong>.
+      The <strong>Discrete-Time Fourier Transform (DTFT)</strong> corresponds to the evaluation of $z$ exclusively on the <strong>unit circle</strong> ($|z| = 1$, $z = e^{j\omega}$):
+      $$X(e^{j\omega}) = X(z)\big|_{z = e^{j\omega}} = \sum_{n=-\infty}^{\infty} x[n]\, e^{-j\omega n}.$$
+    </p>
+    <p>
+      <strong>Geometric interpretation:</strong> the cross-section of the three-dimensional $|H(z)|$ surface taken along the unit circle directly yields the <em>frequency response</em> $|H(e^{j\omega})|$. This cross-section is plotted in real time on the second graph below; the angular variable $\omega$ may be swept around the unit circle by means of the play control in the left panel.
+    </p>
+    <p>
+      <strong>Algebraic expression:</strong>
+      $$|H(e^{j\omega})| = \frac{\prod_i |e^{j\omega} - z_i|}{\prod_j |e^{j\omega} - p_j|},$$
+      so that the magnitude of the DTFT is interpreted as the ratio of the product of distances from $z = e^{j\omega}$ to the zeros over the product of distances to the poles.
+    </p>
+
+    <h3>Poles and Zeros</h3>
+    <ul>
+      <li><strong>Pole ($\times$):</strong> the points at which $H(z)$ diverges; they form peaks on the surface and pronounced <em>peaks</em> in the frequency response.</li>
+      <li><strong>Zero ($\circ$):</strong> the points satisfying $H(z) = 0$; they form valleys on the surface and <em>notches</em> in the frequency response.</li>
+      <li><strong>Stability condition (causal LTI systems):</strong> all poles must lie <strong>inside the unit circle</strong>, i.e. $|p_j| &lt; 1$. A pole lying outside the unit circle leads $h[n]$ to grow without bound as $n \to \infty$.</li>
+      <li><strong>Complex conjugacy:</strong> in systems with real coefficients, complex poles and zeros always occur in conjugate pairs; consequently, for any pole or zero with $\mathrm{Im}(z) \neq 0$, the corresponding conjugate is added to the system automatically.</li>
+    </ul>
+
+    <h3>Comparison with the Laplace Transform</h3>
+    <p>
+      Continuous-time systems are analysed in the $s$-plane, where stability is characterised by the <em>left half-plane</em> ($\mathrm{Re}\{s\} &lt; 0$). In discrete-time systems, the $z$-plane is employed and stability is confined to the interior of the unit circle ($|z| &lt; 1$). The continuous-time $j\Omega$ axis corresponds to the <strong>unit circle</strong> in discrete time, with the mapping
+      $$s = j\Omega \;\;\longleftrightarrow\;\; z = e^{j\omega}, \quad \omega = \Omega T_s,$$
+      in which $T_s$ denotes the sampling period.
+    </p>
+
+    <h3>Difference Equation and $h[n]$</h3>
+    <p>
+      From the expression
+      $$H(z) = \frac{B(z)}{A(z)} = \frac{\sum_k b_k\, z^{-k}}{1 + \sum_{k \geq 1} a_k\, z^{-k}}$$
+      the difference equation is obtained directly:
+      $$y[n] = \sum_k b_k\, x[n-k] - \sum_{k \geq 1} a_k\, y[n-k].$$
+      By taking $x[n] = \delta[n]$ as the excitation and applying the recursion, the <strong>impulse response $h[n]$</strong> is obtained and is displayed in the stem plot at the bottom right. In the signal module below, the discrete convolution <strong>$y[n] = h[n] * x[n]$</strong> is computed directly via the FFT.
+    </p>
+
+    <h3>📍 Application Areas</h3>
+    <ul>
+      <li><strong>Digital filter design:</strong> FIR and IIR filters, as well as the discrete-time counterparts of the Butterworth, Chebyshev and elliptic designs obtained through the bilinear transform, are constructed within this framework.</li>
+      <li><strong>Speech and audio processing:</strong> equalisation, Linear Predictive Coding (LPC) based audio compression and noise suppression are realised through Z-domain tools.</li>
+      <li><strong>Image processing:</strong> two-dimensional discrete filters used for edge detection, blurring and sharpening are designed via this model.</li>
+      <li><strong>Digital control:</strong> discrete-time PID controllers, state-space controllers and autopilot algorithms are analysed in the $z$-plane.</li>
+      <li><strong>Telecommunications and modems:</strong> carrier tracking, digital demodulators, decision-feedback equalisers (DFE) and OFDM channel estimation are conducted within this framework.</li>
+      <li><strong>Biomedical signal processing:</strong> digital filtering of ECG/EEG, heartbeat detection and noise removal are performed using Z-transform-based systems.</li>
+      <li><strong>Econometrics and finance:</strong> ARMA-based time-series forecasting and digital Kalman filtering are addressed within this approach.</li>
+    </ul>
+
+    <h3>📚 References</h3>
+    <ul style="font-family:'Fira Code',monospace;font-size:0.72rem;color:var(--text-dim);">
+      <li>Oppenheim, A. V., Schafer, R. W. (2010). <em>Discrete-Time Signal Processing</em>. Prentice Hall.</li>
+      <li>Proakis, J. G., Manolakis, D. G. (2007). <em>Digital Signal Processing</em>. Pearson.</li>
+      <li>Mitra, S. K. (2011). <em>Digital Signal Processing: A Computer-Based Approach</em>. McGraw-Hill.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer">Signal Processing Educational Simulation — Z-Transform Module</footer>
+
+  <!-- Freehand drawing modal -->
+  <div class="draw-modal-overlay" id="drawModal">
+    <div class="draw-modal">
+      <h3>
+        <span>📝 Draw Discrete Signal Shape by Hand</span>
+        <span class="close" onclick="closeDrawModal()">✕</span>
+      </h3>
+      <div class="draw-help">
+        Drag horizontally with the mouse — left=−A, right=+A. Zero-centered, normalized.
+      </div>
+      <canvas id="drawCanvas"></canvas>
+      <div class="draw-modal-footer">
+        <button class="sig-btn ghost" onclick="clearDraw()">🗑 Clear</button>
+        <button class="sig-btn ghost" onclick="smoothDraw()">~ Smooth</button>
+        <button class="sig-btn primary" onclick="saveDraw()">✓ Save and Use</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/z_transform.js"></script>
+</body>
+</html>

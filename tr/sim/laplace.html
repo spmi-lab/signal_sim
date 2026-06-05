@@ -1,0 +1,975 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Laplace Dönüşümü — s-Düzlemi &amp; jΩ Ekseninde Fourier</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== TEK EKRAN YERLEŞİMİ ===== */
+    .laplace-layout {
+      max-width: 1700px;
+      margin: 0.4rem auto;
+      padding: 0 0.6rem;
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 0.5rem;
+      position: relative; z-index: 2;
+      height: calc(100vh - 165px);
+      min-height: 600px;
+    }
+    .lap-left {
+      display: flex; flex-direction: column;
+      gap: 0.5rem; min-height: 0;
+    }
+    .lap-controls {
+      padding: 0.6rem 0.75rem;
+      overflow-y: auto;
+      flex: 1 1 auto; min-height: 0;
+    }
+    .lap-playback {
+      padding: 0.55rem 0.75rem;
+      flex-shrink: 0;
+    }
+    .lap-right {
+      display: grid;
+      grid-template-rows: 1fr 220px;
+      gap: 0.5rem;
+      min-height: 0;
+    }
+    .lap-right-top {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem; min-height: 0;
+    }
+    .canvas-card {
+      padding: 0.4rem 0.55rem 0.5rem;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .canvas-card canvas {
+      flex: 1; width: 100%;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      min-height: 0;
+    }
+    #cv2d { cursor: crosshair; }
+    #cv3d { cursor: grab; }
+    #cv3d:active { cursor: grabbing; }
+    #cvFreq { cursor: ew-resize; }
+
+    .canvas-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.4rem; margin-bottom: 0.25rem;
+      flex-wrap: nowrap;
+    }
+    .canvas-header .canvas-title { flex-shrink: 0; }
+    .canvas-header .canvas-hint { flex-shrink: 0; }
+    .canvas-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.78rem;
+      letter-spacing: 0.05em;
+    }
+    .canvas-title.t-2d   { color: #7b8cff; }
+    .canvas-title.t-3d   { color: #ff8c42; }
+    .canvas-title.t-freq { color: #ff8c42; }
+    .canvas-hint {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.62rem; color: var(--text-dim);
+    }
+    .freq-live {
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #ff8c42;
+      background: rgba(255,140,66,0.10);
+      border: 1px solid rgba(255,140,66,0.45);
+      border-radius: 6px;
+      padding: 0.18rem 0.55rem;
+      margin-left: auto;
+      box-shadow: 0 0 8px rgba(255,140,66,0.15);
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    body.light-theme .freq-live {
+      color: #a8430a;
+      background: rgba(168,67,10,0.08);
+      border-color: rgba(168,67,10,0.5);
+    }
+
+    /* ===== SOL PANEL ===== */
+    .panel-title-sm {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      color: var(--text-primary);
+      margin: 0.45rem 0 0.3rem;
+      display: flex; align-items: center; gap: 0.4rem;
+      text-transform: uppercase;
+    }
+    .panel-title-sm:first-child { margin-top: 0; }
+    .signal-dot-sm {
+      width: 7px; height: 7px; border-radius: 50%;
+      display: inline-block;
+    }
+
+    .preset-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.3rem; margin-bottom: 0.4rem;
+    }
+    .preset-row button {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 600;
+      font-size: 0.68rem; padding: 0.3rem 0.4rem;
+      border-radius: 6px; cursor: pointer;
+      border: 1px solid var(--border-glow);
+      background: rgba(120,140,200,0.06);
+      color: var(--text-primary);
+      transition: all var(--transition);
+    }
+    .preset-row button:hover { border-color: var(--accent-2); color: var(--accent-2); }
+
+    .add-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; margin-bottom: 0.35rem; }
+    .add-row input {
+      font-family: 'Fira Code', monospace; font-size: 0.72rem;
+      padding: 0.3rem 0.45rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      width: 100%;
+    }
+    .add-btn {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 600;
+      font-size: 0.72rem; padding: 0.3rem 0.55rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid; cursor: pointer;
+      transition: all var(--transition);
+    }
+    .add-btn.pole { border-color: #ff4f9a; color: #ff4f9a; background: rgba(255,79,154,0.05); }
+    .add-btn.pole:hover, .add-btn.pole.active { background: rgba(255,79,154,0.18); }
+    .add-btn.zero { border-color: #39ff85; color: #39ff85; background: rgba(57,255,133,0.05); }
+    .add-btn.zero:hover, .add-btn.zero.active { background: rgba(57,255,133,0.18); }
+
+    .pole-zero-list {
+      max-height: 110px; overflow-y: auto;
+      margin: 0.25rem 0 0.4rem;
+      display: flex; flex-direction: column; gap: 0.2rem;
+    }
+    .pz-item {
+      display: flex; align-items: center; gap: 0.35rem;
+      padding: 0.25rem 0.45rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-glow);
+      background: rgba(120,140,200,0.06);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.68rem;
+    }
+    .pz-item.pole   { border-left: 3px solid #ff4f9a; }
+    .pz-item.zero   { border-left: 3px solid #39ff85; }
+    .pz-tag { font-weight: 700; padding: 0.05rem 0.28rem; border-radius: 3px; font-size: 0.66rem; }
+    .pz-tag.p { color: #ff4f9a; background: rgba(255,79,154,0.1); }
+    .pz-tag.z { color: #39ff85; background: rgba(57,255,133,0.1); }
+    .pz-coords { color: var(--text-primary); flex: 1; }
+    .pz-rm { cursor: pointer; color: #ff5577; font-weight: bold; user-select: none; }
+
+    /* Mod seçici (fareyle ekleme) */
+    .mode-row {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.3rem; margin: 0.25rem 0 0.5rem;
+    }
+    .mode-row .mode-btn {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 600;
+      font-size: 0.7rem; padding: 0.3rem 0.4rem;
+      border: 1px dashed var(--border-glow); border-radius: 6px;
+      background: transparent; color: var(--text-secondary);
+      cursor: pointer; transition: all var(--transition);
+    }
+    .mode-btn.active.mp { border-color: #ff4f9a; color: #ff4f9a; background: rgba(255,79,154,0.08); border-style: solid; }
+    .mode-btn.active.mz { border-color: #39ff85; color: #39ff85; background: rgba(57,255,133,0.08); border-style: solid; }
+
+    /* Mini slider grupları */
+    .ctl {
+      margin-bottom: 0.3rem;
+    }
+    .ctl label {
+      display: flex; justify-content: space-between;
+      font-size: 0.68rem; color: var(--text-secondary);
+      margin-bottom: 0.1rem;
+    }
+    .ctl label .vv { color: var(--accent-1); font-family: 'Fira Code', monospace; font-size: 0.66rem; }
+    .ctl input[type=range] {
+      width: 100%;
+      -webkit-appearance: none; appearance: none;
+      height: 4px; border-radius: 4px;
+      background: var(--slider-track);
+      outline: none;
+    }
+    .ctl input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 13px; height: 13px; border-radius: 50%;
+      background: var(--accent-1);
+      cursor: pointer; border: 0;
+      box-shadow: 0 0 6px rgba(57,255,133,0.5);
+    }
+    .ctl input[type=range]::-moz-range-thumb {
+      width: 13px; height: 13px; border-radius: 50%;
+      background: var(--accent-1); cursor: pointer; border: 0;
+    }
+
+    .checkbox-row {
+      display: flex; align-items: center; gap: 0.4rem;
+      font-size: 0.7rem; margin: 0.15rem 0;
+      color: var(--text-secondary);
+    }
+    .checkbox-row input[type=checkbox] { accent-color: var(--accent-2); }
+
+    .info-grid {
+      display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.5rem;
+      font-family: 'Fira Code', monospace; font-size: 0.66rem;
+      margin: 0.3rem 0 0.1rem;
+    }
+    .info-grid .lbl { color: var(--text-secondary); }
+    .info-grid .val { color: var(--accent-1); }
+
+    /* === OYNATMA PANELİ === */
+    .pb-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.78rem;
+      color: #ff8c42; letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 0.4rem;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .pb-row {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 0.4rem; align-items: center;
+      margin-bottom: 0.35rem;
+    }
+    .play-btn {
+      width: 36px; height: 32px;
+      border-radius: 6px;
+      border: 1px solid #ff8c42;
+      background: rgba(255,140,66,0.08);
+      color: #ff8c42; cursor: pointer;
+      font-size: 0.85rem;
+      transition: all var(--transition);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .play-btn:hover { background: rgba(255,140,66,0.2); }
+    .play-btn.playing { background: rgba(255,140,66,0.25); }
+
+    .omega-display {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: #ff8c42;
+      text-align: center;
+      padding: 0.2rem;
+      background: rgba(255,140,66,0.06);
+      border-radius: 4px;
+      margin-top: 0.2rem;
+    }
+
+    /* ===========================================
+       SİNYAL TESTİ PANELİ (üst filtre paneliyle aynı boyutta)
+       =========================================== */
+    .signal-test-layout {
+      max-width: 1700px;
+      margin: 0.6rem auto 1.2rem;
+      padding: 0 0.6rem;
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 0.5rem;
+      position: relative; z-index: 2;
+      height: calc(100vh - 165px);
+      min-height: 600px;
+    }
+    .signal-test-layout > * { min-height: 0; }
+
+    .sig-builder {
+      padding: 0.6rem 0.75rem;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    /* Sağ alan — üstte bileşen şeridi, altta 2×2 eşit grid */
+    .sig-right-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;       /* x(t) ve y(t) eşit genişlik */
+      grid-template-rows: 230px 1fr 1fr;     /* bileşenler, zaman, frekans */
+      gap: 0.5rem;
+      min-height: 0;
+    }
+    .sig-right-area > * { min-height: 0; }
+    .sig-comps-row {
+      grid-column: 1 / -1;
+      padding: 0.4rem 0.55rem 0.5rem;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .sig-comps-row canvas {
+      flex: 1; width: 100%;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      min-height: 0;
+    }
+    .sig-card {
+      padding: 0.4rem 0.55rem 0.5rem;
+      display: flex; flex-direction: column;
+      min-height: 0;
+    }
+    .sig-card canvas {
+      flex: 1; width: 100%;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      min-height: 0;
+    }
+
+    .sig-select, .sig-num {
+      width: 100%;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.74rem;
+      padding: 0.32rem 0.5rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      outline: none;
+    }
+    .sig-num:focus { border-color: var(--accent-2); }
+
+    /* Aperiyodik için iki kutucuk: A | W */
+    .ap-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+      margin: 0.3rem 0;
+    }
+    .ap-lbl {
+      display: block;
+      font-size: 0.66rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.18rem;
+    }
+
+    /* Çizim modalı */
+    .draw-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 9999;
+      display: none;
+      align-items: center; justify-content: center;
+    }
+    .draw-modal-overlay.active { display: flex; }
+    .draw-modal {
+      background: var(--bg-panel);
+      backdrop-filter: blur(var(--glass-blur));
+      border: 1px solid var(--border-glow-strong);
+      border-radius: var(--radius);
+      padding: 1rem 1.2rem;
+      width: 720px; max-width: 92vw;
+    }
+    .draw-modal h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 1rem;
+      letter-spacing: 0.04em;
+      color: var(--accent-2);
+      margin-bottom: 0.5rem;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .draw-modal .close {
+      cursor: pointer; color: #ff5577;
+      font-weight: bold; padding: 0 0.4rem;
+      user-select: none;
+    }
+    #drawCanvas {
+      width: 100%; height: 260px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      cursor: crosshair;
+      display: block;
+    }
+    .draw-modal-footer {
+      display: flex; gap: 0.5rem;
+      margin-top: 0.7rem;
+    }
+    .draw-modal-footer .sig-btn { margin-bottom: 0; flex: 1; }
+    .draw-help {
+      font-size: 0.7rem; color: var(--text-dim);
+      margin: 0.4rem 0;
+    }
+    .sig-comp-list {
+      margin: 0.4rem 0;
+      max-height: 170px;
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+      gap: 0.2rem;
+    }
+    .sig-comp-item {
+      display: flex; align-items: center; gap: 0.35rem;
+      padding: 0.26rem 0.45rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-glow);
+      background: rgba(120,140,200,0.06);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.66rem;
+      border-left: 3px solid #7b8cff;
+    }
+    .sig-comp-tag {
+      font-weight: 700;
+      padding: 0.05rem 0.32rem;
+      border-radius: 3px;
+      color: #7b8cff;
+      background: rgba(123,140,255,0.14);
+      font-size: 0.64rem;
+    }
+    .sig-comp-coords { flex: 1; color: var(--text-primary); }
+    .sig-comp-rm { cursor: pointer; color: #ff5577; font-weight: bold; user-select: none; }
+    .sig-comp-rm:hover { color: #ff8aa0; }
+
+    .sig-btn {
+      width: 100%;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.74rem;
+      padding: 0.36rem 0.6rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid;
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-bottom: 0.3rem;
+    }
+    .sig-btn.primary {
+      border-color: #7b8cff; color: #7b8cff;
+      background: rgba(123,140,255,0.08);
+    }
+    .sig-btn.primary:hover { background: rgba(123,140,255,0.2); }
+    .sig-btn.ghost {
+      border-color: var(--border-glow);
+      color: var(--text-secondary);
+      background: transparent;
+    }
+    .sig-btn.ghost:hover { border-color: var(--accent-2); color: var(--accent-2); }
+    .sig-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    @media (max-width: 1200px) {
+      .signal-test-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .sig-right-area {
+        grid-template-rows: 230px 280px 280px;
+      }
+    }
+    @media (max-width: 760px) {
+      .sig-right-area {
+        grid-template-columns: 1fr;
+        grid-template-rows: 230px 200px 200px 200px 200px;
+      }
+      .sig-comps-row { grid-column: auto; }
+    }
+
+    /* === TEORİ === */
+    .theory-block {
+      max-width: 1700px; margin: 1.5rem auto;
+      padding: 1.5rem 2rem;
+      position: relative; z-index: 2;
+    }
+    .theory-block h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 1.2rem;
+      letter-spacing: 0.03em;
+      background: linear-gradient(90deg, var(--accent-1), var(--color-y));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.7rem;
+    }
+    .theory-block h3 {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 700;
+      font-size: 0.95rem; color: var(--accent-2);
+      margin-top: 1rem; margin-bottom: 0.4rem;
+      letter-spacing: 0.04em;
+    }
+    .theory-block p, .theory-block li {
+      font-size: 0.88rem; line-height: 1.65;
+      color: var(--text-secondary);
+    }
+    .theory-block ul { margin-left: 1.3rem; margin-bottom: 0.8rem; }
+    .theory-block strong { color: var(--text-primary); }
+
+    /* Daha sıkı header / nav */
+    .site-header { padding: 0.7rem 1rem 0.2rem; }
+    .nav-tabs { margin: 0.3rem auto; }
+
+    @media (max-width: 1200px) {
+      .laplace-layout {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .lap-right { grid-template-rows: 500px 220px; }
+    }
+    @media (max-width: 760px) {
+      .lap-right-top { grid-template-columns: 1fr; }
+      .lap-right { grid-template-rows: 320px 320px 200px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">ℒ</span> Laplace Dönüşümü (3D s-Düzlemi) <span class="title-icon">∗</span>
+    </h1>
+    <p class="site-subtitle">$s$-Düzlemi · Kutup &amp; Sıfır · $j\Omega$ ekseninde Fourier</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c active" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <div class="laplace-layout">
+
+    <!-- ============== SOL ============== -->
+    <div class="lap-left">
+
+      <!-- KONTROL PANELİ -->
+      <div class="lap-controls glass-panel">
+        <div class="panel-title-sm">
+          <span class="signal-dot-sm" style="background:#ff4f9a;box-shadow:0 0 8px #ff4f9a;"></span>
+          Kutuplar &amp; Sıfırlar
+        </div>
+
+        <div class="preset-row">
+          <button onclick="loadPreset('lp1')">LP 1.dereceden</button>
+          <button onclick="loadPreset('lp2')">LP 2.dereceden</button>
+          <button onclick="loadPreset('bp')">Band-pass</button>
+          <button onclick="loadPreset('notch')">Notch</button>
+          <button onclick="loadPreset('clear')" style="grid-column:span 2;">Temizle</button>
+        </div>
+
+        <div class="add-row">
+          <input type="number" id="addRe" placeholder="σ (Re)" step="0.1" value="-1" />
+          <input type="number" id="addIm" placeholder="Ω (Im)" step="0.1" value="0" />
+        </div>
+        <div class="add-row">
+          <button class="add-btn pole" onclick="addPoint('pole')">+ Kutup ✕</button>
+          <button class="add-btn zero" onclick="addPoint('zero')">+ Sıfır ◯</button>
+        </div>
+
+        <div style="font-size:0.66rem; color:var(--text-dim); margin-bottom:0.15rem;">
+          Fare modu (2B düzlemine tıkla):
+        </div>
+        <div class="mode-row">
+          <button class="mode-btn mp active" id="modePole" onclick="setMouseMode('pole')">✕ Kutup</button>
+          <button class="mode-btn mz" id="modeZero" onclick="setMouseMode('zero')">◯ Sıfır</button>
+        </div>
+
+        <div class="pole-zero-list" id="pzList"></div>
+
+        <div class="panel-title-sm">
+          <span class="signal-dot-sm" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span>
+          Görüntü Ayarları
+        </div>
+
+        <div class="ctl">
+          <label>3B Izgara çözünürlüğü <span class="vv" id="gridResVal">0.40</span></label>
+          <input type="range" id="gridRes" min="0.18" max="0.8" step="0.02" value="0.4" />
+        </div>
+        <div class="ctl">
+          <label>Yatay döndürme <span class="vv" id="rotXVal">35°</span></label>
+          <input type="range" id="rotX" min="-60" max="60" step="1" value="35" />
+        </div>
+        <div class="ctl">
+          <label>Dikey döndürme <span class="vv" id="rotYVal">-55°</span></label>
+          <input type="range" id="rotY" min="-90" max="90" step="1" value="-55" />
+        </div>
+        <div class="ctl">
+          <label>Yakınlaştırma <span class="vv" id="zoomVal">1.20</span></label>
+          <input type="range" id="zoom" min="0.4" max="2.5" step="0.05" value="1.2" />
+        </div>
+        <div class="ctl">
+          <label>Yükseklik kapağı <span class="vv" id="capVal">5.0</span></label>
+          <input type="range" id="cap" min="1" max="20" step="0.5" value="5" />
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="showSurface" checked />
+          <label for="showSurface">$|H(s)|$ yüzeyi göster</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="showJOmega" checked />
+          <label for="showJOmega">$j\Omega$ eksen eğrisi (3B)</label>
+        </div>
+        <div class="checkbox-row">
+          <input type="checkbox" id="showGrid" checked />
+          <label for="showGrid">$s$-düzlemi grid</label>
+        </div>
+
+        <div class="info-grid">
+          <span class="lbl">Kutup sayısı:</span><span class="val" id="nPoles">0</span>
+          <span class="lbl">Sıfır sayısı:</span><span class="val" id="nZeros">0</span>
+          <span class="lbl">Kararlılık:</span><span class="val" id="stability">—</span>
+        </div>
+      </div>
+
+      <!-- OYNATMA PANELİ -->
+      <div class="lap-playback glass-panel">
+        <div class="pb-title">
+          <span class="signal-dot-sm" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span>
+          Frekans Karakteristiği — Oynatma
+        </div>
+
+        <div class="pb-row">
+          <button class="play-btn" id="playBtn" onclick="togglePlay()">▶</button>
+          <input type="range" id="omegaSlider" min="-6" max="6" step="0.02" value="0" style="width:100%;" />
+        </div>
+
+        <div class="ctl">
+          <label>Hız <span class="vv" id="speedVal">1.0×</span></label>
+          <input type="range" id="speed" min="0.1" max="5" step="0.1" value="1" />
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="showDist" checked />
+          <label for="showDist">Kutup &amp; sıfırlara uzaklıkları göster</label>
+        </div>
+
+        <div class="omega-display" id="omegaDisplay">Ω = 0.00 · |H(jΩ)| = —</div>
+      </div>
+
+    </div>
+
+    <!-- ============== SAĞ ============== -->
+    <div class="lap-right">
+
+      <div class="lap-right-top">
+        <!-- 2D s-düzlemi -->
+        <div class="canvas-card glass-panel">
+          <div class="canvas-header">
+            <span class="canvas-title t-2d">$s$-Düzlemi 2B — fareyle kutup/sıfır ekle</span>
+            <span class="canvas-hint">sol tık: ekle · sağ tık: kaldır</span>
+          </div>
+          <canvas id="cv2d"></canvas>
+        </div>
+
+        <!-- 3D yüzey -->
+        <div class="canvas-card glass-panel">
+          <div class="canvas-header">
+            <span class="canvas-title t-3d">$|H(s)|$ 3B Yüzey</span>
+            <span class="canvas-hint">sürükle: döndür · scroll: zoom</span>
+          </div>
+          <canvas id="cv3d"></canvas>
+        </div>
+      </div>
+
+      <!-- Frekans yanıtı (animasyonlu) -->
+      <div class="canvas-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title t-freq">$|H(j\Omega)|$ — $s = j\Omega$ ekseni boyunca Fourier</span>
+          <span class="freq-live" id="freqLive">|H(jΩ)| = — · Ω = 0.00</span>
+          <span class="canvas-hint" id="freqHint">tıkla: Ω seç</span>
+        </div>
+        <canvas id="cvFreq"></canvas>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       SİNYAL TESTİ — yukarıdaki filtreden işaret geçirme
+       ============================================================ -->
+  <div class="signal-test-layout">
+
+    <!-- Sol: Bileşen oluşturucu -->
+    <div class="sig-builder glass-panel">
+      <div class="panel-title-sm">
+        <span class="signal-dot-sm" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span>
+        Sinyal Oluşturma Modülü
+      </div>
+
+      <div class="ctl">
+        <label>İşaret tipi</label>
+        <select id="sigType" class="sig-select">
+          <option value="sin" selected>Sinüs (periyodik)</option>
+          <option value="cos">Kosinüs (periyodik)</option>
+          <option value="square">Kare</option>
+          <option value="triangle">Üçgen</option>
+          <option value="gauss">Gauss</option>
+          <option value="custom">Kendim çizeyim</option>
+        </select>
+      </div>
+
+      <!-- Aperiyodik parametreler — sıfır merkezli kutu kutu giriş -->
+      <div class="ap-row" id="ctlAperiodic" style="display:none;">
+        <div>
+          <label class="ap-lbl">Genlik A</label>
+          <input type="number" id="sigA_ap" class="sig-num" min="-10" max="10" step="0.1" value="1" />
+        </div>
+        <div>
+          <label class="ap-lbl">Genişlik W (sn)</label>
+          <input type="number" id="sigW_ap" class="sig-num" min="0.05" max="20" step="0.05" value="1.5" />
+        </div>
+      </div>
+
+      <!-- Custom — el ile çizim -->
+      <div id="ctlCustom" style="display:none;">
+        <button class="sig-btn primary" id="openDrawBtn" onclick="openDrawModal()" style="margin-top:0.3rem;">📝 El ile Çiz</button>
+        <div style="font-size:0.62rem; color:var(--text-dim); margin-top:0.15rem;" id="drawStatus">
+          Henüz çizim yok — buton ile çiz
+        </div>
+      </div>
+
+      <!-- Periyodiklik anahtarı (kare/üçgen/gauss/custom için) -->
+      <div class="checkbox-row" id="ctlPeriodic" style="display:none; margin: 0.4rem 0 0.25rem;">
+        <input type="checkbox" id="sigPeriodic" />
+        <label for="sigPeriodic">🔁 Periyodik tekrarla</label>
+      </div>
+
+      <!-- Periyodik için sliders (genlik + frekans + faz) -->
+      <div id="ctlPeriodicCtl">
+        <div class="ctl">
+          <label>Genlik A <span class="vv" id="sigAval">1.0</span></label>
+          <input type="range" id="sigA" min="0.1" max="5" step="0.05" value="1" />
+        </div>
+        <div class="ctl">
+          <label>Frekans F (Hz) <span class="vv" id="sigFval">1.0</span></label>
+          <input type="range" id="sigF" min="0" max="5" step="0.2" value="1" />
+        </div>
+        <div class="ctl">
+          <label>Faz φ (rad) <span class="vv" id="sigPval">0.00</span></label>
+          <input type="range" id="sigP" min="-3.14" max="3.14" step="0.05" value="0" />
+        </div>
+      </div>
+
+      <button class="sig-btn primary" id="sigAddBtn" onclick="addSignalComp()">+ Bileşen Ekle</button>
+      <button class="sig-btn ghost" onclick="clearSignalComps()">Temizle</button>
+
+      <div class="sig-comp-list" id="sigCompList"></div>
+
+      <div class="info-grid">
+        <span class="lbl">Bileşen:</span><span class="val"><span id="sigCount">0</span> / 8</span>
+      </div>
+
+      <div class="panel-title-sm" style="margin-top:0.5rem;">
+        <span class="signal-dot-sm" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span>
+        Spektrum / Çözünürlük
+      </div>
+
+      <div class="ctl">
+        <label>Kayıt süresi T (sn) <span class="vv" id="sigTval">20</span></label>
+        <input type="range" id="sigT" min="5" max="200" step="1" value="20" />
+      </div>
+      <div class="ctl">
+        <label>Örnek aralığı dt (sn)</label>
+        <input type="number" id="sigDt" class="sig-num" min="0.001" max="0.5" step="0.001" value="0.01" />
+        <div style="font-size:0.6rem; color:var(--text-dim); margin-top:0.1rem;">
+          küçük dt → yüksek frekansları temiz örnekler (min 0.001)
+        </div>
+        <div id="sigDtWarn" style="font-size:0.62rem; color:#ff5577; margin-top:0.1rem; display:none;">
+          ⚠ dt ≥ 0.001 olmalı — tarayıcı kilitlenmesin diye sınırlı
+        </div>
+      </div>
+      <div class="info-grid" style="margin: 0.1rem 0 0.35rem;">
+        <span class="lbl">FFT N:</span>      <span class="val" id="sigNinfo">2048</span>
+        <span class="lbl">dΩ:</span>          <span class="val"><span id="sigDomega">0.31</span> rad/s</span>
+        <span class="lbl">Etkin dt:</span>    <span class="val"><span id="sigDtEff">0.0098</span> sn</span>
+      </div>
+      <div class="ctl">
+        <label>Zaman çizim aralığı T<sub>plot</sub> (sn) <span class="vv" id="sigTplotVal">5</span></label>
+        <input type="range" id="sigTplot" min="1" max="20" step="0.5" value="5" />
+      </div>
+      <div class="ctl">
+        <label>Ω görüntü aralığı ± <span class="vv" id="sigOmegaMaxVal">8</span></label>
+        <input type="range" id="sigOmegaMax" min="3" max="20" step="1" value="8" />
+      </div>
+
+      <div class="panel-title-sm" style="margin-top:0.4rem;">
+        <span class="signal-dot-sm" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span>
+        Grid Ayarları
+      </div>
+      <div class="ctl">
+        <label>Grid sıklığı <span class="vv" id="sigGridDensVal">2</span></label>
+        <input type="range" id="sigGridDens" min="1" max="5" step="1" value="2" />
+      </div>
+      <div class="ctl">
+        <label>Grid opaklığı <span class="vv" id="sigGridAlphaVal">0.45</span></label>
+        <input type="range" id="sigGridAlpha" min="0" max="1" step="0.05" value="0.45" />
+      </div>
+
+      <div class="panel-title-sm" style="margin-top:0.6rem;">
+        <span class="signal-dot-sm" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span>
+        |Y(jΩ)| üstüne |H(jΩ)|
+      </div>
+      <div class="checkbox-row">
+        <input type="checkbox" id="sigShowH" checked />
+        <label for="sigShowH">Filtre karakteristiğini göster</label>
+      </div>
+      <div class="ctl">
+        <label>H saydamlığı <span class="vv" id="sigHAlphaVal">0.40</span></label>
+        <input type="range" id="sigHAlpha" min="0" max="1" step="0.05" value="0.4" />
+      </div>
+
+      <div style="font-size:0.62rem; color:var(--text-dim); margin-top:0.3rem; line-height:1.45;">
+        Toplam $x(t) = \sum A_k \cdot f_k(\Omega_k t + \varphi_k)$ — yukarıdaki filtreden geçirilerek $y(t)$ elde edilir.
+      </div>
+    </div>
+
+    <!-- Sağ büyük alan: üstte bileşen şeridi, altta 2×2 grafik -->
+    <div class="sig-right-area">
+
+      <!-- Bileşen şeridi (her bir bileşen ofsetli — EMD stili) -->
+      <div class="sig-comps-row glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#7b8cff;">Bileşenler — $A_k f_k(\Omega_k t + \varphi_k)$ ayrı ayrı</span>
+          <span class="canvas-hint">EMD stili ofsetli yığın</span>
+        </div>
+        <canvas id="cvComps"></canvas>
+      </div>
+
+      <!-- x(t) -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#39ff85;">Toplam sinyal $x(t)$</span>
+          <span class="canvas-hint">filtre girişi</span>
+        </div>
+        <canvas id="cvXt"></canvas>
+      </div>
+
+      <!-- y(t) -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#ff8c42;">Filtre çıkışı $y(t)$</span>
+          <span class="canvas-hint">$h(t) * x(t)$</span>
+        </div>
+        <canvas id="cvYt"></canvas>
+      </div>
+
+      <!-- |X(jΩ)| -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#39ff85;">$|X(j\Omega)|$</span>
+          <span class="canvas-hint">girişin genlik spektrumu</span>
+        </div>
+        <canvas id="cvXf"></canvas>
+      </div>
+
+      <!-- |Y(jΩ)| -->
+      <div class="sig-card glass-panel">
+        <div class="canvas-header">
+          <span class="canvas-title" style="color:#ff8c42;">$|Y(j\Omega)|$</span>
+          <span class="canvas-hint">sin/cos analitik • diğerleri FFT &nbsp;(H kesik çizgi)</span>
+        </div>
+        <canvas id="cvYf"></canvas>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- TEORİ + UYGULAMA -->
+  <div class="theory-block glass-panel">
+    <h2>Laplace Dönüşümü — $s$-Düzlemi &amp; Fourier ile İlişki</h2>
+
+    <h3>Temel İlişki</h3>
+    <p>
+      Laplace dönüşümü, $X(s) = \int_{-\infty}^{\infty} x(t)\,e^{-st}\,dt$ bağıntısı ile karmaşık değişken $s = \sigma + j\Omega$ üzerinde tanımlanmaktadır. Bu dönüşüm, sinyali <strong>genelleştirilmiş karmaşık üsteller</strong> cinsinden ifade etmektedir.
+      <strong>Fourier dönüşümü</strong> $X(j\Omega) = \int x(t)\,e^{-j\Omega t}\,dt$ ise yalnızca $\sigma = 0$ ekseni üzerinde, yani <em>sanal eksende</em> tanımlıdır:
+      $$X(j\Omega) = X(s)\big|_{s=j\Omega}.$$
+    </p>
+    <p>
+      <strong>Geometrik yorum:</strong> üç boyutlu $|H(s)|$ yüzeyinin $j\Omega$ ekseni üzerinden alınan kesiti, sistemin <strong>frekans yanıtı</strong> $|H(j\Omega)|$'ya karşılık gelmektedir. Söz konusu kesit, alt kısımdaki ikinci grafikte gerçek zamanlı olarak çizdirilmektedir. Hareketli kırmızı nokta $j\Omega$ ekseni boyunca yer değiştirmekte ve her bir kutup ile sıfıra olan vektörlerini eşzamanlı biçimde sergilemektedir.
+    </p>
+    <p>
+      <strong>Cebirsel ifade:</strong>
+      $$|H(j\Omega)| = \frac{\prod_i |j\Omega - z_i|}{\prod_j |j\Omega - p_j|}$$
+      bağıntısı uyarınca, frekans yanıtının genliği $j\Omega$ noktasından sıfırlara uzaklıkların çarpımının, kutuplara uzaklıkların çarpımına oranı olarak yorumlanmaktadır.
+    </p>
+
+    <h3>Kutuplar ve Sıfırlar</h3>
+    <ul>
+      <li><strong>Kutup ($\times$):</strong> $H(s)$'in sonsuza ıraksadığı noktalar; $s$-düzlemi yüzeyinde tepe (pik) olarak ortaya çıkmaktadır.</li>
+      <li><strong>Sıfır ($\circ$):</strong> $H(s) = 0$ koşulunu sağlayan noktalar; yüzey üzerinde çukur olarak görünür.</li>
+      <li><strong>Kararlılık koşulu:</strong> tüm kutupların $\mathrm{Re}\{s\} = \sigma &lt; 0$ koşulunu sağlaması, yani sol yarı düzlemde yer alması gerekir.</li>
+      <li><strong>Karmaşık eşleniklik:</strong> reel katsayılı sistemlerde karmaşık kutup ve sıfırlar daima eşlenik çiftler hâlinde bulunmaktadır; bu nedenle $\Omega \neq 0$ değerinde tanımlanan her kutup/sıfırın eşleniği de sisteme otomatik olarak eklenir.</li>
+    </ul>
+
+    <h3>📍 Uygulama Alanları</h3>
+    <ul>
+      <li><strong>Kontrol mühendisliği:</strong> motor, robot ve hava aracı denetiminde transfer fonksiyonu üzerinden sistem tasarımı ve kapalı çevrim kararlılık analizi yapılmaktadır.</li>
+      <li><strong>Devre analizi:</strong> RLC, op-amp ve aktif filtre devrelerinin tasarımı, kapasite ve indüktans içeren ağ denklemleri üzerinden gerçekleştirilir.</li>
+      <li><strong>Mekanik sistemler:</strong> kütle–yay–damper modelleri, titreşim yalıtımı ve sismik koruma uygulamaları bu çerçevede ele alınmaktadır.</li>
+      <li><strong>Sinyal işleme:</strong> analog filtre tasarımı (Butterworth, Chebyshev, eliptik) ile sürekli zamanlı sistem gerçeklemeleri Laplace düzleminde tasarlanmaktadır.</li>
+      <li><strong>Ses ve akustik:</strong> hoparlör eşitleme ve oda akustiği düzeltme süzgeçleri kutup–sıfır yerleşimi üzerinden tasarlanır.</li>
+      <li><strong>Biyomedikal:</strong> EKG sinyali ön süzgeçlemesi, kalp ritim modelleri ve ilaç dağılım kinetiği (farmakokinetik) analizinde kullanılmaktadır.</li>
+      <li><strong>Güç sistemleri:</strong> jeneratör kararlılığı ve geri besleme tasarımı bu yaklaşımla yürütülmektedir.</li>
+    </ul>
+
+    <h3>📚 Kaynakça</h3>
+    <ul style="font-family:'Fira Code',monospace;font-size:0.72rem;color:var(--text-dim);">
+      <li>Oppenheim, A. V., Willsky, A. S. (1996). <em>Signals and Systems</em>. Prentice Hall.</li>
+      <li>Lathi, B. P. (2009). <em>Linear Systems and Signals</em>. Oxford University Press.</li>
+      <li>Phillips, C. L., Parr, J. M., Riskin, E. A. (2014). <em>Signals, Systems, and Transforms</em>. Pearson.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer">Sinyal İşleme Eğitim Simülasyonu — Laplace Modülü</footer>
+
+  <!-- El ile çizim modalı -->
+  <div class="draw-modal-overlay" id="drawModal">
+    <div class="draw-modal">
+      <h3>
+        <span>📝 Sinyal Şeklini El ile Çiz</span>
+        <span class="close" onclick="closeDrawModal()">✕</span>
+      </h3>
+      <div class="draw-help">
+        Mouse ile yatay olarak sürükle — sol=−A, sağ=+A. Sıfır merkezli, normalize edilir.
+      </div>
+      <canvas id="drawCanvas"></canvas>
+      <div class="draw-modal-footer">
+        <button class="sig-btn ghost" onclick="clearDraw()">🗑 Temizle</button>
+        <button class="sig-btn ghost" onclick="smoothDraw()">~ Yumuşat</button>
+        <button class="sig-btn primary" onclick="saveDraw()">✓ Kaydet ve Kullan</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/laplace.js"></script>
+</body>
+</html>

@@ -1,0 +1,416 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Discrete Cosine Transform (DCT) — Audio Compression</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    .dct-controls {
+      display: grid; grid-template-columns: 1.1fr 1fr 0.9fr;
+      gap: 0.7rem; max-width: 1500px;
+      margin: 0.7rem auto; padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .file-strip-wrap {
+      max-width: 1500px; margin: 0.7rem auto 0; padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .file-strip-wrap .graph-container { padding: 0.6rem; }
+    .file-strip-wrap canvas {
+      width: 100%; height: 130px;
+      border-radius: var(--radius-sm);
+      background: var(--canvas-bg); display: block;
+      cursor: ew-resize;
+    }
+    .dct-graphs {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 0.7rem; max-width: 1500px;
+      margin: 0.7rem auto; padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .dct-graphs .graph-container { padding: 0.6rem; }
+    .dct-graphs canvas {
+      width: 100%; height: 230px;
+      border-radius: var(--radius-sm);
+      background: var(--canvas-bg); display: block;
+    }
+    canvas.bar-select { cursor: ew-resize; }
+
+    .file-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.4rem; }
+    .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
+    .file-input-wrapper input[type=file] { position: absolute; left:0; top:0; opacity:0; width:100%; height:100%; cursor:pointer; }
+    .file-label {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.4rem 0.8rem;
+      border:1px solid var(--accent-1); color:var(--accent-1);
+      background:rgba(57,255,133,0.05); border-radius:var(--radius-sm);
+      cursor:pointer; display:inline-block; transition:all var(--transition);
+    }
+    .file-label:hover { background:rgba(57,255,133,0.15); }
+    .mic-btn {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.4rem 0.8rem;
+      border:1px solid var(--color-marker); color:var(--color-marker);
+      background:rgba(255,79,154,0.05); border-radius:var(--radius-sm); cursor:pointer;
+      transition:all var(--transition);
+    }
+    .mic-btn:hover { background:rgba(255,79,154,0.15); }
+    .mic-btn.recording { background:rgba(255,79,154,0.3); animation:micP 1s ease-in-out infinite; }
+    @keyframes micP { 0%,100%{box-shadow:0 0 8px rgba(255,79,154,0.3);} 50%{box-shadow:0 0 20px rgba(255,79,154,0.6);} }
+    .status-msg { font-family:'Consolas',monospace; font-size:0.72rem; color:var(--accent-2); padding:0.2rem 0; }
+    .status-msg.ok { color:var(--accent-1); } .status-msg.err { color:#ff5577; }
+
+    .play-row { display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.4rem; }
+    .pbtn {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.38rem 0.75rem;
+      border-radius:var(--radius-sm); cursor:pointer; border:1px solid; transition:all var(--transition);
+    }
+    .pbtn:disabled { opacity:0.3; cursor:not-allowed; }
+    .pbtn.orig { border-color:var(--color-x); color:var(--color-x); background:rgba(57,255,133,0.05); }
+    .pbtn.orig:hover { background:rgba(57,255,133,0.15); }
+    .pbtn.recon { border-color:var(--color-y); color:var(--color-y); background:rgba(123,140,255,0.05); }
+    .pbtn.recon:hover { background:rgba(123,140,255,0.15); }
+    .pbtn.stop { border-color:#ff5577; color:#ff5577; background:rgba(255,85,119,0.05); }
+    .pbtn.dl { border-color:var(--color-y); color:var(--color-y); background:rgba(123,140,255,0.05); }
+
+    .stats-grid {
+      display:grid; grid-template-columns:auto 1fr; gap:0.15rem 0.6rem;
+      font-family:'Consolas',monospace; font-size:0.78rem; margin-top:0.5rem;
+    }
+    .stats-grid .lbl { color:var(--text-secondary); }
+    .stats-grid .val { color:var(--accent-1); font-weight:500; }
+
+    .help-text { font-size:0.7rem; color:var(--text-dim); line-height:1.5; margin-top:0.3rem; }
+    .help-text strong { color:var(--accent-2); }
+
+    .sr-row { display: flex; align-items: center; gap: 0.4rem; margin: 0.4rem 0; }
+    .sr-row label { font-size: 0.74rem; color: var(--text-secondary); white-space: nowrap; }
+    .sr-row select { flex: 1; }
+
+    .theory-card {
+      max-width: 1500px; margin: 1rem auto;
+      padding: 1.5rem 2rem;
+      position: relative; z-index: 2;
+    }
+    .theory-card h2 {
+      font-family:'Saira Condensed',sans-serif;
+      font-size:1rem; font-weight:700; margin-bottom:0.8rem;
+      background:linear-gradient(90deg,var(--accent-1),var(--color-y));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .theory-card h3 {
+      font-family:'Saira Condensed',sans-serif;
+      font-size:0.78rem; font-weight:700; letter-spacing:0.06em;
+      margin-top:1rem; margin-bottom:0.4rem;
+      color: var(--accent-2);
+    }
+    .theory-card p {
+      font-size:0.84rem; line-height:1.7; color:var(--text-secondary);
+      margin-bottom: 0.8rem;
+    }
+    .theory-card strong { color: var(--text-primary); }
+    .theory-card em { color: var(--accent-2); font-style: normal; }
+    .theory-card ul {
+      font-size: 0.82rem; line-height: 1.7;
+      color: var(--text-secondary);
+      margin-left: 1.2rem; margin-bottom: 0.8rem;
+    }
+    .theory-card li { margin-bottom: 0.3rem; }
+    .theory-card .ref-list { list-style: none; margin-left: 0; font-family: 'Consolas', monospace; font-size: 0.74rem; color: var(--text-dim); }
+    .theory-card .ref-list li { padding: 0.25rem 0; border-bottom: 1px dashed var(--border-glow); }
+    .theory-card .ref-list li:last-child { border-bottom: none; }
+    .theory-card .ref-list a { color: var(--color-y); text-decoration: none; }
+    .theory-card .ref-list a:hover { color: var(--accent-1); text-decoration: underline; }
+
+    @media(max-width:1100px) {
+      .dct-graphs { grid-template-columns:1fr; }
+      .dct-controls { grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">𝒟</span> Discrete Cosine Transform (DCT) <span class="title-icon">∗</span>
+    </h1>
+    <p class="site-subtitle">Discrete Cosine Transform — Audio Compression Lab</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o active" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <!-- CONTROLS (top) -->
+  <div class="dct-controls">
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span> Audio Source</h3>
+
+      <div class="sr-row">
+        <label>Target Sample Rate:</label>
+        <select id="targetSR" class="glass-select">
+          <option value="8000">8 kHz (telephone)</option>
+          <option value="16000" selected>16 kHz (wideband)</option>
+          <option value="22050">22.05 kHz (half CD)</option>
+          <option value="32000">32 kHz (FM)</option>
+          <option value="44100">44.1 kHz (CD)</option>
+        </select>
+      </div>
+
+      <div class="file-row">
+        <div class="file-input-wrapper">
+          <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a" />
+          <span class="file-label">📁 Upload File</span>
+        </div>
+        <button class="mic-btn" id="micBtn">🎤 Start Recording</button>
+      </div>
+      <div class="status-msg" id="statusMsg">Upload a file or record with the microphone (until stopped)</div>
+
+      <div class="control-group" style="margin-top:0.5rem;">
+        <label>Cut Start (s): <span id="cutStartVal" class="val-display">0.00</span></label>
+        <input type="range" id="cutStart" min="0" max="10" step="0.01" value="0" disabled />
+      </div>
+      <div class="control-group">
+        <label>Segment Length (s, max 7): <span id="cutLenVal" class="val-display">2.00</span></label>
+        <input type="range" id="cutLen" min="0.1" max="7" step="0.05" value="2" disabled />
+      </div>
+
+      <div class="play-row">
+        <button class="pbtn orig" id="playOrig" disabled>▶ Original</button>
+        <button class="pbtn recon" id="playRecon" disabled>▶ Reconstructed</button>
+        <button class="pbtn stop" id="stopAll">■ Stop</button>
+        <button class="pbtn dl" id="dlRecon" disabled>💾 WAV</button>
+      </div>
+    </div>
+
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span> DCT Parameters</h3>
+      <div class="control-group">
+        <label>DCT Type:</label>
+        <select id="dctType" class="glass-select">
+          <option value="2" selected>DCT-II (most common, MP3/JPEG)</option>
+          <option value="1">DCT-I</option>
+          <option value="3">DCT-III (= IDCT-II)</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Retained Coefficients K: <span id="keepVal" class="val-display">—</span></label>
+        <input type="range" id="keepSlider" min="1" max="1000" step="1" value="500" disabled />
+      </div>
+      <div class="control-group">
+        <label>Thresholding Mode:</label>
+        <select id="threshMode" class="glass-select">
+          <option value="topK" selected>Largest K coefficients (Top-K)</option>
+          <option value="firstK">First K coefficients (Low-pass)</option>
+        </select>
+      </div>
+
+      <div class="stats-grid" id="statsGrid">
+        <span class="lbl">Total coefficients N:</span><span class="val" id="statTotal">—</span>
+        <span class="lbl">Retained K:</span><span class="val" id="statKept">—</span>
+        <span class="lbl">Compression ratio:</span><span class="val" id="statRatio">—</span>
+        <span class="lbl">RMSE:</span><span class="val" id="statRMSE">—</span>
+        <span class="lbl">SNR:</span><span class="val" id="statSNR">—</span>
+        <span class="lbl">Processing time:</span><span class="val" id="statTime">—</span>
+      </div>
+    </div>
+
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span> Display Settings</h3>
+      <div class="control-group">
+        <label>Grid Opacity: <span id="gridAlphaVal" class="val-display">0.18</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.6" step="0.01" value="0.18" />
+      </div>
+      <div class="control-group">
+        <label>Line Width: <span id="lineWVal" class="val-display">1.0</span></label>
+        <input type="range" id="lineW" min="0.3" max="3" step="0.1" value="1" />
+      </div>
+      <div class="control-group">
+        <label>Coefficient Display:</label>
+        <select id="coefDisplay" class="glass-select">
+          <option value="linear" selected>Linear |X[k]|</option>
+          <option value="log">Log₁₀ |X[k]|</option>
+        </select>
+      </div>
+      <div class="help-text" style="margin-top:0.5rem;">
+        Low sample rates (8/16 kHz) are sufficient for speech and very fast.
+        44.1 kHz gives music quality but takes longer to compute.
+      </div>
+    </div>
+  </div>
+
+  <!-- FULL FILE — SELECTION STRIP -->
+  <div class="file-strip-wrap">
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#39ff85;">📂 Full File — drag to select a region</span>
+        <span class="instant-value" id="stripInfo">no file loaded</span>
+      </div>
+      <canvas id="cvFull" class="bar-select"></canvas>
+    </div>
+  </div>
+
+  <!-- 4 SCREENS -->
+  <div class="dct-graphs">
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#39ff85;">x[n] — Selected Audio Segment</span>
+        <span class="instant-value" id="origInfo">—</span>
+      </div>
+      <canvas id="cvOrig"></canvas>
+    </div>
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#b490ff;">x̃[n] — Symmetrically Extended</span>
+        <span class="instant-value" id="symInfo">—</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display" id="symFormula">DCT-II symmetry</span>
+      </div>
+      <canvas id="cvSym"></canvas>
+    </div>
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#ff8c42;">X[k] — DCT Coefficients</span>
+        <span class="instant-value" id="coefInfo">N = — / —</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display" id="dctFormula">$X[k] = \sum_n x[n]\cos\!\bigl[\tfrac{\pi}{N}(n+\tfrac{1}{2})k\bigr]$</span>
+        <span class="drag-hint">← drag the bar →</span>
+      </div>
+      <canvas id="cvCoef" class="bar-select"></canvas>
+    </div>
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#7b8cff;">x̂[n] — Reconstructed</span>
+        <span class="instant-value" id="reconInfo">RMSE = —</span>
+      </div>
+      <canvas id="cvRecon"></canvas>
+    </div>
+  </div>
+
+  <!-- THEORETICAL EXPLANATION -->
+  <div class="theory-card glass-panel">
+    <h2>Discrete Cosine Transform (DCT) — Theoretical Background</h2>
+
+    <h3>1. The Motivation for the DCT</h3>
+    <p>
+      The <strong>Discrete Fourier Transform (DFT)</strong> represents a signal as a sum of sinusoidal and cosinusoidal components and presupposes a periodic extension. When a finite-length signal is treated as periodic, a <em>jump</em> arises between the first and last samples. This discontinuity gives rise, in the frequency domain, to pronounced high-frequency side lobes (Gibbs phenomenon); the energy of the signal is dispersed over a large number of coefficients and the resulting compression is inefficient.
+    </p>
+    <p>
+      The DCT eliminates this drawback by extending the signal with <em>even symmetry</em>. Under such an extension no discontinuity arises and the signal continues smoothly to infinity. The resulting <strong>energy-compaction</strong> property concentrates the bulk of the signal energy into a small number of low-frequency coefficients. This property has made the DCT the fundamental component of standards such as <strong>JPEG, MP3, MPEG, H.264/H.265, HEIC, AAC, and WebP</strong>. From a theoretical standpoint, the DCT provides a close approximation to the <em>Karhunen–Loève transform (KLT)</em> for first-order Markov signals: the KLT achieves optimal decorrelation but is signal-dependent, whereas the DCT attains nearly the same performance with a fixed basis.
+    </p>
+
+    <h3>2. DCT Types and Formulas</h3>
+    <p>Since Ahmed, Natarajan, and Rao's original 1974 paper, eight different DCT types have been defined (DCT-I through DCT-VIII). The three most commonly used in practice:</p>
+
+    <p><strong>DCT-I:</strong> Reflects the samples at the signal endpoints with <em>whole-sample symmetry</em> (period $2(N-1)$).</p>
+    $$X[k] = \tfrac{1}{2}\bigl(x[0] + (-1)^k x[N{-}1]\bigr) + \sum_{n=1}^{N-2} x[n]\cos\!\left[\frac{\pi k n}{N-1}\right], \quad k = 0, 1, \dots, N-1$$
+
+    <p><strong>DCT-II:</strong> <em>Half-sample symmetric</em> extension (period $2N$). The most common type — used by MP3, JPEG, MPEG.</p>
+    $$X[k] = \sum_{n=0}^{N-1} x[n]\cos\!\left[\frac{\pi}{N}\!\left(n+\tfrac{1}{2}\right)k\right], \quad k = 0, 1, \dots, N-1$$
+
+    <p><strong>DCT-III:</strong> The inverse of DCT-II (up to a scale factor). "Inverse DCT" (IDCT) generally refers to this.</p>
+    $$x[n] = \tfrac{1}{2}X[0] + \sum_{k=1}^{N-1} X[k]\cos\!\left[\frac{\pi}{N}\!\left(n+\tfrac{1}{2}\right)k\right], \quad n = 0, 1, \dots, N-1$$
+
+    <p>
+      <strong>Orthonormal form:</strong> The formulas above are in "classical" notation. In the orthonormal version, $X[k]$ is multiplied by $\sqrt{2/N}$ (and $\sqrt{1/N}$ for $k=0$); in this case the DCT matrix $\mathbf{C}$ is orthogonal, i.e., $\mathbf{C}^T\mathbf{C} = \mathbf{I}$. In practice, this ensures <em>Parseval's theorem</em> holds and simplifies quantization analysis.
+    </p>
+
+    <h3>3. Fast Algorithm — Relationship with the FFT</h3>
+    <p>
+      Direct computation of the DCT-II is of $\mathcal{O}(N^2)$ complexity. However, as shown by Makhoul in 1980, an $N$-point DCT-II can be computed using a $2N$-point FFT through
+      $$X[k] = \mathrm{Re}\!\left\{e^{-j\pi k/(2N)} \cdot \mathrm{FFT}_{2N}\bigl(\tilde{x}\bigr)[k]\right\},$$
+      with $\tilde{x}[n] = x[n]$ for $n < N$ and $\tilde{x}[n] = 0$ for $n \ge N$. This reduces the complexity to $\mathcal{O}(N \log N)$. On this page, the same FFT-based approach is used for DCT-I, DCT-II, and DCT-III; even a 7-second audio segment is processed in approximately 100 ms.
+    </p>
+
+    <h3>4. Symmetric Extension and Periodicity</h3>
+    <p>The "symmetric extension" visualised on the second screen lies at the mathematical origin of the DCT. The symmetry structure of the three principal types is as follows:</p>
+    <ul>
+      <li><strong>DCT-I:</strong> the sequence $x[0], x[1], \dots, x[N-1], x[N-2], \dots, x[1]$ is repeated; the endpoints are reflected with whole-sample symmetry.</li>
+      <li><strong>DCT-II:</strong> the sequence $x[0], x[1], \dots, x[N-1], x[N-1], x[N-2], \dots, x[0]$ is repeated; the endpoints are reflected with half-sample symmetry.</li>
+      <li><strong>DCT-III:</strong> exhibits an anti-symmetric half-sample structure and constitutes the frequency-domain counterpart of the DCT-II.</li>
+    </ul>
+
+    <h3>5. Compression — Top-K and Low-Pass Approaches</h3>
+    <p>
+      Storing all $N$ DCT coefficients leaves the data size unchanged and does not constitute compression. Compression is achieved by retaining only the <strong>most significant</strong> coefficients and setting the remainder to zero. Two different thresholding schemes are provided on this page:
+    </p>
+    <ul>
+      <li><strong>Top-K (the largest $K$ coefficients):</strong> the coefficients are sorted according to $|X[k]|$ and the largest $K$ of them are retained. This approach <em>minimises the root-mean-square error (RMSE)</em> and yields the highest SNR.</li>
+      <li><strong>Low-pass (the first $K$ coefficients):</strong> only the coefficients with $k = 0, 1, \dots, K-1$ are retained. High-frequency components are discarded, which performs satisfactorily for speech signals but suppresses the upper harmonics in music.</li>
+    </ul>
+    <p>
+      The <strong>compression ratio</strong> is defined as $N/K$. In practice, JPEG and MP3 incorporate not only thresholding but also <em>quantisation and entropy coding</em> (Huffman, arithmetic coding). This page focuses on the thresholding step, which constitutes the first stage of practical codecs.
+    </p>
+
+    <h3>6. Sampling Rate and Anti-Aliasing</h3>
+    <p>
+      According to the <strong>Nyquist theorem</strong>, the sampling rate must be at least twice the highest frequency present in the signal in order to represent it without loss of information. A sampling rate of 8 kHz captures frequencies up to 4 kHz (sufficient for telephony); 16 kHz captures frequencies up to 8 kHz (ample for speech); and 44.1 kHz captures frequencies up to 22 kHz (CD quality, above the upper limit of human hearing).
+    </p>
+    <p>
+      On this page, an <strong>anti-aliasing filter</strong> is applied when a high-rate signal is converted to a lower rate: an ideal low-pass filter is first applied in the frequency domain so that components above the Nyquist limit are removed, after which sample decimation is performed. In the absence of this filtering step, high frequencies would appear as low frequencies (aliasing) and the signal would be corrupted.
+    </p>
+
+    <h3>📍 Application Areas</h3>
+    <ul>
+      <li><strong>JPEG/HEIC:</strong> The foundation of image compression — 2D DCT on 8x8 blocks, then quantization + entropy coding. All digital photographs.</li>
+      <li><strong>MP3/AAC/Vorbis:</strong> Audio compression — perceptual coding with Modified DCT (MDCT); discards frequencies humans cannot hear.</li>
+      <li><strong>MPEG-1/2/4 (video):</strong> DCT for each frame; more advanced integer DCT in H.264/HEVC.</li>
+      <li><strong>WebP, AVIF:</strong> Modern web formats — transforms related to DCT.</li>
+      <li><strong>Image watermarking:</strong> Embedding information in mid-frequency DCT coefficients (steganography).</li>
+      <li><strong>Machine learning:</strong> Classical feature extraction — DCT coefficients in face recognition (pre-eigenfaces).</li>
+      <li><strong>Medical image compression:</strong> In DICOM, mammography, MRI compression standards.</li>
+      <li><strong>Bandwidth savings:</strong> Image transfer from spacecraft/satellites to Earth.</li>
+    </ul>
+
+    <h3>References</h3>
+    <ul class="ref-list">
+      <li>Ahmed, N., Natarajan, T., Rao, K. R. (1974). "Discrete Cosine Transform". <em>IEEE Transactions on Computers</em>, C-23(1), 90-93. — The original DCT publication.</li>
+      <li>Rao, K. R., Yip, P. (1990). <em>Discrete Cosine Transform: Algorithms, Advantages, Applications</em>. Academic Press.</li>
+      <li>Makhoul, J. (1980). "A Fast Cosine Transform in One and Two Dimensions". <em>IEEE Trans. ASSP</em>, 28(1), 27-34. — FFT-based O(N log N) DCT.</li>
+      <li>Wang, Z. (1984). "Fast Algorithms for the Discrete W Transform and for the Discrete Fourier Transform". <em>IEEE Trans. ASSP</em>, 32(4), 803-816.</li>
+      <li>Britanak, V., Yip, P., Rao, K. R. (2007). <em>Discrete Cosine and Sine Transforms: General Properties, Fast Algorithms and Integer Approximations</em>. Academic Press.</li>
+      <li>Oppenheim, A. V., Schafer, R. W. (2010). <em>Discrete-Time Signal Processing</em> (3rd ed.). Pearson.</li>
+      <li>Salomon, D. (2007). <em>Data Compression: The Complete Reference</em> (4th ed.). Springer.</li>
+      <li>ISO/IEC 10918-1 (JPEG); ISO/IEC 11172-3 (MPEG-1 Audio Layer III / MP3).</li>
+      <li>Wikipedia: <a href="https://en.wikipedia.org/wiki/Discrete_cosine_transform" target="_blank">Discrete cosine transform</a>; <a href="https://en.wikipedia.org/wiki/Modified_discrete_cosine_transform" target="_blank">Modified DCT</a>.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Signal Processing Educational Simulation — DCT Module</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/dct.js"></script>
+</body>
+</html>

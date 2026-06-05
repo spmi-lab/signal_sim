@@ -1,0 +1,1301 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <!--
+================================================================================
+
+  Sinyaller & Sistemler — Simülasyon Platformu
+  Signals & Systems — Simulation Platform
+
+  Oluşturan / Created by     : Nurullah ÇALIK
+  YZ Aracı / AI Tool         : Claude Code (Anthropic)
+  E-posta / Email            : ncalik.imu@gmail.com
+  Google Scholar             : https://scholar.google.com.tr/citations?hl=tr&user=lKCeK5IAAAAJ&view_op=list_works
+  Lab                        : https://github.com/spmi-lab
+                               SPMI · Signal Processing & Machine Intelligence Lab
+  Kurum / Institution        : İstanbul Medeniyet Üniversitesi
+                               Mühendislik ve Doğa Bilimleri Fakültesi
+  Lisans / License           : CC BY-NC-SA 4.0
+                               https://creativecommons.org/licenses/by-nc-sa/4.0/
+  Sürüm / Version            : 0.0.1
+  © 2026 SPMI Lab, IMU
+
+================================================================================
+-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sinyaller &amp; Sistemler — Simülasyon Platformu</title>
+  <link rel="stylesheet" href="../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* === Ana sayfaya özgü düzen === */
+    .hero {
+      position: relative; z-index: 2;
+      max-width: 1500px;
+      margin: 2rem auto 1rem;
+      padding: 3rem 1.5rem 1.5rem;
+      text-align: center;
+    }
+    .hero h1 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: clamp(2rem, 6vw, 4.4rem);
+      line-height: 1.05;
+      letter-spacing: 0.02em;
+      background: linear-gradient(135deg, var(--accent-1) 0%, var(--color-y) 50%, var(--accent-2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.6rem;
+    }
+    .hero-subtitle {
+      font-family: 'Saira', sans-serif;
+      font-size: clamp(0.95rem, 1.5vw, 1.2rem);
+      color: var(--text-secondary);
+      max-width: 720px;
+      margin: 0 auto 1.8rem;
+      line-height: 1.55;
+      font-weight: 400;
+    }
+    .hero-cta {
+      display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap;
+    }
+    .hero-btn {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; letter-spacing: 0.08em;
+      font-size: 0.95rem; padding: 0.8rem 1.8rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer; text-decoration: none;
+      transition: all var(--transition);
+      display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+    .hero-btn.primary {
+      background: linear-gradient(135deg, var(--accent-1), var(--color-y));
+      color: #06060f;
+      border: 1px solid transparent;
+    }
+    .hero-btn.primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(100, 160, 255, 0.3);
+    }
+    .hero-btn.ghost {
+      background: transparent;
+      color: var(--accent-2);
+      border: 1.5px solid var(--accent-2);
+    }
+    .hero-btn.ghost:hover {
+      background: rgba(255, 140, 66, 0.1);
+      transform: translateY(-2px);
+    }
+
+    /* === SPMI Şeridi === */
+    .spmi-strip {
+      max-width: 1500px;
+      margin: 1rem auto 0;
+      padding: 0.7rem 1.5rem;
+      position: relative; z-index: 2;
+      display: flex; justify-content: center; align-items: center;
+      gap: 0.9rem;
+      opacity: 0.85;
+    }
+    .spmi-strip img {
+      height: 48px; width: auto;
+      filter: drop-shadow(0 0 8px rgba(100, 160, 255, 0.18));
+    }
+    .spmi-strip.spmi-link {
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity var(--transition), transform var(--transition);
+    }
+    .spmi-strip.spmi-link:hover { opacity: 1; transform: translateY(-1px); }
+    .spmi-strip.spmi-link:hover .spmi-text strong { color: var(--color-y); }
+    .spmi-inline-logo {
+      height: 1.6em !important;
+      width: auto !important;
+      vertical-align: middle;
+    }
+    .footer-link {
+      color: var(--accent-1);
+      text-decoration: none;
+      transition: color var(--transition);
+    }
+    .footer-link:hover { color: var(--color-y); text-decoration: underline; }
+    .footer-divider { color: var(--text-dim); margin: 0 0.4rem; }
+    body.light-theme .spmi-strip img {
+      filter: drop-shadow(0 0 6px rgba(40, 70, 170, 0.18));
+    }
+    .spmi-text {
+      display: flex; flex-direction: column;
+      font-family: 'Saira', sans-serif;
+    }
+    .spmi-text small {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .spmi-text strong {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+      color: var(--accent-1);
+    }
+
+    /* === SECTION TITLES === */
+    .section-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: clamp(1.2rem, 2vw, 1.6rem);
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+      margin-bottom: 0.4rem;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .section-title::before {
+      content: ""; display: inline-block;
+      width: 4px; height: 1.4em;
+      background: linear-gradient(180deg, var(--accent-1), var(--color-y));
+      border-radius: 2px;
+    }
+    .section-subtitle {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 1.4rem;
+      margin-left: 1rem;
+    }
+
+    /* === ROADMAP === */
+    .roadmap-wrap {
+      max-width: 1500px;
+      margin: 2.5rem auto 1.5rem;
+      padding: 0 1rem;
+      position: relative; z-index: 2;
+    }
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-top: 0.8rem;
+    }
+    .roadmap-card {
+      padding: 1.5rem 1.4rem;
+    }
+    .roadmap-card-header {
+      display: flex; align-items: center; gap: 0.7rem;
+      margin-bottom: 0.6rem;
+    }
+    .roadmap-card-icon {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 1.1rem;
+    }
+    .icon-continuous {
+      background: linear-gradient(135deg, rgba(57,255,133,0.15), rgba(123,140,255,0.15));
+      color: var(--accent-1);
+      border: 1.5px solid var(--accent-1);
+    }
+    .icon-discrete {
+      background: linear-gradient(135deg, rgba(123,140,255,0.15), rgba(255,140,66,0.15));
+      color: var(--color-y);
+      border: 1.5px solid var(--color-y);
+    }
+    .icon-other {
+      background: linear-gradient(135deg, rgba(255,79,154,0.15), rgba(255,140,66,0.15));
+      color: #ff4f9a;
+      border: 1.5px solid #ff4f9a;
+    }
+    .roadmap-card h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: 0.03em;
+      color: var(--text-primary);
+    }
+    .roadmap-card-sub {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      margin-top: 0.1rem;
+    }
+    .roadmap-scroll {
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0.6rem 0;
+    }
+    .roadmap-scroll::-webkit-scrollbar { height: 5px; }
+    .roadmap-scroll::-webkit-scrollbar-thumb {
+      background: var(--border-glow-strong); border-radius: 3px;
+    }
+    .roadmap-svg-c { min-width: 760px; height: 200px; display: block; width: 100%; }
+    .roadmap-svg-d { min-width: 760px; height: 200px; display: block; width: 100%; }
+    .roadmap-node { cursor: pointer; transition: all 0.35s ease; }
+    .roadmap-node .node-bg { transition: all 0.4s ease; opacity: 0; }
+    .roadmap-node .node-main {
+      transition: all 0.35s ease;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+    .roadmap-node .node-pulse {
+      animation: neon-pulse 2.4s ease-in-out infinite;
+      transform-box: fill-box;
+      transform-origin: center;
+      opacity: 0.55;
+    }
+    .roadmap-node:nth-child(2) .node-pulse { animation-delay: 0.0s; }
+    .roadmap-node:nth-child(3) .node-pulse { animation-delay: 0.3s; }
+    .roadmap-node:nth-child(4) .node-pulse { animation-delay: 0.6s; }
+    .roadmap-node:nth-child(5) .node-pulse { animation-delay: 0.9s; }
+    .roadmap-node:nth-child(6) .node-pulse { animation-delay: 1.2s; }
+    .roadmap-node:nth-child(7) .node-pulse { animation-delay: 1.5s; }
+    @keyframes neon-pulse {
+      0%,100% { transform: scale(1); opacity: 0.35; }
+      50%     { transform: scale(1.45); opacity: 0.0; }
+    }
+    .roadmap-node:hover .node-main {
+      transform: scale(1.10);
+      filter: drop-shadow(0 0 24px var(--accent-2)) drop-shadow(0 0 10px var(--color-y));
+    }
+    .roadmap-node:hover .node-bg {
+      opacity: 0.95;
+      animation: glow-flicker 0.6s ease-in-out infinite alternate;
+    }
+    @keyframes glow-flicker {
+      0%   { opacity: 0.6; }
+      100% { opacity: 1.0; }
+    }
+    .node-rim {
+      fill: none;
+      stroke: var(--accent-2);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+    .roadmap-node:hover .node-rim {
+      opacity: 1;
+      animation: rim-rotate 16s linear infinite;
+      filter: drop-shadow(0 0 6px var(--accent-2)) drop-shadow(0 0 12px var(--accent-2));
+    }
+    @keyframes rim-rotate {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .sim-tag { display: none; }
+    .roadmap-node text {
+      font-family: 'Saira Condensed', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      fill: var(--text-secondary);
+      transition: all 0.3s ease;
+      letter-spacing: 0.025em;
+    }
+    .roadmap-node:hover text { fill: var(--accent-2); }
+    .roadmap-node text.node-num {
+      font-family: 'Fira Code', monospace;
+      font-weight: 700;
+      font-size: 22px;
+      fill: var(--accent-2);
+    }
+    .roadmap-legend {
+      display: flex; gap: 1.5rem; justify-content: center;
+      margin-top: 0.6rem;
+      font-size: 0.74rem; color: var(--text-dim);
+    }
+    .roadmap-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .legend-sim    { background: transparent; border: 2.5px solid var(--accent-2); }
+
+    /* === MODULE GROUPS === */
+    .modules-section {
+      max-width: 1500px;
+      margin: 2.5rem auto 2rem;
+      padding: 0 1rem;
+      position: relative; z-index: 2;
+    }
+    .module-group {
+      margin-bottom: 2rem;
+    }
+    .module-group-header {
+      display: flex; align-items: center; gap: 0.7rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--border-glow);
+    }
+    .module-group-badge {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      padding: 0.3rem 0.8rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    .badge-continuous {
+      background: rgba(57,255,133,0.12);
+      color: var(--accent-1);
+      border: 1px solid var(--accent-1);
+    }
+    .badge-discrete {
+      background: rgba(123,140,255,0.12);
+      color: var(--color-y);
+      border: 1px solid var(--color-y);
+    }
+    .module-group h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.3rem;
+      letter-spacing: 0.02em;
+      color: var(--text-primary);
+    }
+    .module-group-count {
+      margin-left: auto;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.76rem;
+      color: var(--text-dim);
+    }
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .module-card {
+      padding: 1.4rem 1.2rem;
+      display: flex; flex-direction: column;
+      gap: 0.5rem;
+      text-decoration: none;
+      color: var(--text-primary);
+      position: relative;
+      overflow: hidden;
+      transition: all var(--transition);
+    }
+    .module-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent-2), var(--color-marker));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+    }
+    .module-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--accent-2);
+      box-shadow: 0 12px 28px rgba(255, 140, 66, 0.2);
+    }
+    .module-card:hover::before { transform: scaleX(1); }
+    .module-num {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--accent-2);
+      letter-spacing: 0.1em;
+    }
+    .module-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+      color: var(--text-primary);
+    }
+    .module-desc {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      flex: 1;
+    }
+    .module-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 0.6rem;
+      padding-top: 0.6rem;
+      border-top: 1px dashed var(--border-glow);
+    }
+    .module-tag {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.68rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+      background: rgba(255, 140, 66, 0.16);
+      color: var(--accent-2);
+    }
+    .module-cta {
+      color: var(--accent-2);
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all var(--transition);
+    }
+    .module-card:hover .module-cta { transform: translateX(4px); }
+
+    /* === QUICK SIM STRIP === */
+    .quick-sim {
+      max-width: 1500px;
+      margin: 2.5rem auto 2rem;
+      padding: 1.4rem 1.2rem;
+      position: relative; z-index: 2;
+    }
+    .sim-chips {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      margin-top: 0.8rem;
+    }
+    .sim-chip {
+      font-family: 'Saira', sans-serif;
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 0.55rem 1rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-glow);
+      color: var(--text-primary);
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      transition: all var(--transition);
+      background: var(--select-bg);
+    }
+    .sim-chip:hover {
+      border-color: var(--accent-2);
+      color: var(--accent-2);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(255, 140, 66, 0.15);
+    }
+    .sim-chip .icon { font-size: 1.05em; }
+
+    /* === GRUPLU SHORTCUT GRİDİ — sim sayfalarındaki nav ile uyumlu === */
+    .sim-chips-grouped {
+      display: grid;
+      grid-template-columns: 110px 1fr;
+      align-items: center;
+      gap: 0.6rem 0.8rem;
+      margin-top: 0.8rem;
+    }
+    .chip-group-label {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      text-align: right;
+      opacity: 0.85;
+    }
+    .chip-group-label.group-c { color: var(--accent-1); }
+    .chip-group-label.group-d { color: var(--color-y); }
+    .chip-group-label.group-o { color: var(--accent-2); }
+    .chip-row {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+    }
+    .sim-chip.group-c { border-color: rgba(57,255,133,0.35); color: var(--accent-1); }
+    .sim-chip.group-c:hover { border-color: var(--accent-1); color: var(--accent-1); box-shadow: 0 6px 16px rgba(57,255,133,0.18); }
+    .sim-chip.group-d { border-color: rgba(123,140,255,0.35); color: var(--color-y); }
+    .sim-chip.group-d:hover { border-color: var(--color-y); color: var(--color-y); box-shadow: 0 6px 16px rgba(123,140,255,0.18); }
+    .sim-chip.group-o { border-color: rgba(255,140,66,0.35); color: var(--accent-2); }
+    .sim-chip.group-o:hover { border-color: var(--accent-2); color: var(--accent-2); box-shadow: 0 6px 16px rgba(255,140,66,0.18); }
+
+    /* === FOOTER === */
+    .site-footer {
+      text-align: center; padding: 2rem 1rem 1.5rem;
+      font-size: 0.78rem; color: var(--text-dim);
+      position: relative; z-index: 2;
+    }
+    .site-footer .footer-lab {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      margin-top: 0.4rem;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .site-footer .footer-lab img {
+      height: 26px; width: auto; opacity: 0.85;
+    }
+
+    /* Top Bar */
+    .top-nav {
+      position: relative; z-index: 2;
+      display: flex; justify-content: space-between; align-items: center;
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem 0;
+    }
+    .top-nav-logo {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.1rem;
+      letter-spacing: 0.06em;
+      background: linear-gradient(90deg, var(--accent-1), var(--color-y));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-decoration: none;
+    }
+    .top-nav-links {
+      display: flex; gap: 0.5rem; align-items: center;
+    }
+    .top-nav-link {
+      font-family: 'Saira', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.45rem 0.95rem;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all var(--transition);
+    }
+    .top-nav-link:hover {
+      color: var(--accent-1);
+      background: rgba(57, 255, 133, 0.06);
+    }
+
+    @media (max-width: 960px) {
+      .roadmap-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <!-- Top Nav -->
+  <div class="top-nav">
+    <div class="top-nav-links">
+      <a href="#roadmap" class="top-nav-link">Yol Haritası</a>
+      <a href="#modules" class="top-nav-link">Modüller</a>
+      <a href="#quick-sim" class="top-nav-link">Hızlı Erişim</a>
+    </div>
+    <span></span>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1>Sinyaller ve Sistemler Dersi<br/>Simülasyon Platformu</h1>
+    <p class="hero-subtitle">
+      Temel kavramların <strong style="color:var(--accent-2);">etkileşimli simülasyonlarla</strong> deneyimlenmesi
+      <br/>
+      teori sayfaları hazırlanmaktadır…
+    </p>
+    <div class="hero-cta">
+      <a href="sim/basic-signals.html" class="hero-btn primary">▶ Simülasyona Başla</a>
+      <a href="#roadmap" class="hero-btn ghost">⚡ Yol Haritası</a>
+    </div>
+  </section>
+
+  <!-- SPMI LAB ŞERİDİ -->
+  <a href="https://github.com/spmi-lab" target="_blank" rel="noopener noreferrer" class="spmi-strip spmi-link">
+    <img src="../logo.png" alt="SPMI Lab" class="spmi-inline-logo" onerror="this.style.display='none';" />
+    <div class="spmi-text">
+      <small>Powered by</small>
+      <strong>SPMI · Signal Processing &amp; Machine Intelligence Lab</strong>
+    </div>
+  </a>
+
+  <!-- ROADMAP -->
+  <section class="roadmap-wrap" id="roadmap">
+    <h2 class="section-title">Simülasyon Yol Haritası</h2>
+    <p class="section-subtitle">Sürekli zamanlı temel kavramlardan ayrık zamanlı sayısal dönüşümlere uzanan öğrenme güzergâhı.</p>
+
+    <div class="roadmap-grid">
+
+      <!-- Sürekli Zaman Kartı -->
+      <div class="roadmap-card glass-panel">
+        <div class="roadmap-card-header">
+          <div class="roadmap-card-icon icon-continuous">∫</div>
+          <div>
+            <h3>Sürekli Zaman Simülasyonları</h3>
+            <p class="roadmap-card-sub">Beş simülasyon: temel işaretler, sistem özellikleri, konvolüsyon, Fourier serileri ve Laplace dönüşümü.</p>
+          </div>
+        </div>
+        <div class="roadmap-scroll">
+          <svg class="roadmap-svg-c" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ff8c42" stop-opacity="0.55"/>
+                <stop offset="60%" stop-color="#ff8c42" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="#ff8c42" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="lineC" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#39ff85" />
+                <stop offset="100%" stop-color="#7b8cff" />
+              </linearGradient>
+            </defs>
+            <path d="M 50 100 L 750 100" stroke="url(#lineC)" stroke-width="2" stroke-dasharray="4 6" opacity="0.5"/>
+
+            <g class="roadmap-node" onclick="location.href='sim/basic-signals.html'">
+              <circle class="node-pulse" cx="50" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="50" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="50" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="50" y="108" text-anchor="middle">1</text>
+              <text x="50" y="42" text-anchor="middle">Temel İşaretler</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/system-properties.html'">
+              <circle class="node-pulse" cx="225" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="225" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="225" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="225" y="108" text-anchor="middle">2</text>
+              <text x="225" y="42" text-anchor="middle">Sistem Özellikleri</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/continuous.html'">
+              <circle class="node-pulse" cx="400" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="400" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="400" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="400" y="108" text-anchor="middle">3</text>
+              <text x="400" y="42" text-anchor="middle">Konvolüsyon</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/fourier.html'">
+              <circle class="node-pulse" cx="575" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="575" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="575" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="575" y="108" text-anchor="middle">4</text>
+              <text x="575" y="42" text-anchor="middle">Fourier Serisi</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/laplace.html'">
+              <circle class="node-pulse" cx="750" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="750" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="750" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="750" y="108" text-anchor="middle">5</text>
+              <text x="750" y="42" text-anchor="middle">Laplace</text>
+            </g>
+          </svg>
+        </div>
+        <div class="roadmap-legend">
+          <span><span class="legend-dot legend-sim"></span> etkileşimli simülasyon</span>
+        </div>
+      </div>
+
+      <!-- Ayrık Zaman Kartı -->
+      <div class="roadmap-card glass-panel">
+        <div class="roadmap-card-header">
+          <div class="roadmap-card-icon icon-discrete">Σ</div>
+          <div>
+            <h3>Ayrık Zaman Simülasyonları</h3>
+            <p class="roadmap-card-sub">Beş simülasyon: ayrık zaman konvolüsyonu, örnekleme, DTFT, DFT/FFT ve Z-dönüşümü.</p>
+          </div>
+        </div>
+        <div class="roadmap-scroll">
+          <svg class="roadmap-svg-d" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <radialGradient id="nodeGlow2" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ff8c42" stop-opacity="0.55"/>
+                <stop offset="60%" stop-color="#ff8c42" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="#ff8c42" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="lineD" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#7b8cff"/>
+                <stop offset="100%" stop-color="#ff8c42"/>
+              </linearGradient>
+            </defs>
+            <path d="M 50 100 L 750 100" stroke="url(#lineD)" stroke-width="2" stroke-dasharray="4 6" opacity="0.5"/>
+
+            <g class="roadmap-node" onclick="location.href='sim/discrete.html'">
+              <circle class="node-pulse" cx="50" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="50" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="50" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="50" y="108" text-anchor="middle">6</text>
+              <text x="50" y="42" text-anchor="middle">Konvolüsyon</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/sampling.html'">
+              <circle class="node-pulse" cx="225" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="225" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="225" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="225" y="108" text-anchor="middle">7</text>
+              <text x="225" y="42" text-anchor="middle">Örnekleme</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/dtft.html'">
+              <circle class="node-pulse" cx="400" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="400" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="400" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="400" y="108" text-anchor="middle">8</text>
+              <text x="400" y="42" text-anchor="middle">DTFT</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/dft_fft.html'">
+              <circle class="node-pulse" cx="575" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="575" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="575" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="575" y="108" text-anchor="middle">9</text>
+              <text x="575" y="42" text-anchor="middle">DFT / FFT</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/z_transform.html'">
+              <circle class="node-pulse" cx="750" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="750" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="750" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="750" y="108" text-anchor="middle">10</text>
+              <text x="750" y="42" text-anchor="middle">Z-Dönüşümü</text>
+            </g>
+          </svg>
+        </div>
+        <div class="roadmap-legend">
+          <span><span class="legend-dot legend-sim"></span> etkileşimli simülasyon</span>
+        </div>
+      </div>
+
+      <!-- Diğer -->
+      <div class="roadmap-card glass-panel">
+        <div class="roadmap-card-header">
+          <div class="roadmap-card-icon icon-other">★</div>
+          <div>
+            <h3>Tamamlayıcı Uygulama Örnekleri</h3>
+            <p class="roadmap-card-sub">Altı uygulamalı simülasyon: genlik modülasyonu, zaman–frekans çözümlemesi, sıkıştırma, EMD, Doppler radar ve Fraksiyonel Fourier dönüşümü.</p>
+          </div>
+        </div>
+        <div class="roadmap-scroll">
+          <svg class="roadmap-svg-d" viewBox="0 0 800 200" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <radialGradient id="nodeGlow3" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="#ff8c42" stop-opacity="0.55"/>
+                <stop offset="60%" stop-color="#ff8c42" stop-opacity="0.18"/>
+                <stop offset="100%" stop-color="#ff8c42" stop-opacity="0"/>
+              </radialGradient>
+              <linearGradient id="lineO" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#ff4f9a"/>
+                <stop offset="100%" stop-color="#ff8c42"/>
+              </linearGradient>
+            </defs>
+            <path d="M 50 100 L 750 100" stroke="url(#lineO)" stroke-width="2" stroke-dasharray="4 6" opacity="0.5"/>
+
+            <g class="roadmap-node" onclick="location.href='sim/radio.html'">
+              <circle class="node-pulse" cx="50" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="50" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="50" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="50" y="108" text-anchor="middle">11</text>
+              <text x="50" y="42" text-anchor="middle">Radyo</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/spectrogram2.html'">
+              <circle class="node-pulse" cx="190" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="190" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="190" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="190" y="108" text-anchor="middle">12</text>
+              <text x="190" y="42" text-anchor="middle">2D Spektrum</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/dct.html'">
+              <circle class="node-pulse" cx="330" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="330" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="330" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="330" y="108" text-anchor="middle">13</text>
+              <text x="330" y="42" text-anchor="middle">DCT</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/hht.html'">
+              <circle class="node-pulse" cx="470" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="470" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="470" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="470" y="108" text-anchor="middle">14</text>
+              <text x="470" y="42" text-anchor="middle">HHT</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/doppler.html'">
+              <circle class="node-pulse" cx="610" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="610" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="610" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="610" y="108" text-anchor="middle">15</text>
+              <text x="610" y="42" text-anchor="middle">Doppler</text>
+            </g>
+            <g class="roadmap-node" onclick="location.href='sim/fractional-fourier.html'">
+              <circle class="node-pulse" cx="750" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
+              <circle class="node-bg" cx="750" cy="100" r="52" fill="url(#nodeGlow)" />
+              <circle class="node-main" cx="750" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
+              <path class="node-rim" />
+              <text class="node-num" x="750" y="108" text-anchor="middle">16</text>
+              <text x="750" y="42" text-anchor="middle">FrFT</text>
+            </g>
+          </svg>
+        </div>
+        <div class="roadmap-legend">
+          <span><span class="legend-dot legend-sim"></span> etkileşimli simülasyon</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- MODULES -->
+  <section class="modules-section" id="modules">
+    <h2 class="section-title">Simülasyon Modülleri</h2>
+    <p class="section-subtitle">Her kart bir simülasyona bağlanmaktadır; parametre değişiklikleri sonuçlara doğrudan yansıtılmaktadır.</p>
+
+    <!-- Grup 1: Sürekli Zaman -->
+    <div class="module-group">
+      <div class="module-group-header">
+        <span class="module-group-badge badge-continuous">∫ Sürekli Zaman</span>
+        <h2>Temel İşaretler, Sistem, Konvolüsyon, Fourier &amp; Laplace</h2>
+        <span class="module-group-count">5 simülasyon · $\Omega, F$</span>
+      </div>
+      <div class="modules-grid">
+        <a href="sim/basic-signals.html" class="module-card glass-panel">
+          <span class="module-num">SİM 01</span>
+          <h3 class="module-title">∿ Temel Sinyaller</h3>
+          <p class="module-desc">Birim impuls $\delta(t)$, birim basamak $u(t)$, üstel $e^{at}$ ve sinüzoidal $\cos(\Omega t)$ gibi temel yapı taşları incelenmektedir. Etkileşimli sinyal kütüphanesi üzerinden parametreler değiştirildiğinde sonuçların gerçek zamanlı olarak gözlemlenmesi sağlanmaktadır.</p>
+          <div class="module-footer"><span class="module-tag">İnteraktif</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/system-properties.html" class="module-card glass-panel">
+          <span class="module-num">SİM 02</span>
+          <h3 class="module-title">T{·} LTI Sistem Özellikleri</h3>
+          <p class="module-desc">Doğrusallık, zamanla değişmezlik, nedensellik, kararlılık ve bellek özellikleri LTI sistem çerçevesinde ele alınmaktadır. Kullanıcı tarafından tanımlanan $T\{x(t)\}$ ifadesi üzerinde beş temel sistem özelliği doğrudan sınanabilmektedir.</p>
+          <div class="module-footer"><span class="module-tag">İnteraktif</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/continuous.html" class="module-card glass-panel">
+          <span class="module-num">SİM 03</span>
+          <h3 class="module-title">∫ Sürekli Zamanda Konvolüsyon</h3>
+          <p class="module-desc">$y(t)=\int x(\tau)h(t-\tau)\,d\tau$ tanımıyla sürekli zaman LTI sistem çıkışı hesaplanmaktadır. Kayma, çakışma bölgesi ve sonuç eğrisi etkileşimli biçimde adım adım izlenebilmektedir.</p>
+          <div class="module-footer"><span class="module-tag">İnteraktif</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/fourier.html" class="module-card glass-panel">
+          <span class="module-num">SİM 04</span>
+          <h3 class="module-title">𝓕 Fourier Serisi</h3>
+          <p class="module-desc">Periyodik sinyallerin $\Omega_0, 2\Omega_0, \ldots$ harmonik bileşenlerine ayrıştırılması incelenmektedir. Kare, üçgen ve testere dalgalarının Fourier serisi açılımı kullanılarak yeniden inşası gösterilmektedir.</p>
+          <div class="module-footer"><span class="module-tag">İnteraktif</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/laplace.html" class="module-card glass-panel">
+          <span class="module-num">SİM 05</span>
+          <h3 class="module-title">ℒ Laplace Dönüşümü</h3>
+          <p class="module-desc">$X(s)=\int x(t)\,e^{-st}\,dt$ ile tanımlanan Laplace dönüşümü $s$-düzleminde üç boyutlu yüzey olarak görselleştirilmektedir. Kutup–sıfır yerleşimi ve $j\Omega$ ekseni üzerindeki Fourier ilişkisi birlikte incelenebilmektedir.</p>
+          <div class="module-footer"><span class="module-tag">3D</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Grup 2: Ayrık Zaman -->
+    <div class="module-group">
+      <div class="module-group-header">
+        <span class="module-group-badge badge-discrete">Σ Ayrık Zaman</span>
+        <h2>Ayrık Konvolüsyon, Örnekleme, DTFT, DFT/FFT &amp; Z-Düzlemi</h2>
+        <span class="module-group-count">5 simülasyon · $\omega, f$</span>
+      </div>
+      <div class="modules-grid">
+        <a href="sim/discrete.html" class="module-card glass-panel">
+          <span class="module-num">SİM 06</span>
+          <h3 class="module-title">Σ Ayrık Zamanda Konvolüsyon</h3>
+          <p class="module-desc">$y[n]=\sum_k x[k]\,h[n-k]$ ifadesi üzerinden ayrık zaman LTI sistem çıkışı hesaplanmaktadır. Kaydırıcı yardımıyla çakışma bölgesi ve çarpım–toplam işlemi adım adım izlenebilmektedir.</p>
+          <div class="module-footer"><span class="module-tag">İnteraktif</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/sampling.html" class="module-card glass-panel">
+          <span class="module-num">SİM 07</span>
+          <h3 class="module-title">↯ Örnekleme ve Örtüşme (Aliasing)</h3>
+          <p class="module-desc">$x_s(t)=x(t)\cdot p(t)$ örnekleme bağıntısı incelenmektedir: zaman düzleminde Dirac dizisiyle çarpım, frekans düzleminde aynı dizinin konvolüsyonuna karşılık gelir ve spektrum $F_s$ periyoduyla tekrarlanır. Nyquist koşulu ihlal edildiğinde örtüşme (aliasing) etkileşimli olarak vurgulanmaktadır.</p>
+          <div class="module-footer"><span class="module-tag">Çizim+Önset</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/dtft.html" class="module-card glass-panel">
+          <span class="module-num">SİM 08</span>
+          <h3 class="module-title">𝓕* Ayrık Zaman Fourier Dönüşümü (DTFT)</h3>
+          <p class="module-desc">$X(e^{j\omega})=\sum_n x[n]\,e^{-j\omega n}$ ile tanımlanan DTFT'nin $\omega$ ekseni üzerindeki sürekli ve $2\pi$-periyodik yapısı görselleştirilmektedir. Birim çember ile genlik ve faz panelleri senkron imleç üzerinden birlikte incelenebilmektedir.</p>
+          <div class="module-footer"><span class="module-tag">Periyodiklik</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/dft_fft.html" class="module-card glass-panel">
+          <span class="module-num">SİM 09</span>
+          <h3 class="module-title">⏃ Ayrık Fourier Dönüşümü (DFT/FFT)</h3>
+          <p class="module-desc">$X[k]=\sum_n x[n]\,e^{-j2\pi kn/N}$ ile DTFT'nin $\omega_k=2\pi k/N$ noktalarındaki örneklenmiş hali hesaplanmaktadır. Pencere fonksiyonu seçimi, sıfır doldurma, spektral sızıntı ve $\mathcal{O}(N^2)$ ile $\mathcal{O}(N\log N)$ karmaşıklıkların başarımı karşılaştırılabilmektedir.</p>
+          <div class="module-footer"><span class="module-tag">Benchmark</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/z_transform.html" class="module-card glass-panel">
+          <span class="module-num">SİM 10</span>
+          <h3 class="module-title">𝒵 Z-Dönüşümü</h3>
+          <p class="module-desc">$X(z)=\sum_n x[n]\,z^{-n}$ ile Z-dönüşümü $z$-düzleminde üç boyutlu yüzey olarak gösterilmektedir. Yakınsama bölgesi (ROC), kutup–sıfır yerleşimi ve birim çember üzerindeki DTFT ilişkisi birlikte ele alınmaktadır.</p>
+          <div class="module-footer"><span class="module-tag">3D</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Grup 3: Diğer -->
+    <div class="module-group">
+      <div class="module-group-header">
+        <span class="module-group-badge" style="background:rgba(255,79,154,0.12); color:#ff4f9a; border:1px solid #ff4f9a;">★ Diğer</span>
+        <h2>Tamamlayıcı Uygulama Örnekleri</h2>
+        <span class="module-group-count">6 simülasyon · modülasyon, STFT, sıkıştırma, EMD, Doppler, FrFT</span>
+      </div>
+      <div class="modules-grid">
+        <a href="sim/radio.html" class="module-card glass-panel">
+          <span class="module-num">SİM 11</span>
+          <h3 class="module-title"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo — Modülasyon</h3>
+          <p class="module-desc">Birden çok ses kanalı farklı taşıyıcı frekanslarında modüle edilmekte; alıcı tarafında yerel osilatör ve alçak geçiren süzgeç (LPF) kullanılarak hedef kanal yeniden elde edilmektedir. AM/FM/QAM/OFDM yöntemlerinin temel çalışma ilkesi bu çatı altında ele alınmaktadır.</p>
+          <div class="module-footer"><span class="module-tag">Tuner</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/spectrogram2.html" class="module-card glass-panel">
+          <span class="module-num">SİM 12</span>
+          <h3 class="module-title"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</h3>
+          <p class="module-desc">Kısa Zamanlı Fourier Dönüşümü (STFT) tabanlı iki boyutlu spektrum akışı (waterfall) sunulmaktadır. Sekiz farklı pencere fonksiyonu (Hann, Hamming, Blackman, Nuttall, Flat-top vb.) ve %0–%90 örtüşme oranı parametrik olarak ayarlanabilmektedir.</p>
+          <div class="module-footer"><span class="module-tag">Pencere</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/dct.html" class="module-card glass-panel">
+          <span class="module-num">SİM 13</span>
+          <h3 class="module-title">𝒟 Ayrık Kosinüs Dönüşümü (DCT) — Sıkıştırma</h3>
+          <p class="module-desc">Ayrık Kosinüs Dönüşümü (DCT) ile sinyal sıkıştırma incelenmektedir. Baskın katsayılar korunup düşük enerjili katsayılar elendiğinde geri-inşa edilen sinyalin orijinale yakınlığı ölçülmektedir. JPEG sıkıştırmasının temel matematiksel çekirdeğini oluşturmaktadır.</p>
+          <div class="module-footer"><span class="module-tag">İnteraktif</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/hht.html" class="module-card glass-panel">
+          <span class="module-num">SİM 14</span>
+          <h3 class="module-title">ℋ Hilbert-Huang Dönüşümü (HHT)</h3>
+          <p class="module-desc">Ampirik Mod Ayrıştırması (EMD) ile sinyal İçsel Kip Fonksiyonlarına (IMF) ayrıştırılmakta; ardından Hilbert dönüşümü uygulanarak anlık frekans ve enerji yoğunluğu hesaplanmaktadır. Doğrusal-olmayan ve durağan-olmayan sinyallerin çözümlenmesinde kullanılan bir yöntemdir.</p>
+          <div class="module-footer"><span class="module-tag">EMD</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/doppler.html" class="module-card glass-panel">
+          <span class="module-num">SİM 15</span>
+          <h3 class="module-title"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler — Hız Tespiti</h3>
+          <p class="module-desc">Kuş bakışı sahnede hareketli hedef yönlendirilmekte; radar darbe dizisi iletilip eko sinyali alınmakta ve eko üzerindeki Doppler kayması $f_d$ ölçülmektedir. SNR (−15…+9 dB ve ∞), düzensiz yansıma (clutter), MTI süzgeci, FFT spektrumu ve zaman–hız şelalesi etkileşimli biçimde incelenebilmektedir.</p>
+          <div class="module-footer"><span class="module-tag">Radar</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/fractional-fourier.html" class="module-card glass-panel">
+          <span class="module-num">SİM 16</span>
+          <h3 class="module-title">𝓕<sup>α</sup> Kesirli Fourier Dönüşümü (FrFT)</h3>
+          <p class="module-desc">İnce mercek optik analojisi temel alınmaktadır: kullanıcı tarafından çizilen desen, $\alpha=z/f$ parametresine bağlı olarak giriş, ara ve odak düzlemlerinde art arda Fraksiyonel Fourier Dönüşümleri (FrFT) ile dönüştürülmektedir. Tek boyutlu sinyal kütüphanesi, chirp üretimi, serbest çizim ve ses dosyası yükleme desteklenmekte; $\alpha$ kaydırıcısı ile $\mathrm{Re}/\mathrm{Im}/|\cdot|$ bileşenleri ve kartezyen $t$–$\Omega$ düzlemindeki dönüş gözlemlenebilmektedir.</p>
+          <div class="module-footer"><span class="module-tag">2D+1D</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK SIM STRIP -->
+  <section class="quick-sim glass-panel" id="quick-sim">
+    <h2 class="section-title">⚡ Simülasyonlara Hızlı Erişim</h2>
+    <p class="section-subtitle">Listelenen simülasyonlara doğrudan erişim sağlanmaktadır.</p>
+    <div class="sim-chips sim-chips-grouped">
+      <span class="chip-group-label group-c">Sürekli</span>
+      <div class="chip-row">
+        <a href="sim/basic-signals.html" class="sim-chip group-c"><span class="icon">∿</span> Temel İşaretler</a>
+        <a href="sim/system-properties.html" class="sim-chip group-c"><span class="icon">T{·}</span> LTI Sistem Özellikleri</a>
+        <a href="sim/continuous.html" class="sim-chip group-c"><span class="icon">∫</span> Sürekli Zamanda Konvolüsyon</a>
+        <a href="sim/fourier.html" class="sim-chip group-c"><span class="icon">𝓕</span> Fourier Serisi</a>
+        <a href="sim/laplace.html" class="sim-chip group-c"><span class="icon">ℒ</span> Laplace 3D s-Düzlemi</a>
+      </div>
+      <span class="chip-group-label group-d">Ayrık</span>
+      <div class="chip-row">
+        <a href="sim/discrete.html" class="sim-chip group-d"><span class="icon">Σ</span> Ayrık Zamanda Konvolüsyon</a>
+        <a href="sim/sampling.html" class="sim-chip group-d"><span class="icon">↯</span> Örnekleme ve Örtüşme (Aliasing)</a>
+        <a href="sim/dtft.html" class="sim-chip group-d"><span class="icon">𝓕*</span> Ayrık Zaman Fourier Dönüşümü (DTFT)</a>
+        <a href="sim/dft_fft.html" class="sim-chip group-d"><span class="icon">⏃</span> Ayrık Fourier Dönüşümü (DFT/FFT)</a>
+        <a href="sim/z_transform.html" class="sim-chip group-d"><span class="icon">𝒵</span> Z-Dönüşümü 3D</a>
+      </div>
+      <span class="chip-group-label group-o">Diğer</span>
+      <div class="chip-row">
+        <a href="sim/radio.html" class="sim-chip group-o"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+        <a href="sim/spectrogram2.html" class="sim-chip group-o"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+        <a href="sim/dct.html" class="sim-chip group-o"><span class="icon">𝒟</span> Ayrık Kosinüs Dönüşümü (DCT) ve Sıkıştırma</a>
+        <a href="sim/hht.html" class="sim-chip group-o"><span class="icon">ℋ</span> Hilbert-Huang Dönüşümü (HHT/EMD)</a>
+        <a href="sim/doppler.html" class="sim-chip group-o"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler Radar</a>
+        <a href="sim/fractional-fourier.html" class="sim-chip group-o"><span class="icon">𝓕<sup>α</sup></span> Kesirli Fourier Dönüşümü (FrFT)</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    Sinyaller &amp; Sistemler Simülasyon Platformu · 2026
+    <br/>
+    <div class="footer-lab">
+      <a href="https://github.com/spmi-lab" target="_blank" rel="noopener noreferrer" class="footer-link" style="display:inline-flex;align-items:center;gap:0.45rem;">
+        <img src="../logo.png" alt="SPMI" class="spmi-inline-logo" onerror="this.style.display='none';"/>
+        Signal Processing &amp; Machine Intelligence Lab
+      </a>
+    </div>
+    <div style="margin-top:0.5rem;">
+      <a href="mailto:imu.spmi@gmail.com" class="footer-link">İletişim: imu.spmi@gmail.com</a>
+      <span class="footer-divider">·</span>
+      <a href="mailto:ncalik.imu@gmail.com" class="footer-link">ncalik.imu@gmail.com</a>
+      <span class="footer-divider">·</span>
+      <a href="https://github.com/spmi-lab" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
+    </div>
+
+    <div style="margin-top:1.2rem; padding-top:0.9rem; border-top:1px dashed var(--border-glow); font-size:0.78rem; line-height:1.7; color:var(--text-dim); max-width:800px; margin-left:auto; margin-right:auto;">
+      <div><strong style="color:var(--text-secondary);">Kurum:</strong> <a href="https://muhendislikdogabilimleri.medeniyet.edu.tr/tr" target="_blank" rel="noopener noreferrer" class="footer-link">İstanbul Medeniyet Üniversitesi — Mühendislik ve Doğa Bilimleri Fakültesi</a></div>
+      <div><strong style="color:var(--text-secondary);">Lisans:</strong>
+        <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.tr" target="_blank" rel="noopener noreferrer" class="footer-link">CC BY-NC-SA 4.0</a>
+      </div>
+      <div><strong style="color:var(--text-secondary);">Sürüm:</strong> 0.0.1</div>
+      <div style="margin-top:0.4rem;">&copy; 2026 SPMI Lab, IMU</div>
+    </div>
+  </footer>
+
+  <script src="../theme.js"></script>
+  <script src="../lang-switch.js"></script>
+  <script>
+    /* ── Sinüs dalgası: çemberin DIŞINDA, yavaş ── */
+    (function () {
+      const RIM_R = 32;
+      const AMP   = 5;
+      const N_WAVES = 5;
+      const K = 144;
+
+      document.querySelectorAll('.roadmap-node').forEach(node => {
+        const main = node.querySelector('.node-main');
+        const rim  = node.querySelector('.node-rim');
+        if (!main || !rim) return;
+        const cx = parseFloat(main.getAttribute('cx'));
+        const cy = parseFloat(main.getAttribute('cy'));
+        let d = '';
+        for (let i = 0; i <= K; i++) {
+          const th = (i / K) * Math.PI * 2;
+          const r  = RIM_R + AMP + AMP * Math.sin(N_WAVES * th);
+          const x  = cx + r * Math.cos(th);
+          const y  = cy + r * Math.sin(th);
+          d += (i === 0 ? 'M ' : 'L ') + x.toFixed(2) + ',' + y.toFixed(2) + ' ';
+        }
+        d += 'Z';
+        rim.setAttribute('d', d);
+      });
+    })();
+  </script>
+  <script>
+    /* ============================================
+       DİNAMİK SİNYAL-TEMALI ARKAPLAN v3
+       ============================================ */
+    (function () {
+      const c = document.getElementById('bgCanvas');
+      const ctx = c.getContext('2d');
+      function rs() { c.width = innerWidth; c.height = innerHeight; }
+      rs(); window.addEventListener('resize', rs);
+
+      const SIGNALS = {
+        sine:     (u) => Math.sin(u * Math.PI * 2),
+        sine2:    (u) => Math.sin(u * Math.PI * 4),
+        sine3:    (u) => Math.sin(u * Math.PI * 6),
+        square:   (u) => Math.sign(Math.sin(u * Math.PI * 2)) * 0.85,
+        square2:  (u) => Math.sign(Math.sin(u * Math.PI * 4)) * 0.85,
+        triangle: (u) => (2 / Math.PI) * Math.asin(Math.sin(u * Math.PI * 2)),
+        triangle2:(u) => (2 / Math.PI) * Math.asin(Math.sin(u * Math.PI * 4)),
+        sawtooth: (u) => {
+          const x = u * 2;
+          return 2 * (x - Math.floor(x + 0.5));
+        },
+        gauss:    (u) => Math.exp(-((u - 0.5) * (u - 0.5)) * 22),
+        gabor:    (u) => Math.exp(-((u - 0.5) * (u - 0.5)) * 18) * Math.cos((u - 0.5) * Math.PI * 8),
+        ricker:   (u) => {
+          const x = (u - 0.5) * 5;
+          return (1 - x * x) * Math.exp(-x * x / 2);
+        },
+        damped:   (u) => Math.exp(-u * 2.2) * Math.sin(u * Math.PI * 6),
+        morlet:   (u) => Math.exp(-((u - 0.5) * (u - 0.5)) * 14) * Math.cos((u - 0.5) * Math.PI * 10),
+        expDec:   (u) => Math.exp(-u * 2.5) * 2 - 1,
+      };
+      const SIG_KEYS = Object.keys(SIGNALS);
+
+      function getColors() {
+        const isLight = document.body.classList.contains('light-theme');
+        return isLight
+          ? ['rgba(8,18,70,','rgba(0,50,15,','rgba(95,30,0,','rgba(105,10,55,','rgba(20,30,60,',]
+          : ['rgba(200,210,235,','rgba(100,160,255,','rgba(57,255,133,','rgba(255,140,66,','rgba(255,79,154,',];
+      }
+
+      function alphaBoost() {
+        return document.body.classList.contains('light-theme') ? 1.8 : 1.0;
+      }
+
+      const STATIC_SIG = {
+        cy: 0, amplitude: 70, phase: 0,
+        direction: Math.random() < 0.5 ? 1 : -1,
+        phaseSpeed: 0.006, N: 280,
+      };
+      function setStaticPos() { STATIC_SIG.cy = c.height * 0.42; }
+      setStaticPos();
+      window.addEventListener('resize', setStaticPos);
+
+      function drawStatic() {
+        const light = document.body.classList.contains('light-theme');
+        const base = light ? 'rgba(8,18,70,' : 'rgba(210,220,240,';
+        const W = Math.min(c.width * 0.92, 1600);
+        const cx = c.width / 2;
+        const cy = STATIC_SIG.cy;
+        ctx.strokeStyle = base + (light ? '0.55' : '0.28') + ')';
+        ctx.lineWidth = light ? 1.7 : 1.4;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        for (let i = 0; i <= STATIC_SIG.N; i++) {
+          const u = i / STATIC_SIG.N;
+          const env = Math.exp(-((u - 0.5) * (u - 0.5)) * 5);
+          const carrier = Math.cos((u - 0.5) * Math.PI * 14 + STATIC_SIG.direction * STATIC_SIG.phase);
+          const v = env * carrier;
+          const x = (u - 0.5) * W + cx;
+          const y = cy - v * STATIC_SIG.amplitude;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      const STRIPS = [];
+      const LIFETIME = 7000;
+      const FADE_IN  = 1200;
+      const FADE_OUT = 1500;
+
+      function rndSigKey() { return SIG_KEYS[Math.floor(Math.random() * SIG_KEYS.length)]; }
+
+      function newStrip(cfg = {}) {
+        const maxW = Math.min(c.width * 0.55, 900);
+        const minW = Math.min(c.width * 0.25, 350);
+        const width = cfg.width ?? (minW + Math.random() * (maxW - minW));
+        const renderMode = cfg.renderMode ?? (Math.random() < 0.7 ? 'stroke' : 'dots');
+        return {
+          cx: cfg.cx ?? Math.random() * c.width,
+          cy: cfg.cy ?? Math.random() * c.height,
+          width,
+          amplitude: cfg.amplitude ?? (38 + Math.random() * 60),
+          rotation:  cfg.rotation  ?? (Math.random() - 0.5) * (Math.PI / 4),
+          driftX:    (Math.random() - 0.5) * 0.28,
+          driftY:    (Math.random() - 0.5) * 0.12,
+          phase:     Math.random() * Math.PI * 2,
+          phaseSpeed:0.0015 + Math.random() * 0.0035,
+          sigKey:    cfg.sigKey ?? rndSigKey(),
+          renderMode,
+          colorIdx:  cfg.colorIdx ?? Math.floor(Math.random() * 5),
+          lineWidth: 0.8 + Math.random() * 0.7,
+          dotCount:  42 + Math.floor(Math.random() * 22),
+          dotRadius: 1.1 + Math.random() * 0.5,
+          baseAlpha: 0.24 + Math.random() * 0.16,
+          birthTime: performance.now() + Math.random() * 4000,
+        };
+      }
+
+      function initStrips() {
+        STRIPS.length = 0;
+        const guaranteed = ['gauss','gabor','ricker','square2','triangle','damped',
+                           'sine2','sawtooth','morlet','sine3','square','expDec'];
+        for (let i = 0; i < 12; i++) {
+          STRIPS.push(newStrip({ sigKey: guaranteed[i % guaranteed.length] }));
+        }
+      }
+      initStrips();
+      window.addEventListener('resize', initStrips);
+
+      function lifeAlpha(s, now) {
+        const age = now - s.birthTime;
+        if (age < 0) return 0;
+        if (age < FADE_IN) return age / FADE_IN;
+        const remaining = LIFETIME - age;
+        if (remaining < FADE_OUT) return Math.max(0, remaining / FADE_OUT);
+        return 1;
+      }
+
+      function drawStrip(s, now) {
+        const life = lifeAlpha(s, now);
+        if (life <= 0.001) return;
+        const colors = getColors();
+        const baseColor = colors[s.colorIdx];
+        const sig = SIGNALS[s.sigKey];
+        const cos = Math.cos(s.rotation), sin = Math.sin(s.rotation);
+        const finalA = s.baseAlpha * life * alphaBoost();
+
+        if (s.renderMode === 'stroke') {
+          ctx.strokeStyle = baseColor + finalA.toFixed(3) + ')';
+          ctx.lineWidth = s.lineWidth;
+          ctx.lineJoin = 'round';
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          const N = 160;
+          for (let i = 0; i <= N; i++) {
+            const u = i / N;
+            const lx = (u - 0.5) * s.width;
+            const ly = sig(u + s.phase * 0.04) * s.amplitude;
+            const wx = lx * cos - ly * sin + s.cx;
+            const wy = lx * sin + ly * cos + s.cy;
+            if (i === 0) ctx.moveTo(wx, wy); else ctx.lineTo(wx, wy);
+          }
+          ctx.stroke();
+        } else {
+          for (let i = 0; i < s.dotCount; i++) {
+            const u = i / (s.dotCount - 1);
+            const lx = (u - 0.5) * s.width;
+            const ly = sig(u + s.phase * 0.04) * s.amplitude;
+            const wx = lx * cos - ly * sin + s.cx;
+            const wy = lx * sin + ly * cos + s.cy;
+            const edge = Math.sin(u * Math.PI);
+            const a = finalA * (0.4 + 0.6 * edge);
+            ctx.fillStyle = baseColor + a.toFixed(3) + ')';
+            ctx.beginPath();
+            ctx.arc(wx, wy, s.dotRadius * (0.7 + 0.5 * edge), 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+
+      function recycleStrip(idx, now) {
+        const fresh = newStrip();
+        fresh.birthTime = now;
+        STRIPS[idx] = fresh;
+      }
+
+      const STARS = [];
+      function initStars() {
+        STARS.length = 0;
+        const n = Math.min(140, Math.floor((c.width * c.height) / 14000));
+        for (let i = 0; i < n; i++) STARS.push({
+          x: Math.random() * c.width,
+          y: Math.random() * c.height,
+          r: Math.random() * 1.0 + 0.4,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.4 + Math.random() * 1.4,
+          baseA: 0.15 + Math.random() * 0.45,
+          colorVar: Math.random(),
+        });
+      }
+      initStars();
+      window.addEventListener('resize', initStars);
+
+      function drawStars(t) {
+        const light = document.body.classList.contains('light-theme');
+        for (const s of STARS) {
+          const twinkle = (Math.sin(t * s.speed + s.phase) + 1) * 0.5;
+          const a = s.baseA * twinkle;
+          if (a < 0.02) continue;
+          let r, g, b;
+          if (light) {
+            r = 30 + s.colorVar * 30; g = 50 + s.colorVar * 40; b = 110 + s.colorVar * 50;
+          } else {
+            if (s.colorVar < 0.6)      { r = 230; g = 235; b = 250; }
+            else if (s.colorVar < 0.85){ r = 150; g = 200; b = 255; }
+            else                       { r = 255; g = 240; b = 180; }
+          }
+          ctx.fillStyle = `rgba(${r|0},${g|0},${b|0},${a.toFixed(3)})`;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r * (0.7 + twinkle * 0.6), 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      function tick() {
+        ctx.clearRect(0, 0, c.width, c.height);
+        const t = Date.now() * 0.001;
+        const now = performance.now();
+        drawStars(t);
+        STATIC_SIG.phase += STATIC_SIG.phaseSpeed;
+        drawStatic();
+        for (let i = 0; i < STRIPS.length; i++) {
+          const s = STRIPS[i];
+          const age = now - s.birthTime;
+          if (age > LIFETIME) { recycleStrip(i, now); continue; }
+          if (age > 0) {
+            s.cx += s.driftX;
+            s.cy += s.driftY;
+            s.phase += s.phaseSpeed;
+          }
+          drawStrip(s, now);
+        }
+        requestAnimationFrame(tick);
+      }
+      tick();
+    })();
+
+    // Smooth scroll
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', e => {
+        const id = a.getAttribute('href');
+        if (id.length > 1) {
+          const t = document.querySelector(id);
+          if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1004 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerçek Zamanlı STFT — Pencere &amp; Overlap</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* === Spektrum2 sayfasına özgü === */
+    .sp2-top {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 0.7rem;
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+    .sp2-main-wrap {
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+
+    .sp2-toolbar {
+      display: flex; align-items: center; gap: 0.5rem;
+      flex-wrap: wrap;
+      padding: 0.8rem 1rem;
+      margin-bottom: 0.6rem;
+    }
+    .sp2-btn {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      padding: 0.55rem 1.1rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      border: 1.5px solid;
+      background: transparent;
+      transition: all var(--transition);
+      display: inline-flex; align-items: center; gap: 0.35rem;
+    }
+    .sp2-btn.mic { color: var(--accent-1); border-color: var(--accent-1); background: rgba(57,255,133,0.06); }
+    .sp2-btn.mic:hover { background: rgba(57,255,133,0.18); transform: translateY(-2px); }
+    .sp2-btn.mic.active {
+      background: linear-gradient(135deg, var(--accent-1), var(--color-y));
+      color: #06060f; border-color: transparent;
+      animation: micGlow2 1.4s infinite;
+    }
+    @keyframes micGlow2 { 0%,100% { box-shadow: 0 0 8px rgba(57,255,133,0.3); } 50% { box-shadow: 0 0 22px rgba(57,255,133,0.7); } }
+    .sp2-btn.file { color: var(--color-y); border-color: var(--color-y); background: rgba(123,140,255,0.05); position: relative; overflow: hidden; }
+    .sp2-btn.file:hover { background: rgba(123,140,255,0.18); }
+    .sp2-btn.file input[type=file] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .sp2-btn.stop { color: #ff5577; border-color: #ff5577; background: rgba(255,85,119,0.05); }
+    .sp2-btn.stop:hover { background: rgba(255,85,119,0.18); }
+    .sp2-btn.pause { color: var(--accent-2); border-color: var(--accent-2); background: rgba(255,140,66,0.05); }
+    .sp2-btn.pause:hover { background: rgba(255,140,66,0.18); }
+    .sp2-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .sp2-preset-select {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      padding: 0.5rem 0.9rem;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--color-marker);
+      color: var(--color-marker);
+      background: rgba(255,79,154,0.05);
+      cursor: pointer;
+      transition: all var(--transition);
+      min-width: 200px;
+    }
+    .sp2-preset-select:hover { background: rgba(255,79,154,0.15); }
+    .sp2-preset-select:focus { outline: none; box-shadow: 0 0 10px rgba(255,79,154,0.25); }
+    .sp2-preset-select option { background: var(--select-bg); color: var(--text-primary); }
+
+    .sp2-status {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-left: 0.5rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+      background: var(--select-bg);
+    }
+    .sp2-status.live { color: var(--accent-1); }
+    .sp2-status.err  { color: #ff5577; }
+
+    .sp2-volume {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      margin-left: 0.5rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 4px;
+      background: var(--select-bg);
+      border: 1px solid var(--border-glow);
+    }
+    .sp2-volume input[type=range] { width: 110px; accent-color: var(--accent-1); }
+    .sp2-volume-icon { font-size: 0.95rem; line-height: 1; }
+    .sp2-volume-val {
+      font-family: 'Fira Code', monospace; font-size: 0.72rem;
+      color: var(--accent-1); min-width: 2.8em; text-align: right;
+    }
+
+    /* Kontrol paneli */
+    .sp2-controls {
+      padding: 0.9rem 1.1rem;
+    }
+    .sp2-controls .control-group { margin-bottom: 0.5rem; }
+    .sp2-controls .control-group:last-child { margin-bottom: 0; }
+    .sp2-controls label {
+      display: block;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 0.2rem;
+    }
+    .sp2-controls .val-display {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      color: var(--accent-2);
+      padding: 0.05rem 0.4rem;
+      background: rgba(255,140,66,0.08);
+      border-radius: 3px;
+      margin-left: 0.3rem;
+    }
+    .sp2-controls select {
+      width: 100%;
+      padding: 0.35rem 0.55rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .sp2-controls select:focus { outline: none; border-color: var(--accent-1); }
+    .sp2-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+    .sp2-row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    /* Frekans aralığı (min/max input) */
+    .freq-range-row {
+      display: flex; align-items: center; gap: 0.3rem;
+      position: relative;
+    }
+    .freq-range-row input {
+      flex: 1; min-width: 0;
+      padding: 0.35rem 0.45rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+    }
+    .freq-range-row input:focus { outline: none; border-color: var(--accent-1); }
+    .freq-range-sep { color: var(--text-dim); font-family: 'Fira Code', monospace; font-weight: 700; }
+    .freq-preset-btn {
+      background: rgba(57,255,133,0.08);
+      color: var(--accent-1);
+      border: 1px solid var(--accent-1);
+      border-radius: 4px;
+      padding: 0.3rem 0.5rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .freq-preset-btn:hover { background: rgba(57,255,133,0.22); }
+    .freq-preset-menu {
+      position: absolute;
+      top: calc(100% + 4px); right: 0;
+      background: var(--select-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: 6px;
+      padding: 0.3rem;
+      z-index: 50;
+      min-width: 220px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+      display: flex; flex-direction: column;
+    }
+    .freq-preset-menu button {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 0;
+      text-align: left;
+      padding: 0.4rem 0.7rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all var(--transition);
+    }
+    .freq-preset-menu button:hover {
+      background: rgba(57,255,133,0.18);
+      color: var(--accent-1);
+    }
+
+    /* Pencere |W(f)| dB/Linear toggle */
+    .win-scale-toggle {
+      display: inline-flex; align-items: center;
+      gap: 0.25rem; margin-left: auto;
+      padding: 0.15rem;
+      background: var(--select-bg);
+      border-radius: 5px;
+      border: 1px solid var(--border-glow);
+    }
+    .win-scale-toggle button {
+      background: transparent;
+      color: var(--text-dim);
+      border: 0;
+      padding: 0.25rem 0.55rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.74rem;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all var(--transition);
+      letter-spacing: 0.04em;
+    }
+    .win-scale-toggle button.active {
+      background: linear-gradient(135deg, var(--accent-1), var(--color-y));
+      color: #06060f; font-weight: 700;
+    }
+    .win-scale-toggle button:hover:not(.active) { color: var(--accent-1); }
+    .win-panel-header {
+      display: flex; align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* Sağ panel — pencere şekli + canlı spektrum */
+    .sp2-side-panel {
+      padding: 0.9rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+    .sp2-side-panel .panel-sub-title {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.82rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    #cvWindow {
+      width: 100%; height: 110px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    #cvLive2 {
+      width: 100%; height: 175px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    .sp2-win-info {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 0.3rem;
+      line-height: 1.5;
+    }
+    .sp2-win-info .k { color: var(--accent-2); }
+    .sp2-win-info .v { color: var(--color-y); }
+
+    /* Ana 2D waterfall canvas + sağ taraf canlı sütun */
+    .sp2-waterfall-wrap {
+      display: grid;
+      grid-template-columns: 1fr 130px;
+      gap: 0.5rem;
+      padding: 0.6rem;
+    }
+    #cvWaterfall {
+      width: 100%; height: 540px;
+      background: #050518;
+      border-radius: var(--radius-sm);
+      display: block;
+      cursor: crosshair;
+    }
+    body.light-theme #cvWaterfall { background: #f5f7fb; }
+    #cvSpecVert {
+      width: 100%; height: 540px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+
+    /* Renk skalası legend */
+    .palette-legend2 {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-top: 0.5rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+    .palette-bar2 {
+      flex: 1; height: 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border-glow);
+    }
+
+    /* Teori */
+    .edu-card { max-width: 1500px; margin: 1.2rem auto; padding: 1.4rem 1.8rem; position: relative; z-index: 2; }
+    .edu-card h2 {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 700;
+      font-size: 1.05rem; letter-spacing: 0.04em;
+      background: linear-gradient(90deg, var(--accent-1), var(--color-y));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.7rem;
+    }
+    .edu-card h3 {
+      font-family: 'Saira Condensed', sans-serif; font-weight: 700;
+      font-size: 0.92rem; color: var(--accent-2);
+      margin-top: 1rem; margin-bottom: 0.35rem;
+      letter-spacing: 0.04em;
+    }
+    .edu-card p, .edu-card li {
+      font-size: 0.88rem; line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .edu-card ul { margin-left: 1.4rem; margin-bottom: 0.6rem; }
+    .edu-card strong { color: var(--text-primary); }
+
+    /* Pencere tablo */
+    .win-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.5rem 0;
+      font-size: 0.82rem;
+    }
+    .win-table th, .win-table td {
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid var(--border-glow);
+      text-align: left;
+    }
+    .win-table th {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      color: var(--accent-1);
+      letter-spacing: 0.04em;
+    }
+    .win-table td {
+      font-family: 'Fira Code', monospace;
+      color: var(--text-secondary);
+    }
+    .win-table td.win-name { color: var(--color-y); font-weight: 600; }
+
+    /* === Özel Sinyal Oluşturucu === */
+    .custom-builder {
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.6rem;
+    }
+    .custom-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.7rem; flex-wrap: wrap;
+      margin-bottom: 0.7rem;
+    }
+    .custom-header .panel-title { margin: 0; }
+    .custom-actions {
+      display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+    }
+    .custom-actions select, .custom-actions button {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      padding: 0.4rem 0.8rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .custom-actions select {
+      background: rgba(255,79,154,0.05);
+      color: var(--color-marker);
+      border: 1.5px solid var(--color-marker);
+      min-width: 220px;
+    }
+    .custom-actions select:hover { background: rgba(255,79,154,0.15); }
+    .custom-actions select option { background: var(--select-bg); color: var(--text-primary); }
+    .custom-actions .btn-add {
+      background: rgba(57,255,133,0.08);
+      color: var(--accent-1);
+      border: 1.5px solid var(--accent-1);
+    }
+    .custom-actions .btn-add:hover { background: rgba(57,255,133,0.22); transform: translateY(-1px); }
+    .custom-actions .btn-play {
+      background: linear-gradient(135deg, var(--accent-1), var(--color-y));
+      color: #06060f;
+      border: 1.5px solid transparent;
+      font-weight: 700;
+    }
+    .custom-actions .btn-play:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(57,255,133,0.35); }
+    .custom-actions .btn-clear {
+      background: rgba(255,85,119,0.05);
+      color: #ff5577;
+      border: 1.5px solid #ff5577;
+    }
+    .custom-actions .btn-clear:hover { background: rgba(255,85,119,0.18); }
+
+    .custom-components {
+      display: flex; flex-direction: column; gap: 0.4rem;
+    }
+    .custom-empty {
+      padding: 1rem;
+      text-align: center;
+      color: var(--text-dim);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.82rem;
+      border: 1px dashed var(--border-glow);
+      border-radius: 4px;
+    }
+    .comp-row {
+      display: grid;
+      grid-template-columns: 32px 1fr 1fr 1fr 32px;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.5rem 0.7rem;
+      background: rgba(123,140,255,0.04);
+      border: 1px solid var(--border-glow);
+      border-radius: 5px;
+      transition: background var(--transition);
+    }
+    .comp-row:hover { background: rgba(123,140,255,0.10); }
+    .comp-idx {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      color: var(--color-y);
+      text-align: center;
+      font-size: 0.95rem;
+    }
+    .comp-field {
+      display: flex; align-items: center; gap: 0.35rem;
+    }
+    .comp-field-label {
+      font-family: 'Saira Condensed', sans-serif;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      min-width: 22px;
+    }
+    .comp-field input {
+      flex: 1; min-width: 0;
+      padding: 0.3rem 0.45rem;
+      background: var(--select-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: 3px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.82rem;
+      color: var(--text-primary);
+    }
+    .comp-field input:focus { outline: none; border-color: var(--accent-1); }
+    .comp-field-unit {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+    .comp-del {
+      background: rgba(255,85,119,0.08);
+      color: #ff5577;
+      border: 1px solid #ff5577;
+      border-radius: 50%;
+      width: 26px; height: 26px;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+      transition: all var(--transition);
+    }
+    .comp-del:hover { background: rgba(255,85,119,0.3); transform: scale(1.1); }
+    .custom-note {
+      margin-top: 0.5rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .custom-note .k { color: var(--accent-2); }
+
+    /* === DTMF tablosu === */
+    .dtmf-table {
+      width: auto;
+      margin: 0.7rem 0;
+      border-collapse: collapse;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.88rem;
+    }
+    .dtmf-table th, .dtmf-table td {
+      padding: 0.55rem 1rem;
+      border: 1px solid var(--border-glow);
+      text-align: center;
+    }
+    .dtmf-table thead th {
+      background: rgba(57,255,133,0.10);
+      color: var(--accent-1);
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .dtmf-table tbody th {
+      background: rgba(255,140,66,0.10);
+      color: var(--accent-2);
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+    }
+    .dtmf-table tbody td {
+      color: var(--text-primary);
+      font-weight: 700;
+      font-size: 1.05rem;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .dtmf-table tbody td:hover {
+      background: rgba(123,140,255,0.18);
+      color: var(--color-y);
+      transform: scale(1.05);
+    }
+    .dtmf-hint {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-top: 0.4rem;
+    }
+    .dtmf-hint code {
+      background: rgba(57,255,133,0.08);
+      color: var(--accent-1);
+      padding: 0.05rem 0.4rem;
+      border-radius: 3px;
+      font-family: 'Fira Code', monospace;
+    }
+
+    @media (max-width: 1100px) {
+      .sp2-top { grid-template-columns: 1fr; }
+      .sp2-waterfall-wrap { grid-template-columns: 1fr; }
+      #cvSpecVert { height: 200px; }
+      .comp-row { grid-template-columns: 24px 1fr 1fr; row-gap: 0.4rem; }
+      .comp-row .comp-del { grid-column: 3; justify-self: end; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon"><svg class="sim-ico sim-ico-lg sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg></span> Gerçek Zamanlı STFT <span class="title-icon">⇄</span>
+    </h1>
+    <p class="site-subtitle">Pencere fonksiyonu &amp; overlap kontrollü canlı STFT — $X[m,k] = \sum_{n=0}^{N-1} x[mH+n]\, w[n]\, e^{-j 2\pi kn/N}$</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o active" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <!-- ÜST: Kontroller + Pencere şekli + Anlık spektrum -->
+  <div class="sp2-top">
+    <!-- Kontroller -->
+    <div class="sp2-controls glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> STFT Parametreleri</h3>
+
+      <div class="sp2-row-2">
+        <div class="control-group">
+          <label>FFT Boyutu (N)</label>
+          <select id="fftSize2">
+            <option value="256">256</option>
+            <option value="512">512</option>
+            <option value="1024">1024</option>
+            <option value="2048" selected>2048</option>
+            <option value="4096">4096</option>
+            <option value="8192">8192</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Pencere Fonksiyonu</label>
+          <select id="windowType">
+            <option value="hann">Hann (∼cos²)</option>
+            <option value="hamming">Hamming (0.54/0.46)</option>
+            <option value="blackman" selected>Blackman (3-terim)</option>
+            <option value="blackmanHarris">Blackman-Harris (4-terim, -92 dB)</option>
+            <option value="nuttall">Nuttall (4-terim, sürekli)</option>
+            <option value="flatTop">Flat-top (5-terim, genlik doğrulamada)</option>
+            <option value="tukey">Tukey (cosine-tapered, α=0.5)</option>
+            <option value="rectangular">Rectangular (yok — referans)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sp2-row-2">
+        <div class="control-group">
+          <label>Overlap (örtüşme): <span id="overlapVal" class="val-display">50%</span></label>
+          <input type="range" id="overlap" min="0" max="90" step="5" value="50" />
+        </div>
+        <div class="control-group">
+          <label>Frekans Ekseni</label>
+          <select id="freqScale2">
+            <option value="log">Logaritmik</option>
+            <option value="linear" selected>Lineer</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Frekans Aralığı (Hz): <span id="freqRangeVal" class="val-display">100 — 15000</span></label>
+        <div class="freq-range-row">
+          <input type="number" id="minFreqInput" min="0" max="24000" step="10" value="100" />
+          <span class="freq-range-sep">—</span>
+          <input type="number" id="maxFreqInput" min="100" max="24000" step="100" value="15000" />
+          <button type="button" id="freqPresetBtn" class="freq-preset-btn" title="Hazır aralıklar">⚙</button>
+          <div id="freqPresetMenu" class="freq-preset-menu" style="display:none;">
+            <button type="button" data-min="20" data-max="20000">20 Hz – 20 kHz (tümü)</button>
+            <button type="button" data-min="80" data-max="1100">80 – 1100 Hz (bas)</button>
+            <button type="button" data-min="200" data-max="3500">200 – 3500 Hz (konuşma)</button>
+            <button type="button" data-min="200" data-max="15000">200 Hz – 15 kHz (müzik)</button>
+            <button type="button" data-min="500" data-max="8000">500 Hz – 8 kHz</button>
+            <button type="button" data-min="1000" data-max="5000">1 – 5 kHz (telefon)</button>
+            <button type="button" data-min="2000" data-max="20000">2 – 20 kHz (tiz)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sp2-row-2">
+        <div class="control-group">
+          <label>Waterfall Paleti</label>
+          <select id="palette2">
+            <option value="inferno" selected>Inferno (sıcak)</option>
+            <option value="viridis">Viridis</option>
+            <option value="plasma">Plasma</option>
+            <option value="magma">Magma</option>
+            <option value="jet">Jet (klasik)</option>
+            <option value="turbo">Turbo (geliştirilmiş jet)</option>
+            <option value="grayscale">Gri Tonu</option>
+            <option value="cyber">Cyber Neon</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Anlık Spektrum Rengi</label>
+          <select id="liveColor">
+            <option value="auto" selected>Otomatik (paletten)</option>
+            <option value="green">🟢 Neon Yeşil</option>
+            <option value="cyan">🔷 Cyan</option>
+            <option value="orange">🟠 Turuncu</option>
+            <option value="magenta">🌸 Magenta</option>
+            <option value="gold">🟡 Altın</option>
+            <option value="red">🔴 Kırmızı</option>
+            <option value="white">⚪ Beyaz</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sp2-row-2">
+        <div class="control-group">
+          <label>Min dB: <span id="minDb2Val" class="val-display">-100</span></label>
+          <input type="range" id="minDb2" min="-130" max="-40" step="2" value="-100" />
+        </div>
+        <div class="control-group">
+          <label>Max dB: <span id="maxDb2Val" class="val-display">-10</span></label>
+          <input type="range" id="maxDb2" min="-60" max="20" step="2" value="-10" />
+        </div>
+      </div>
+
+      <div class="sp2-row-2">
+        <div class="control-group">
+          <label>Yumuşatma (zaman): <span id="smoothing2Val" class="val-display">0.0</span></label>
+          <input type="range" id="smoothing2" min="0" max="0.9" step="0.05" value="0.0" />
+        </div>
+        <div class="control-group">
+          <label>Hop: <span id="hopVal" class="val-display">1024</span> n</label>
+          <input type="range" id="hopInfo" min="0" max="0" disabled />
+        </div>
+      </div>
+    </div>
+
+    <!-- Sağ panel: Pencere şekli + Anlık spektrum -->
+    <div class="sp2-side-panel glass-panel">
+      <div>
+        <div class="win-panel-header">
+          <div class="panel-sub-title" style="margin:0;"><span class="signal-dot" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span> Pencere Şekli w[n] &amp; |W(f)|</div>
+          <div class="win-scale-toggle">
+            <button type="button" id="winScaleDb" class="active">dB</button>
+            <button type="button" id="winScaleLin">Lineer</button>
+          </div>
+        </div>
+        <canvas id="cvWindow"></canvas>
+        <div class="sp2-win-info" id="winInfo">
+          <span class="k">Ana lob genişliği:</span> <span class="v" id="mainLobeBins">—</span> bin
+          &nbsp;&nbsp; <span class="k">Yan lob:</span> <span class="v" id="sideLobeDb">—</span> dB
+          &nbsp;&nbsp; <span class="k">Etkin gürültü BW:</span> <span class="v" id="enbw">—</span>
+        </div>
+      </div>
+      <div>
+        <div class="panel-sub-title"><span class="signal-dot" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span> Anlık Spektrum |X(f)| dB</div>
+        <canvas id="cvLive2"></canvas>
+        <div class="palette-legend2">
+          <span id="minDbLabel">-100 dB</span>
+          <div class="palette-bar2" id="paletteBar2"></div>
+          <span id="maxDbLabel">-10 dB</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="sp2-main-wrap">
+    <div class="sp2-toolbar glass-panel">
+      <button class="sp2-btn mic" id="btnMic2">🎤 Mikrofon</button>
+      <label class="sp2-btn file">
+        📁 MP3/WAV Yükle
+        <input type="file" id="fileInput2" accept="audio/*,.mp3,.wav,.ogg,.m4a" />
+      </label>
+
+      <select id="presetSelect2" class="sp2-preset-select" title="Sentetik ses örneği">
+        <option value="">🔬 Örnek Sinyal Seç…</option>
+        <optgroup label="Saf Tonlar">
+          <option value="sine440">🎵 Saf Ton (440 Hz)</option>
+          <option value="doubleTone">✌️ İki Ton (440 + 554 Hz)</option>
+          <option value="closeTones">🔍 Yakın Tonlar (1000 + 1020 Hz)</option>
+        </optgroup>
+        <optgroup label="Zamanla Değişen">
+          <option value="chirpUp">📈 Frekans Tarama (200→4000 Hz)</option>
+          <option value="vibrato">🌊 Vibrato (440 ± 30 Hz)</option>
+          <option value="birdChirp">🐦 Kuş Çığlığı (chirp paketleri)</option>
+        </optgroup>
+        <optgroup label="Armonik / Zengin">
+          <option value="square220">🎺 Kare Dalga (220 Hz)</option>
+          <option value="saw330">🎻 Testere Dişi (330 Hz)</option>
+          <option value="harmonicStack">🎼 Harmonik Yığın (220 Hz × 8)</option>
+          <option value="fmTone">🎛️ FM Sentez (660 × 110 Hz)</option>
+        </optgroup>
+        <optgroup label="Konuşma / Telefon">
+          <option value="vowelA">🗣️ Ünlü "A" (formant)</option>
+          <option value="dtmf1">📞 DTMF "1" (697 + 1209 Hz)</option>
+        </optgroup>
+        <optgroup label="Gürültü">
+          <option value="whiteNoise">❄️ Beyaz Gürültü</option>
+          <option value="pinkNoise">🌧️ Pembe Gürültü (1/f)</option>
+        </optgroup>
+      </select>
+
+      <button class="sp2-btn pause" id="btnPause2" disabled>⏸ Duraklat</button>
+      <button class="sp2-btn stop" id="btnStop2" disabled>■ Durdur</button>
+
+      <span class="sp2-status" id="status2">Hazır — bir kaynak seçin</span>
+
+      <div class="sp2-volume" title="Çıkış Ses Seviyesi">
+        <span class="sp2-volume-icon">🔊</span>
+        <input type="range" id="outVol2" min="0" max="100" step="1" value="100" />
+        <span class="sp2-volume-val" id="outVolVal">100%</span>
+      </div>
+    </div>
+
+    <!-- ÖZEL SİNYAL OLUŞTURUCU -->
+    <div class="custom-builder glass-panel">
+      <div class="custom-header">
+        <h3 class="panel-title" style="margin:0;"><span class="signal-dot" style="background:var(--color-y);box-shadow:0 0 8px var(--color-y);"></span> Özel Sinyal Oluşturucu &nbsp;<span style="font-family:'Fira Code',monospace;color:var(--text-dim);font-size:0.78rem;">x(t) = Σ aᵢ·sin(2π·fᵢ·t + φᵢ)</span></h3>
+        <div class="custom-actions">
+          <select id="customPresetSelect" title="Hazır kombinasyonlar">
+            <option value="">📐 Hazır Kombinasyon Seç…</option>
+            <optgroup label="Pencere testleri">
+              <option value="closeRes">🔍 Yakın 2-tonlu (1000 + 1020 Hz)</option>
+              <option value="triClose">🔍🔍 3-tonlu yakın (1000 + 1015 + 1040 Hz)</option>
+              <option value="dynRange"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> Dinamik aralık (1000 @0dB + 1100 @-60dB)</option>
+              <option value="dynRange2"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> Geniş dinamik (1k @0 + 1.5k @-40 + 3k @-80)</option>
+              <option value="offBin">📌 Off-bin scalloping (1023.456 Hz)</option>
+            </optgroup>
+            <optgroup label="DTMF (telefon tuşları)">
+              <option value="dtmf1">📞 "1" (697 + 1209)</option>
+              <option value="dtmf5">📞 "5" (770 + 1336)</option>
+              <option value="dtmf9">📞 "9" (852 + 1477)</option>
+              <option value="dtmf0">📞 "0" (941 + 1336)</option>
+              <option value="dtmfStar">📞 "*" (941 + 1209)</option>
+            </optgroup>
+            <optgroup label="Müzik">
+              <option value="cmajor">🎵 C-majör akor (C-E-G)</option>
+              <option value="aminor">🎵 A-minör akor (A-C-E)</option>
+              <option value="octaveStack">🎼 Oktav yığını (1k → 8k)</option>
+              <option value="harmonic">🎺 Harmonik seri (220 × 1..6)</option>
+            </optgroup>
+            <optgroup label="Faz deneyleri">
+              <option value="cancel">⊖ İptal eden 2 ton (440 + 440, φ=180°)</option>
+              <option value="quadrature">⊕ Quadrature (440 cos + 440 sin)</option>
+              <option value="beat">🌊 Vuru (440 + 442 Hz)</option>
+            </optgroup>
+          </select>
+          <button type="button" id="customAddBtn" class="btn-add">+ Bileşen</button>
+          <button type="button" id="customClearBtn" class="btn-clear">Temizle</button>
+          <button type="button" id="customPlayBtn" class="btn-play">▶ Çal / Yenile</button>
+        </div>
+      </div>
+      <div class="custom-components" id="customComponents"></div>
+      <div class="custom-note">
+        <span class="k">💡</span> Çalarken <strong>genlik</strong> ve <strong>frekans</strong> değişikliği <em>kayarak</em> uygulanır (clicksiz);
+        <strong>faz</strong> veya bileşen ekle/sil değişiklikleri "▶ Çal/Yenile" ile uygulanır.
+        Faz aynı frekansta iki bileşeniniz varsa anlamlıdır (girişim/iptal).
+      </div>
+    </div>
+
+    <!-- 2D Waterfall + dikey canlı spektrum -->
+    <div class="glass-panel sp2-waterfall-wrap">
+      <canvas id="cvWaterfall"></canvas>
+      <canvas id="cvSpecVert"></canvas>
+    </div>
+  </div>
+
+  <!-- TEORİ -->
+  <div class="edu-card glass-panel">
+    <h2>🧮 Pencereleme, Overlap ve STFT — Mühendislik Bakışı</h2>
+
+    <p>
+      Klasik DFT, $X[k] = \sum_{n=0}^{N-1} x[n]\, e^{-j 2\pi kn/N}$ tanımıyla sonsuz uzunluklu ve durağan bir sinyali varsaymaktadır. Gerçek dünya sinyalleri (konuşma, müzik, titreşim, radar yansıması) ise <strong>zamanla değişen</strong> özellikler taşımaktadır. Bu durumun üstesinden gelmek üzere sinyal kısa pencerelere bölünür ve her pencerenin DFT'si ayrı ayrı hesaplanır; bu işlem <strong>Kısa Zamanlı Fourier Dönüşümü (STFT)</strong> olarak adlandırılmaktadır:
+      $$\boxed{\, X[m, k] \;=\; \sum_{n=0}^{N-1} x[mH + n]\, w[n]\, e^{-j 2\pi kn/N} \,}.$$
+    </p>
+    <ul>
+      <li><strong>$N$:</strong> FFT uzunluğu; frekans çözünürlüğü $\Delta f = f_s/N$ olarak belirlenmektedir.</li>
+      <li><strong>$H$:</strong> ardışık pencereler arasındaki sıçrama (hop) miktarı; $H = N\,(1-\text{örtüşme oranı})$ örnek değerine eşittir.</li>
+      <li><strong>$w[n]$:</strong> pencere fonksiyonu; çerçeve kenarlarındaki süreksizlikleri yumuşatma amacıyla uygulanır.</li>
+    </ul>
+
+    <h3>1. Pencerelemeye Duyulan İhtiyaç</h3>
+    <p>
+      Bir sinyalin dikdörtgen pencere ile kesilmesi, frekans düzleminde $\mathrm{sinc}$ fonksiyonu ile <strong>konvolüsyon</strong> işlemine karşılık gelmektedir. $\mathrm{sinc}$'in yan lobları yalnızca −13 dB seviyesinde olduğundan, gerçek tonun çevresinde belirgin bir <strong>spektral sızıntı</strong> oluşmaktadır. Pencere fonksiyonları bu sızıntıyı bastırma amacı taşımakta; karşılığında ana lob genişliğinde artış (dolayısıyla frekans çözünürlüğünde azalma) gözlenmektedir.
+    </p>
+
+    <h3>2. Pencere Fonksiyonları — Karşılaştırma</h3>
+    <table class="win-table">
+      <thead>
+        <tr><th>Pencere</th><th>Ana lob (bin)</th><th>Yan lob (dB)</th><th>Yan lob düşüş</th><th>Kullanım</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="win-name">Rectangular</td><td>0.89</td><td>-13</td><td>-6 dB/oct</td><td>referans (kötü)</td></tr>
+        <tr><td class="win-name">Hann</td><td>1.44</td><td>-31</td><td>-18 dB/oct</td><td>genel amaç, ses</td></tr>
+        <tr><td class="win-name">Hamming</td><td>1.30</td><td>-43</td><td>-6 dB/oct</td><td>konuşma, MFCC</td></tr>
+        <tr><td class="win-name">Blackman</td><td>1.68</td><td>-58</td><td>-18 dB/oct</td><td>düşük sızıntı</td></tr>
+        <tr><td class="win-name">Blackman-Harris</td><td>1.90</td><td>-92</td><td>-6 dB/oct</td><td>çok düşük yan lob</td></tr>
+        <tr><td class="win-name">Nuttall</td><td>1.98</td><td>-98</td><td>-18 dB/oct</td><td>sürekli türev, hassas</td></tr>
+        <tr><td class="win-name">Flat-top</td><td>3.86</td><td>-93</td><td>-6 dB/oct</td><td>genlik kalibrasyonu</td></tr>
+        <tr><td class="win-name">Tukey (α=0.5)</td><td>1.15</td><td>-15</td><td>—</td><td>transient analiz</td></tr>
+      </tbody>
+    </table>
+
+    <h3>3. Örtüşme (Overlap) Oranının Önemi</h3>
+    <p>
+      Pencere fonksiyonu uçlara doğru sıfıra yaklaşmakta ve bu bölgelerdeki sinyal bilgisi etkin biçimde bastırılmaktadır. <strong>Örtüşme</strong>, ardışık pencerelerin birbirini kısmen kaplamasını sağlamakta; böylece her örnek birden fazla pencerede ağırlıklı olarak temsil edilmektedir. <em>Sabit Örtüşme Toplamı</em> (Constant OverLap Add, COLA) koşulu sağlandığında sinyalin tam olarak yeniden inşa edilmesi mümkün olmaktadır.
+    </p>
+    <ul>
+      <li><strong>%0 örtüşme</strong> ($H=N$): işlem hızlı olmakla birlikte pencere uçlarında bilgi kaybı oluşur ve COLA sağlanmaz.</li>
+      <li><strong>%50 örtüşme</strong> ($H=N/2$): Hann penceresi için COLA koşulu sağlanır ve birçok uygulama için yeterli görülmektedir.</li>
+      <li><strong>%75 örtüşme</strong> ($H=N/4$): daha yumuşak bir akış sağlar; Blackman tipi pencerelerle uyumludur.</li>
+      <li><strong>%87.5 örtüşme</strong> ($H=N/8$): yüksek zaman çözünürlüğü elde edilir; makine öğrenmesi ve ses sentezi uygulamalarında tercih edilmektedir.</li>
+    </ul>
+
+    <h3>4. Heisenberg Tipi Belirsizlik İlkesi</h3>
+    <p>
+      $\Delta t \cdot \Delta f \geq 1/(4\pi)$ eşitsizliği uyarınca zaman ve frekans çözünürlükleri eş zamanlı olarak iyileştirilememektedir. FFT uzunluğu $N$'in artırılması frekans çözünürlüğünü iyileştirirken ($\Delta f = f_s/N$), zaman çözünürlüğünü kötüleştirir ($\Delta t = N/f_s$). Örtüşme oranı zaman ekseninde görsel akıcılığı artırmakta; ancak gerçek zaman çözünürlüğüne katkı sağlamamakta, yalnızca <strong>örnekleme yoğunluğunu</strong> yükseltmektedir.
+    </p>
+
+    <h3>5. Bu Sayfadaki Görselleştirme</h3>
+    <ul>
+      <li><strong>Soldaki büyük tuval:</strong> iki boyutlu spektrum akışı (waterfall); yeni dilim sağ kenardan oluşur ve sola doğru akar (zaman ekseni ◀).</li>
+      <li><strong>Düşey eksen:</strong> frekans (logaritmik veya doğrusal ölçekte).</li>
+      <li><strong>Renk:</strong> dB ölçeğinde $|X[m,k]|$; renk paleti üst panelde gösterilir.</li>
+      <li><strong>Sağdaki dar tuval:</strong> en son dilime ait dik spektrum çubuğu (yatay eksende dB, düşey eksende frekans; soldaki büyük tuvalle hizalı).</li>
+      <li><strong>Üst kısım:</strong> pencerenin zaman düzlemindeki şekli $w[n]$ ve frekans yanıtı $|W(f)|$; pencere değişikliği yapıldığında ana lob ve yan lob seviyeleri eş zamanlı olarak güncellenmektedir.</li>
+    </ul>
+
+    <h3>📍 Uygulama Önerileri</h3>
+    <ul>
+      <li><strong>Konuşma analizi:</strong> MFCC çıkarımında Hamming penceresi ve %50 örtüşme standart bir yapılandırma olarak kullanılmaktadır.</li>
+      <li><strong>Müzik analizi:</strong> Hann penceresi ve %75 örtüşme yumuşak bir spektrogram akışı sağlamaktadır.</li>
+      <li><strong>Ölçüm uygulamaları:</strong> sinüzoidal tepelerin gerçek genlik değerlerinin okunabilmesi için Flat-top penceresi (genlik kalibrasyonu) tercih edilmektedir.</li>
+      <li><strong>Frekans ayrımı:</strong> birbirine yakın iki ton (örneğin 1000 Hz ve 1020 Hz) Hann ile birbirine karışırken Blackman-Harris ile ayrıştırılabilmektedir (ana lob–yan lob ödünleşimi).</li>
+      <li><strong>Düşük SNR:</strong> yan lob bastırma kritik öneme sahipse Nuttall ya da Blackman-Harris pencereleri önerilir.</li>
+    </ul>
+
+    <h3>🧠 Önerilen Deney</h3>
+    <p>
+      "Yakın Tonlar (1000 + 1020 Hz)" hazır ayarı (preset) seçildiğinde <strong>Rectangular</strong> pencere ile spektrumda tek bir geniş tepe gözlenir (iki ton ayırt edilememektedir). <strong>Hann</strong> penceresine geçildiğinde iki ayrı tepe görünmekte, ancak yan loblar belirginleşmektedir. <strong>Blackman-Harris</strong> penceresi temiz biçimde iki ayrı tepe vermektedir. Son olarak <strong>Flat-top</strong> penceresine geçildiğinde ana lob genişlemekte; buna karşılık tepe genlikleri kalibre edilmiş biçimde okunabilmektedir.
+    </p>
+
+    <h3>📞 DTMF (Dual-Tone Multi-Frequency) Tuş Kodları</h3>
+    <p>
+      Telefonda her tuşa bastığınızda <strong>aynı anda iki saf sinüs</strong> üretilir: biri "satır" frekansı (697–941 Hz),
+      diğeri "sütun" frekansı (1209–1633 Hz). İki ton özellikle <em>harmoniği olmayacak</em> şekilde seçilmiştir —
+      ses telleri, müzik, gürültü ile karıştırılamaz. Aşağıdaki tabloya tıklayıp "Özel Sinyal Oluşturucu"ya bileşen ekleyebilir,
+      farklı pencerelerle bu iki tonun nasıl ayrıştığını izleyebilirsiniz.
+    </p>
+    <table class="dtmf-table" id="dtmfTable">
+      <thead>
+        <tr>
+          <th>↓ satır / sütun →</th>
+          <th>1209 Hz</th>
+          <th>1336 Hz</th>
+          <th>1477 Hz</th>
+          <th>1633 Hz</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th>697 Hz</th>
+          <td data-row="697" data-col="1209" data-label="1">1</td>
+          <td data-row="697" data-col="1336" data-label="2">2</td>
+          <td data-row="697" data-col="1477" data-label="3">3</td>
+          <td data-row="697" data-col="1633" data-label="A">A</td>
+        </tr>
+        <tr>
+          <th>770 Hz</th>
+          <td data-row="770" data-col="1209" data-label="4">4</td>
+          <td data-row="770" data-col="1336" data-label="5">5</td>
+          <td data-row="770" data-col="1477" data-label="6">6</td>
+          <td data-row="770" data-col="1633" data-label="B">B</td>
+        </tr>
+        <tr>
+          <th>852 Hz</th>
+          <td data-row="852" data-col="1209" data-label="7">7</td>
+          <td data-row="852" data-col="1336" data-label="8">8</td>
+          <td data-row="852" data-col="1477" data-label="9">9</td>
+          <td data-row="852" data-col="1633" data-label="C">C</td>
+        </tr>
+        <tr>
+          <th>941 Hz</th>
+          <td data-row="941" data-col="1209" data-label="*">*</td>
+          <td data-row="941" data-col="1336" data-label="0">0</td>
+          <td data-row="941" data-col="1477" data-label="#">#</td>
+          <td data-row="941" data-col="1633" data-label="D">D</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="dtmf-hint">
+      💡 Bir tuşa <strong>tıklayın</strong> → Özel Sinyal Oluşturucu'ya o tuşun iki tonu eklenir.
+      Sonra "▶ Çal / Yenile" ile dinleyip izleyin. Tonların ayrımı için <code>FFT ≥ 2048</code> ve
+      <code>Hann/Blackman</code> önerilir; iki tepenin de en az 80 dB SNR ile görünmesi gerekir
+      (yan loblar arasında kaybolmamalı).
+    </div>
+
+    <h3>🧪 Özel Sinyal Oluşturucu ile Pencere Deneyleri</h3>
+    <ul>
+      <li><strong>Dinamik aralık:</strong> 1000 Hz @ 0 dB + 1100 Hz @ -60 dB ekle. <em>Rectangular</em>'da
+        zayıf ton (1100) güçlünün yan lobları içinde kaybolur. <em>Blackman-Harris</em>'e geç → ortaya çıkar.</li>
+      <li><strong>3-tonlu çözünürlük:</strong> 1000, 1015, 1040 Hz hepsi 0 dB. Sadece <em>Blackman-Harris</em>
+        veya <em>Nuttall</em> üç ayrı tepe gösterir. Diğerleri birleşik bir hörgüç verir.</li>
+      <li><strong>Off-bin scalloping:</strong> Tek bileşen, frekansı bir bin merkezinde olmayacak şekilde
+        ayarla (örn. 1023.456 Hz). <em>Hann</em>'da tepe biraz düşük okunur; <em>Flat-top</em>'a geçince
+        tepe genliği "doğru" yere oturur.</li>
+      <li><strong>Faz iptali:</strong> 440 Hz @ 0 dB, φ=0° ve 440 Hz @ 0 dB, φ=180° ekle. Spektrum
+        neredeyse boş olmalı (ses gücü ≈ 0). φ'yi 90° yapınca güç geri gelir.</li>
+      <li><strong>Vuru (beating):</strong> 440 + 442 Hz iki bileşen → kulağa 2 Hz amplitüd modülasyonu
+        gelir; spektrumda iki yakın tepe. <em>FFT</em>'yi 8192'ye çıkarınca ayrımı görürsünüz.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer">Sinyal İşleme Eğitim Simülasyonu — 2D Spektrum Akışı (Pencere &amp; Overlap)</footer>
+
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/spectrogram2.js"></script>
+
+  <!-- spmi-privacy-note -->
+  <div class="privacy-note" style="max-width:900px;margin:1.2rem auto 1.6rem;padding:0.85rem 1.2rem;border:1px dashed rgba(120,140,200,0.35);border-radius:8px;font-family:'Saira',sans-serif;font-size:0.78rem;line-height:1.6;color:var(--text-secondary,#9aa3bf);text-align:center;position:relative;z-index:2;background:rgba(20,25,45,0.25);">
+    🔒 <strong>TR:</strong> Yüklediğiniz tüm dosyalar (ses, görüntü vb.) yalnızca tarayıcınızda işlenir; hiçbir sunucuya gönderilmez ve kaydedilmez.
+    <br/>
+    🔒 <strong>EN:</strong> All files you upload (audio, image, etc.) are processed only in your browser; nothing is sent to or stored on any server.
+  </div>
+</body>
+</html>

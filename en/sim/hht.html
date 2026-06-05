@@ -1,0 +1,569 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hilbert-Huang Transform (HHT/EMD)</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* === HHT page-specific layout === */
+
+    /* TOP ROW — 3 control panels */
+    .hht-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.7rem;
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+
+    /* MIDDLE — wide EMD graphs */
+    .hht-graphs {
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.7rem;
+    }
+    .hht-graphs .graph-container { padding: 0.6rem; }
+    .hht-graphs canvas {
+      width: 100%;
+      border-radius: var(--radius-sm);
+      background: var(--canvas-bg);
+      display: block;
+    }
+    #cvStack  { height: 520px; }
+    #cvRecon  { height: 220px; }
+    #cvSourceWave { width: 100%; height: 100px; border-radius: var(--radius-sm); background: var(--canvas-bg); display:block; }
+
+    /* Component list */
+    .comp-list {
+      display: flex; flex-direction: column; gap: 0.25rem;
+      margin: 0.4rem 0 0.5rem;
+      max-height: 130px; overflow-y: auto;
+    }
+    .comp-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.32rem 0.55rem;
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      background: rgba(120,140,200,0.06);
+      font-family: 'Consolas', monospace; font-size: 0.74rem;
+      color: var(--text-primary);
+    }
+    .comp-item .rm {
+      cursor: pointer; color: #ff5577;
+      font-weight: bold; padding-left: 0.6rem;
+      user-select: none;
+    }
+    .comp-item .rm:hover { color: #ff8aa0; }
+
+    /* File / microphone */
+    .file-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.4rem; }
+    .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
+    .file-input-wrapper input[type=file] { position: absolute; left:0; top:0; opacity:0; width:100%; height:100%; cursor:pointer; }
+    .file-label {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.4rem 0.8rem;
+      border:1px solid var(--accent-1); color:var(--accent-1);
+      background:rgba(57,255,133,0.05); border-radius:var(--radius-sm);
+      cursor:pointer; display:inline-block; transition:all var(--transition);
+    }
+    .file-label:hover { background:rgba(57,255,133,0.15); }
+    .mic-btn {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.4rem 0.8rem;
+      border:1px solid var(--color-marker); color:var(--color-marker);
+      background:rgba(255,79,154,0.05); border-radius:var(--radius-sm); cursor:pointer;
+      transition:all var(--transition);
+    }
+    .mic-btn:hover { background:rgba(255,79,154,0.15); }
+    .mic-btn.recording { background:rgba(255,79,154,0.3); animation:micP 1s ease-in-out infinite; }
+    @keyframes micP { 0%,100%{box-shadow:0 0 8px rgba(255,79,154,0.3);} 50%{box-shadow:0 0 20px rgba(255,79,154,0.6);} }
+
+    .status-msg { font-family:'Consolas',monospace; font-size:0.72rem; color:var(--accent-2); padding:0.2rem 0; }
+    .status-msg.ok { color:var(--accent-1); } .status-msg.err { color:#ff5577; }
+
+    .sr-row { display: flex; align-items: center; gap: 0.4rem; margin: 0.4rem 0; }
+    .sr-row label { font-size: 0.74rem; color: var(--text-secondary); white-space: nowrap; }
+    .sr-row select { flex: 1; }
+
+    /* Play buttons */
+    .play-row { display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.5rem; }
+    .pbtn {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.38rem 0.75rem;
+      border-radius:var(--radius-sm); cursor:pointer; border:1px solid; transition:all var(--transition);
+    }
+    .pbtn:disabled { opacity:0.3; cursor:not-allowed; }
+    .pbtn.orig  { border-color:var(--color-x); color:var(--color-x); background:rgba(57,255,133,0.05); }
+    .pbtn.orig:hover  { background:rgba(57,255,133,0.15); }
+    .pbtn.recon { border-color:var(--color-y); color:var(--color-y); background:rgba(123,140,255,0.05); }
+    .pbtn.recon:hover { background:rgba(123,140,255,0.15); }
+    .pbtn.stop  { border-color:#ff5577; color:#ff5577; background:rgba(255,85,119,0.05); }
+    .pbtn.dl    { border-color:var(--color-y); color:var(--color-y); background:rgba(123,140,255,0.05); }
+
+    /* "Use This Signal" main buttons */
+    .use-btn {
+      font-family:'Consolas',monospace; font-size:0.78rem; padding:0.45rem 0.9rem;
+      border-radius:var(--radius-sm); cursor:pointer;
+      border:1px solid var(--accent-2); color:var(--accent-2);
+      background:rgba(255,140,66,0.07);
+      transition:all var(--transition);
+      margin-top: 0.4rem;
+    }
+    .use-btn:hover { background:rgba(255,140,66,0.18); box-shadow: 0 0 10px rgba(255,140,66,0.18); }
+    .use-btn:disabled { opacity:0.3; cursor:not-allowed; }
+
+    /* Statistics table */
+    .stats-grid {
+      display:grid; grid-template-columns:auto 1fr; gap:0.15rem 0.6rem;
+      font-family:'Consolas',monospace; font-size:0.78rem; margin-top:0.5rem;
+    }
+    .stats-grid .lbl { color:var(--text-secondary); }
+    .stats-grid .val { color:var(--accent-1); font-weight:500; }
+
+    .help-text { font-size:0.7rem; color:var(--text-dim); line-height:1.5; margin-top:0.3rem; }
+
+    /* Modal — drawing window */
+    .draw-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 200;
+    }
+    .draw-modal.active { display: flex; }
+    .draw-modal-content {
+      width: min(92vw, 900px);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow-strong);
+      border-radius: var(--radius);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      padding: 1.2rem 1.4rem;
+      box-shadow: 0 0 40px rgba(100, 160, 255, 0.18);
+    }
+    .draw-modal h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-size: 0.95rem; font-weight: 700;
+      color: var(--accent-2);
+      margin-bottom: 0.6rem;
+    }
+    #cvDraw {
+      width: 100%; height: 280px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      cursor: crosshair;
+      display: block;
+      touch-action: none;
+    }
+    .draw-modal .actions {
+      display: flex; gap: 0.4rem; justify-content: flex-end;
+      margin-top: 0.8rem; flex-wrap: wrap;
+    }
+    .glass-btn-sm {
+      font-family:'Consolas',monospace; font-size:0.74rem;
+      padding:0.38rem 0.85rem;
+      border:1px solid var(--border-glow);
+      background: rgba(120,140,200,0.05);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .glass-btn-sm:hover { border-color: var(--accent-1); color: var(--accent-1); }
+    .glass-btn-sm.primary { border-color: var(--accent-2); color: var(--accent-2); }
+    .glass-btn-sm.primary:hover { background: rgba(255,140,66,0.15); }
+    .glass-btn-sm.danger { border-color: #ff5577; color: #ff5577; }
+    .glass-btn-sm.danger:hover { background: rgba(255,85,119,0.1); }
+
+    /* Theory section */
+    .theory-card {
+      max-width: 1500px; margin: 1rem auto;
+      padding: 1.5rem 2rem;
+      position: relative; z-index: 2;
+    }
+    .theory-card h2 {
+      font-family:'Saira Condensed',sans-serif;
+      font-size:1rem; font-weight:700; margin-bottom:0.8rem;
+      background:linear-gradient(90deg,var(--accent-1),var(--color-y));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .theory-card h3 {
+      font-family:'Saira Condensed',sans-serif;
+      font-size:0.78rem; font-weight:700; letter-spacing:0.06em;
+      margin-top:1rem; margin-bottom:0.4rem;
+      color: var(--accent-2);
+    }
+    .theory-card p {
+      font-size:0.84rem; line-height:1.7; color:var(--text-secondary);
+      margin-bottom: 0.8rem;
+    }
+    .theory-card strong { color: var(--text-primary); }
+    .theory-card em { color: var(--accent-2); font-style: normal; }
+    .theory-card ul {
+      font-size: 0.82rem; line-height: 1.7;
+      color: var(--text-secondary);
+      margin-left: 1.2rem; margin-bottom: 0.8rem;
+    }
+    .theory-card li { margin-bottom: 0.3rem; }
+    .theory-card .ref-list { list-style: none; margin-left: 0; font-family: 'Consolas', monospace; font-size: 0.74rem; color: var(--text-dim); }
+    .theory-card .ref-list li { padding: 0.25rem 0; border-bottom: 1px dashed var(--border-glow); }
+    .theory-card .ref-list li:last-child { border-bottom: none; }
+    .theory-card .ref-list a { color: var(--color-y); text-decoration: none; }
+    .theory-card .ref-list a:hover { color: var(--accent-1); text-decoration: underline; }
+
+    .num-input-sm {
+      width: 70px;
+      font-family:'Consolas',monospace; font-size:0.78rem;
+      padding: 0.35rem 0.5rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+    }
+    .num-input-sm:focus { outline: none; border-color: var(--accent-1); }
+
+    @media(max-width:1100px) {
+      .hht-controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">ℋ</span> Hilbert-Huang Transform (HHT/EMD) <span class="title-icon">∗</span>
+    </h1>
+    <p class="site-subtitle">Empirical Mode Decomposition — Adaptive Signal Decomposition</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Series</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o active" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <!-- TOP ROW — 3 panels -->
+  <div class="hht-controls">
+
+    <!-- Panel 1: Synthetic Signal -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span> Synthetic Signal — Add Component</h3>
+
+      <div class="control-group">
+        <label>Signal Type:</label>
+        <select id="compType" class="glass-select">
+          <option value="sine" selected>Sine</option>
+          <option value="square">Square Wave</option>
+          <option value="triangle">Triangle Wave</option>
+          <option value="sawtooth">Sawtooth</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Amplitude A: <span id="aVal" class="val-display">1.0</span></label>
+        <input type="range" id="aSlider" min="0.1" max="3" step="0.1" value="1" />
+      </div>
+      <div class="control-group">
+        <label>Frequency F (Hz): <span id="fVal" class="val-display">5</span></label>
+        <input type="range" id="fSlider" min="1" max="60" step="1" value="5" />
+      </div>
+      <div class="control-group">
+        <label>Phase φ (rad): <span id="phVal" class="val-display">0.00</span></label>
+        <input type="range" id="phSlider" min="0" max="6.28" step="0.05" value="0" />
+      </div>
+
+      <button class="glass-btn-sm primary" id="addComp" style="margin-top:0.3rem;">+ Add Component</button>
+
+      <div class="comp-list" id="compList"></div>
+
+      <button class="use-btn" id="useComposite">▶ Use This Signal (Run EMD)</button>
+
+      <div class="help-text">
+        <strong>Tip:</strong> To see the power of EMD, add <em>two sines on top of each other</em>
+        (e.g., 5 Hz + 30 Hz). When the list is empty, the "Use" button loads a default example.
+      </div>
+    </div>
+
+    <!-- Panel 2: Freehand Drawing -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span> Freehand Drawing</h3>
+
+      <div class="control-group">
+        <label>Duration (s): <span id="drawDurVal" class="val-display">2.0</span></label>
+        <input type="range" id="drawDurSlider" min="0.5" max="3" step="0.1" value="2" />
+      </div>
+      <div class="control-group">
+        <label>Sample Count: <span id="drawSampVal" class="val-display">1000</span></label>
+        <input type="range" id="drawSampSlider" min="200" max="2000" step="50" value="1000" />
+      </div>
+
+      <button class="use-btn" id="openDraw" style="margin-top:0.6rem;">✏️ Open Drawing Window</button>
+
+      <div class="status-msg" id="drawStatus" style="margin-top:0.5rem;">
+        Draw the signal with mouse/finger in the modal. The drawing linearly
+        interpolates gaps just like the Fourier page.
+      </div>
+
+      <div class="help-text" style="margin-top:0.4rem;">
+        What you draw is not a single wave; you can draw multiple "peaks" —
+        EMD will separate them into different IMFs.
+      </div>
+    </div>
+
+    <!-- Panel 3: Audio Source -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span> External Audio Recording</h3>
+
+      <div class="sr-row">
+        <label>Target Sample Rate:</label>
+        <select id="targetSR" class="glass-select">
+          <option value="2000">2 kHz (very fast)</option>
+          <option value="4000" selected>4 kHz</option>
+          <option value="8000">8 kHz (telephone)</option>
+          <option value="16000">16 kHz</option>
+        </select>
+      </div>
+
+      <div class="file-row">
+        <div class="file-input-wrapper">
+          <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a" />
+          <span class="file-label">📁 Upload File</span>
+        </div>
+        <button class="mic-btn" id="micBtn">🎤 Record</button>
+      </div>
+      <div class="status-msg" id="audioStatus">Upload a file or record 2-3 sec with the microphone</div>
+
+      <canvas id="cvSourceWave"></canvas>
+
+      <div class="control-group" style="margin-top:0.4rem;">
+        <label>Cut Start (s): <span id="cutStartVal" class="val-display">0.00</span></label>
+        <input type="range" id="cutStart" min="0" max="10" step="0.01" value="0" disabled />
+      </div>
+      <div class="control-group">
+        <label>Segment Length (s, max 3): <span id="cutLenVal" class="val-display">2.00</span></label>
+        <input type="range" id="cutLen" min="0.1" max="3" step="0.05" value="2" disabled />
+      </div>
+
+      <button class="use-btn" id="useAudio" disabled>▶ Use This Audio (Run EMD)</button>
+
+      <div class="help-text" style="margin-top:0.4rem;">
+        Since EMD is computationally intensive, max <strong>3 sec</strong> is recommended.
+        Lower sample rates run much faster.
+      </div>
+    </div>
+  </div>
+
+  <!-- MIDDLE — Stacked IMF Decomposition -->
+  <div class="hht-graphs">
+
+    <!-- Stacked IMF view -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#ffd23f;">IMF Stack — Original → IMF₁ → IMF₂ → … → Residual</span>
+        <span class="instant-value" id="stackInfo">—</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$x(t) = \sum_{i=1}^{M}\,\mathrm{IMF}_i(t) + r(t)$</span>
+        <span class="drag-hint">← use slider to reveal layers →</span>
+      </div>
+      <canvas id="cvStack"></canvas>
+    </div>
+
+    <!-- Control bar — EMD settings & playback (between IMF stack and reconstruction) -->
+    <div class="control-panel glass-panel" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.9rem;">
+      <div>
+        <h3 class="panel-title" style="margin-bottom:0.4rem;"><span class="signal-dot" style="background:#ffd23f;box-shadow:0 0 8px #ffd23f;"></span> EMD Settings</h3>
+        <div class="control-group" style="display:flex; align-items:center; gap:0.5rem;">
+          <label style="margin:0;">Max IMF:</label>
+          <input type="number" id="maxIMF" class="num-input-sm" min="1" max="15" value="6" />
+        </div>
+        <div class="control-group">
+          <label>Layer (Stack): <span id="layerVal" class="val-display">0</span></label>
+          <input type="range" id="layerSlider" min="0" max="7" step="1" value="0" />
+        </div>
+        <div class="help-text">Slide the slider → 0: original only, 1: +IMF₁, 2: +IMF₂…</div>
+      </div>
+
+      <div>
+        <h3 class="panel-title" style="margin-bottom:0.4rem;"><span class="signal-dot" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span> Reconstruction</h3>
+        <div class="control-group">
+          <label>IMFs Used K: <span id="reconKVal" class="val-display">0</span></label>
+          <input type="range" id="reconKSlider" min="0" max="7" step="1" value="0" />
+        </div>
+        <div class="play-row">
+          <button class="pbtn orig"  id="playOrig"  disabled>▶ Original</button>
+          <button class="pbtn recon" id="playRecon" disabled>▶ Reconstruction</button>
+          <button class="pbtn stop"  id="stopAll">■ Stop</button>
+          <button class="pbtn dl"    id="dlRecon"  disabled>💾 WAV</button>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="panel-title" style="margin-bottom:0.4rem;"><span class="signal-dot" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span> Statistics</h3>
+        <div class="stats-grid">
+          <span class="lbl">IMF count:</span><span class="val" id="statIMF">—</span>
+          <span class="lbl">Signal:</span><span class="val" id="statLen">—</span>
+          <span class="lbl">EMD time:</span><span class="val" id="statTime">—</span>
+          <span class="lbl">RMSE:</span><span class="val" id="statRMSE">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reconstruction -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#7b8cff;">Partial Reconstruction — original (faded) vs ∑ IMF + residual</span>
+        <span class="instant-value" id="reconInfo">—</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$\hat{x}_K(t) = r(t) + \sum_{i=1}^{K}\,\mathrm{IMF}_i(t)$</span>
+      </div>
+      <canvas id="cvRecon"></canvas>
+    </div>
+  </div>
+
+  <!-- THEORY -->
+  <div class="theory-card glass-panel">
+    <h2>Hilbert-Huang Transform &amp; Empirical Mode Decomposition</h2>
+
+    <h3>1. The Motivation for EMD</h3>
+    <p>
+      The <strong>Fourier transform</strong> represents a signal as a sum of sinusoidal basis functions of fixed frequency and presupposes that the signal is <em>linear and stationary</em>. The <strong>wavelet transform</strong> relaxes these assumptions but still requires a pre-selected basis function (e.g. Daubechies or Morlet). By contrast, <strong>Empirical Mode Decomposition (EMD)</strong> derives the basis directly from the data, without any predefined basis function. Owing to this property, EMD is specifically designed for <em>nonlinear and non-stationary</em> signals and decomposes a signal into its natural oscillation modes, referred to as <strong>Intrinsic Mode Functions (IMFs)</strong>.
+    </p>
+
+    <h3>2. IMF (Intrinsic Mode Function) Criteria</h3>
+    <p>According to Huang's 1998 definition, an IMF is required to satisfy the following two conditions:</p>
+    <ul>
+      <li><strong>Condition 1:</strong> the number of local extrema and the number of zero crossings must be equal or differ by at most one.</li>
+      <li><strong>Condition 2:</strong> at every instant, the mean of the upper envelope $e_{\max}(t)$ (interpolating the local maxima) and the lower envelope $e_{\min}(t)$ (interpolating the local minima) must be approximately zero: $\tfrac{e_{\max}(t) + e_{\min}(t)}{2} \approx 0$.</li>
+    </ul>
+    <p>Intuitively, an IMF represents an oscillatory "mode" of narrow bandwidth, characterised by well-defined instantaneous amplitude and instantaneous frequency.</p>
+
+    <h3>3. Sifting Algorithm (Sifting Process)</h3>
+    <p>EMD extracts all IMFs of the signal through the following iterative process:</p>
+    <ol style="margin-left:1.2rem; font-size:0.82rem; line-height:1.7; color:var(--text-secondary);">
+      <li>Start with $h_0(t) = x(t)$.</li>
+      <li>Find the local <strong>maxima</strong> and <strong>minima</strong>.</li>
+      <li>Construct the upper envelope $e_{\max}(t)$ via <em>cubic spline</em> through the maxima, and the lower envelope $e_{\min}(t)$ through the minima.</li>
+      <li>Subtract the mean: $h_1(t) = h_0(t) - \tfrac{1}{2}\bigl(e_{\max}(t) + e_{\min}(t)\bigr)$.</li>
+      <li>Does $h_1$ satisfy the IMF criteria? If yes, $\mathrm{IMF}_1 = h_1$. If not, set $h_0 \leftarrow h_1$ and go back to step 2.</li>
+      <li>Stopping criterion (Huang): <em>standard deviation</em>
+        $\mathrm{SD} = \sum_t \frac{|h_{k-1}(t) - h_k(t)|^2}{h_{k-1}(t)^2 + \epsilon}$
+        falls below a certain threshold (typically 0.2-0.3).</li>
+      <li>Compute the residual $r_1(t) = x(t) - \mathrm{IMF}_1$, set $x \leftarrow r_1$ and go back to step 1.</li>
+      <li>The process ends when the residual has fewer than 3 extrema (monotone or single wave).</li>
+    </ol>
+    <p>In the end, the decomposition $x(t) = \sum_{i=1}^{M} \mathrm{IMF}_i(t) + r(t)$ is obtained. By construction, IMF₁ carries the highest frequency mode, IMF_M the lowest; the residual gives the signal's <em>trend</em>.</p>
+
+    <h3>4. Hilbert Spectrum (The "H" Part of HHT)</h3>
+    <p>
+      After EMD decomposes the signal into IMFs, the <strong>Hilbert transform</strong> is applied to each IMF:
+      for $\mathrm{IMF}_i(t)$, the analytic signal $z_i(t) = \mathrm{IMF}_i(t) + j\,\mathcal{H}[\mathrm{IMF}_i](t)$ is constructed. From this:
+    </p>
+    <ul>
+      <li><strong>Instantaneous amplitude:</strong> $a_i(t) = |z_i(t)|$</li>
+      <li><strong>Instantaneous phase:</strong> $\phi_i(t) = \arg z_i(t)$</li>
+      <li><strong>Instantaneous frequency:</strong> $\omega_i(t) = \frac{d\phi_i}{dt}$</li>
+    </ul>
+    <p>
+      When the $(t, \omega_i, a_i)$ triplets of all IMFs are combined, the <em>Hilbert spectrum</em> is formed — a time-frequency-energy distribution.
+      Unlike the wavelet's fixed basis function, the frequency resolution is determined not by the Heisenberg principle but by the data's local oscillation.
+      <em>(This page currently shows only the EMD decomposition; the Hilbert spectrum may be added in a future version.)</em>
+    </p>
+
+    <h3>5. Mode Mixing and Ensemble EMD (EEMD)</h3>
+    <p>
+      The most extensively discussed practical limitation of EMD is the phenomenon of <strong>mode mixing</strong>: distinct frequency components may appear within a single IMF over different time intervals, or the same frequency component may be distributed across several IMFs. This behaviour is observed especially for intermittent signals in which the distribution of local extrema is irregular. <strong>Ensemble EMD (EEMD)</strong> addresses this issue by adding a large number of independent realisations of white noise to the signal, applying EMD to each, and averaging the resulting IMFs (Wu &amp; Huang, 2009). The <strong>CEEMDAN</strong> algorithm provides a more refined noise-addition strategy.
+    </p>
+
+    <h3>📍 6. Application Areas</h3>
+    <ul>
+      <li><strong>Seismology &amp; Structural Engineering:</strong> Decomposition of earthquake records, building/bridge health monitoring, extraction of natural vibration modes (Huang &amp; Wu, 2008).</li>
+      <li><strong>Biomedical Signals:</strong> Decomposition of sleep stages in EEG, separation of QRS complex from baseline in ECG, EMG signal cleaning, fMRI BOLD signal analysis.</li>
+      <li><strong>Mechanical Fault Diagnosis:</strong> Early detection of periodic faults in bearings and gearboxes — wind turbines, jet engines, trailer axles.</li>
+      <li><strong>Financial Time Series:</strong> Separating market trend from cyclical components, stock volatility analysis, trend detection for currency pairs.</li>
+      <li><strong>Oceanography &amp; Climate:</strong> Ocean wave measurements, El Nino/ENSO signal, trend &amp; seasonal component separation in climate series.</li>
+      <li><strong>Speech &amp; Audio Processing:</strong> Formant extraction, noise suppression, separation of transient and sustained components in music.</li>
+      <li><strong>Image Processing:</strong> Texture-trend separation with 2D EMD, image enhancement, segmentation.</li>
+      <li><strong>Astronomy:</strong> Sunspot cycles, gamma-ray bursts, pulsar light curve analysis.</li>
+    </ul>
+
+    <h3>7. Implementation on This Page</h3>
+    <p>
+      This page hosts an EMD implementation written in <strong>pure JavaScript</strong>. Three signal sources are offered:
+      (a) multi-component synthetic signals (for example, the sum of 5 Hz and 30 Hz sinusoids — the classical EMD demonstration);
+      (b) signals drawn by the user with the mouse;
+      (c) audio recordings uploaded or captured via the microphone (up to 3 s, subject to anti-aliasing filtered down-sampling).
+      The sifting procedure is carried out by means of cubic-spline envelopes; each IMF is extracted with at most 12 iterations or when $\mathrm{SD} < 0.2$ is satisfied.
+    </p>
+    <p>
+      <strong>Stacked-layer view:</strong> as the corresponding slider is moved, the original signal is unfolded from top to bottom, followed in order by IMF$_1$, IMF$_2$, … and the residual at the bottom.
+      The <strong>Reconstruction</strong> slider visualises the cumulative sum $\hat{x}_K = r + \sum_{i=1}^{K} \mathrm{IMF}_i$; when $K = M$ is reached, the identity $\hat{x} = x$ holds and the resulting RMSE remains at machine-precision level.
+      Both the original and the reconstructed signals may be played back, and the reconstruction may be downloaded in <em>.wav</em> format.
+    </p>
+
+    <h3>References</h3>
+    <ul class="ref-list">
+      <li>Huang, N. E., Shen, Z., Long, S. R., Wu, M. C., Shih, H. H., Zheng, Q., Yen, N.-C., Tung, C. C., Liu, H. H. (1998). "The empirical mode decomposition and the Hilbert spectrum for nonlinear and non-stationary time series analysis". <em>Proc. R. Soc. Lond. A</em>, 454, 903-995. — The original HHT paper.</li>
+      <li>Huang, N. E., Wu, Z. (2008). "A review on Hilbert-Huang transform: Method and its applications to geophysical studies". <em>Rev. Geophys.</em>, 46, RG2006.</li>
+      <li>Wu, Z., Huang, N. E. (2009). "Ensemble empirical mode decomposition: A noise-assisted data analysis method". <em>Adv. Adapt. Data Anal.</em>, 1(1), 1-41. — EEMD.</li>
+      <li>Torres, M. E., Colominas, M. A., Schlotthauer, G., Flandrin, P. (2011). "A complete ensemble empirical mode decomposition with adaptive noise". <em>ICASSP 2011</em>. — CEEMDAN.</li>
+      <li>Flandrin, P., Rilling, G., Gonçalves, P. (2004). "Empirical mode decomposition as a filter bank". <em>IEEE Signal Proc. Lett.</em>, 11(2), 112-114. — EMD's dyadic filter bank property.</li>
+      <li>Rilling, G., Flandrin, P., Gonçalves, P. (2003). "On empirical mode decomposition and its algorithms". <em>IEEE-EURASIP Workshop NSIP-03</em>.</li>
+      <li>Wikipedia: <a href="https://en.wikipedia.org/wiki/Hilbert%E2%80%93Huang_transform" target="_blank">Hilbert-Huang transform</a>; <a href="https://en.wikipedia.org/wiki/Hilbert_spectral_analysis" target="_blank">Hilbert spectral analysis</a>.</li>
+    </ul>
+  </div>
+
+  <!-- DRAWING MODAL -->
+  <div class="draw-modal" id="drawModal">
+    <div class="draw-modal-content">
+      <h3>Freehand Signal Drawing</h3>
+      <canvas id="cvDraw"></canvas>
+      <div class="actions">
+        <button class="glass-btn-sm" id="drawClear">Clear</button>
+        <button class="glass-btn-sm" id="drawSmooth">Smooth</button>
+        <button class="glass-btn-sm danger" id="drawCancel">Cancel</button>
+        <button class="glass-btn-sm primary" id="drawApply">✓ Apply &amp; Run EMD</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer"><span>Signal Processing Educational Simulation — HHT/EMD Module</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/hht.js"></script>
+</body>
+</html>

@@ -1,0 +1,612 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Doppler Radarı ile Hız Tespiti Simülasyonu</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== DOPPLER sayfasına özel ===== */
+    .dp-wrap {
+      max-width: 1500px;
+      margin: 1rem auto;
+      padding: 0 1rem;
+      position: relative; z-index: 2;
+    }
+
+    .dp-top-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 0.9rem;
+      margin-bottom: 0.9rem;
+    }
+    .dp-panel { padding: 0.8rem 1rem; }
+    .dp-panel h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.98rem;
+      letter-spacing: 0.04em;
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .dp-panel h3 .badge {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.66rem;
+      padding: 0.18rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(120,140,200,0.08);
+      border: 1px solid var(--border-glow);
+      color: var(--text-dim);
+      margin-left: auto;
+    }
+    .dp-panel .scene-title { color: var(--accent-1); }
+    .dp-panel .dop-title   { color: var(--accent-2); }
+    .dp-panel .tx-title    { color: var(--color-y); }
+    .dp-panel .rx-title    { color: var(--color-marker); }
+    .dp-panel .wf-title    { color: var(--accent-2); }
+
+    #cvScene {
+      width: 100%; height: 420px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+      cursor: crosshair;
+      touch-action: none;
+    }
+    #cvDoppler {
+      width: 100%; height: 420px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+
+    .dp-mid-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.9rem;
+      margin-bottom: 0.9rem;
+    }
+    #cvTx, #cvRx {
+      width: 100%; height: 160px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+
+    #cvWaterfall {
+      width: 100%; height: 200px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+
+    /* Read-outs */
+    .dp-readout {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.4rem 0.6rem;
+      margin-top: 0.55rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+    }
+    .dp-readout .item {
+      background: rgba(120,140,200,0.05);
+      border: 1px solid var(--border-glow);
+      border-radius: 6px;
+      padding: 0.35rem 0.55rem;
+    }
+    .dp-readout .lbl { color: var(--text-dim); display: block; font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    .dp-readout .val { color: var(--text-primary); font-weight: 600; font-size: 0.85rem; }
+    .dp-readout .val.acc { color: var(--accent-1); }
+    .dp-readout .val.warn { color: var(--accent-2); }
+    .dp-readout .val.err { color: #ff5577; }
+
+    /* Controls */
+    .dp-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.7rem;
+      margin-bottom: 0.9rem;
+    }
+    .dp-ctrl-card { padding: 0.9rem 1rem; }
+    .dp-ctrl-card h4 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.55rem;
+      display: flex; align-items: center; gap: 0.45rem;
+      text-transform: uppercase;
+    }
+    .dp-ctrl-card h4 .ico {
+      width: 8px; height: 8px; border-radius: 50%;
+    }
+    .dp-ctrl-card.plane h4 .ico { background: var(--accent-1); box-shadow: 0 0 8px var(--accent-1); }
+    .dp-ctrl-card.radar h4 .ico { background: var(--accent-2); box-shadow: 0 0 8px var(--accent-2); }
+    .dp-ctrl-card.chan  h4 .ico { background: var(--color-marker); box-shadow: 0 0 8px var(--color-marker); }
+    .dp-ctrl-card.chan h4 .sep {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border-glow), transparent);
+      margin: 0 0.4rem;
+    }
+    .dp-row {
+      display: flex; align-items: center; gap: 0.5rem;
+      margin-bottom: 0.45rem; flex-wrap: wrap;
+    }
+    .dp-row label {
+      font-size: 0.74rem;
+      color: var(--text-secondary);
+      flex: 1 1 auto;
+    }
+    .dp-row .v {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem; font-weight: 600;
+      color: var(--text-primary);
+      padding: 0.15rem 0.5rem;
+      background: rgba(120,140,200,0.07);
+      border-radius: 4px;
+      min-width: 60px; text-align: right;
+    }
+    .dp-row input[type=range] { flex: 1 1 100%; }
+    .dp-row select {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: 6px;
+      padding: 0.3rem 0.5rem;
+      outline: none;
+      cursor: pointer;
+    }
+    .dp-row select:focus { border-color: var(--accent-1); }
+    .dp-toggle {
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.74rem; color: var(--text-secondary);
+      margin-bottom: 0.45rem;
+    }
+    .dp-toggle input { accent-color: var(--accent-1); width: 14px; height: 14px; }
+
+    .dp-btn {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      border: 1px solid var(--accent-1);
+      background: rgba(57,255,133,0.07);
+      color: var(--accent-1);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .dp-btn:hover { background: rgba(57,255,133,0.18); box-shadow: 0 0 12px rgba(57,255,133,0.2); }
+    .dp-btn.ghost {
+      border-color: var(--accent-2);
+      color: var(--accent-2);
+      background: rgba(255,140,66,0.05);
+    }
+    .dp-btn.ghost:hover { background: rgba(255,140,66,0.15); }
+    .dp-btn.danger {
+      border-color: #ff5577; color: #ff5577;
+      background: rgba(255,85,119,0.05);
+    }
+    .dp-btn.danger:hover { background: rgba(255,85,119,0.15); }
+
+    .dp-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.4rem; }
+
+    .hint-bar {
+      display: flex; align-items: center; gap: 0.7rem;
+      flex-wrap: wrap;
+      padding: 0.55rem 0.9rem;
+      background: rgba(57,255,133,0.04);
+      border: 1px dashed rgba(57,255,133,0.4);
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.9rem;
+    }
+    .hint-bar .key {
+      font-family: 'Fira Code', monospace;
+      background: rgba(57,255,133,0.12);
+      color: var(--accent-1);
+      padding: 0.15rem 0.45rem; border-radius: 4px;
+      border: 1px solid rgba(57,255,133,0.35);
+      font-size: 0.72rem;
+    }
+
+    /* Teori bölümü */
+    .dp-theory {
+      padding: 1.1rem 1.4rem;
+      margin-top: 0.6rem;
+    }
+    .dp-theory h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 1.15rem;
+      letter-spacing: 0.03em;
+      background: linear-gradient(90deg, var(--accent-1), var(--color-y));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.4rem;
+    }
+    .dp-theory h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700; font-size: 0.95rem;
+      letter-spacing: 0.03em;
+      color: var(--accent-2);
+      margin: 0.9rem 0 0.4rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .dp-theory p, .dp-theory li {
+      font-size: 0.86rem; line-height: 1.7;
+      color: var(--text-secondary);
+    }
+    .dp-theory strong { color: var(--text-primary); }
+    .dp-theory em { color: var(--accent-2); font-style: normal; }
+    .dp-theory ul, .dp-theory ol { margin: 0.3rem 0 0.7rem 1.2rem; }
+    .dp-theory .pipeline {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.55rem;
+      margin: 0.7rem 0;
+    }
+    .dp-theory .step {
+      padding: 0.6rem 0.7rem;
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      background: rgba(120,140,200,0.04);
+    }
+    .dp-theory .step .num {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--accent-1);
+      letter-spacing: 0.1em;
+    }
+    .dp-theory .step .ttl {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.85rem;
+      color: var(--text-primary);
+      margin: 0.2rem 0 0.25rem;
+    }
+    .dp-theory .step .dsc {
+      font-size: 0.74rem; color: var(--text-secondary); line-height: 1.55;
+    }
+    .dp-theory .formula-block {
+      padding: 0.55rem 0.9rem;
+      margin: 0.5rem 0;
+      background: rgba(120,140,200,0.04);
+      border-left: 3px solid var(--accent-1);
+      border-radius: 4px;
+      font-size: 0.86rem;
+    }
+
+    @media (max-width: 1100px) {
+      .dp-top-grid, .dp-mid-grid { grid-template-columns: 1fr; }
+      .dp-controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon"><svg class="sim-ico sim-ico-lg sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg></span> Doppler Radarı ile Hız Tespiti <span class="title-icon">✈</span>
+    </h1>
+    <p class="site-subtitle">Hareketli hedef · Doppler kayması · Sinyal işleme zinciri — Etkileşimli simülasyon</p>
+  </header>
+
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o active" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <div class="dp-wrap">
+
+    <div class="hint-bar">
+      <span><span class="key">Sol tık</span> sahnede → uçağın <strong>burun yönünü</strong> tıklanan noktaya çevirir</span>
+      <span><span class="key">Radarı sürükle</span> → radar konumunu değiştir, menzili gör</span>
+      <span><span class="key">Boşluk</span> → duraklat / başlat</span>
+    </div>
+
+    <!-- ====== ÜST: SAHNE + DOPPLER SPEKTRUMU ====== -->
+    <div class="dp-top-grid">
+      <div class="dp-panel glass-panel">
+        <h3>
+          <span class="scene-title">🛰  Üstten Görünüm — Sahne</span>
+          <span class="badge" id="badgeScene">canlı</span>
+        </h3>
+        <canvas id="cvScene"></canvas>
+        <div class="dp-readout">
+          <div class="item"><span class="lbl">Gerçek menzil $R$</span><span class="val" id="rdRange">— m</span></div>
+          <div class="item"><span class="lbl">Tahmini menzil $\hat R$</span><span class="val acc" id="rdRangeEst">— m</span></div>
+          <div class="item"><span class="lbl">Radyal hız $v_r$</span><span class="val" id="rdVr">— m/s</span></div>
+          <div class="item"><span class="lbl">Geliş açısı</span><span class="val" id="rdAng">— °</span></div>
+          <div class="item"><span class="lbl">Aspect $\cos\theta$</span><span class="val" id="rdCos">—</span></div>
+          <div class="item"><span class="lbl">Menzil çöz. $\Delta R$</span><span class="val" id="rdDR">— m</span></div>
+        </div>
+      </div>
+
+      <div class="dp-panel glass-panel">
+        <h3>
+          <span class="dop-title">📈 Doppler Spektrumu — $|S(f)|$</span>
+          <span class="badge" id="badgeDop">FFT N=512</span>
+        </h3>
+        <canvas id="cvDoppler"></canvas>
+        <div class="dp-readout">
+          <div class="item"><span class="lbl">Ölçülen $f_d$</span><span class="val acc" id="rdFd">— Hz</span></div>
+          <div class="item"><span class="lbl">Tahmini hız</span><span class="val acc" id="rdVest">— m/s</span></div>
+          <div class="item"><span class="lbl">Gerçek $f_d$</span><span class="val" id="rdFdTrue">— Hz</span></div>
+          <div class="item"><span class="lbl">Hata</span><span class="val" id="rdErr">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== ORTA: TX + RX (zaman) ====== -->
+    <div class="dp-mid-grid">
+      <div class="dp-panel glass-panel">
+        <h3><span class="tx-title">📤 Verici Sinyali $s_{TX}(t)$</span><span class="badge">taşıyıcı $f_c$</span></h3>
+        <canvas id="cvTx"></canvas>
+      </div>
+      <div class="dp-panel glass-panel">
+        <h3><span class="rx-title">📥 Alınan Eko $s_{RX}(t)$</span><span class="badge">$f_c + f_d$ + gürültü + clutter</span></h3>
+        <canvas id="cvRx"></canvas>
+      </div>
+    </div>
+
+    <!-- ====== ALT: AKIŞ (zaman-hız) ====== -->
+    <div class="dp-panel glass-panel" style="margin-bottom: 0.9rem;">
+      <h3><span class="wf-title">🌊 Zaman–Hız Akışı</span><span class="badge">üst = şimdi · alt = geçmiş</span></h3>
+      <canvas id="cvWaterfall"></canvas>
+    </div>
+
+    <!-- ====== KONTROLLER ====== -->
+    <div class="dp-controls">
+      <!-- ✈ Uçak -->
+      <div class="dp-ctrl-card plane glass-panel">
+        <h4><span class="ico"></span> ✈ Uçak (Hedef)</h4>
+
+        <div class="dp-row">
+          <label>Hız $|\vec{v}|$ (m/s)</label>
+          <span class="v" id="vSpdVal">100</span>
+        </div>
+        <input type="range" id="vSpd" min="0" max="300" step="1" value="100" style="width:100%;margin-bottom:0.5rem;" />
+
+        <div class="dp-row">
+          <label>Burun yönü $\phi$ (°)</label>
+          <span class="v" id="vHdgVal">45</span>
+        </div>
+        <input type="range" id="vHdg" min="0" max="359" step="1" value="45" style="width:100%;margin-bottom:0.5rem;" />
+
+        <div class="dp-toggle">
+          <input type="checkbox" id="trail" checked />
+          <label for="trail">Uçuş izini göster</label>
+        </div>
+
+        <div class="dp-actions">
+          <button class="dp-btn" id="btnResetPlane">↺ Uçağı sıfırla</button>
+          <button class="dp-btn ghost" id="btnPause">⏸ Duraklat</button>
+        </div>
+      </div>
+
+      <!-- <svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Radar -->
+      <div class="dp-ctrl-card radar glass-panel">
+        <h4><span class="ico"></span> <svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Radar</h4>
+
+        <div class="dp-row">
+          <label>Taşıyıcı $f_c$ (GHz)</label>
+          <span class="v" id="fcVal">2.0</span>
+        </div>
+        <input type="range" id="fc" min="0.5" max="35" step="0.1" value="2.0" style="width:100%;margin-bottom:0.5rem;" />
+
+        <div class="dp-row">
+          <label>PRF (Hz) — darbe tekrarı</label>
+          <span class="v" id="prfVal">4000</span>
+        </div>
+        <input type="range" id="prf" min="500" max="20000" step="100" value="4000" style="width:100%;margin-bottom:0.5rem;" />
+
+        <div class="dp-row">
+          <label>Max menzil göstergesi (km)</label>
+          <span class="v" id="rmaxVal">8</span>
+        </div>
+        <input type="range" id="rmax" min="2" max="30" step="0.5" value="8" style="width:100%;margin-bottom:0.5rem;" />
+
+        <div class="dp-readout" style="margin-top:0.2rem;">
+          <div class="item"><span class="lbl">Dalga boyu $\lambda$</span><span class="val" id="rdLam">— cm</span></div>
+          <div class="item"><span class="lbl">Belirsiz $v_{max}$</span><span class="val" id="rdVmax">— m/s</span></div>
+        </div>
+      </div>
+
+      <!-- 🌊 Kanal -->
+      <div class="dp-ctrl-card chan glass-panel">
+        <h4><span class="ico"></span> 🌊 Kanal — Gürültü ve Clutter</h4>
+
+        <div class="dp-toggle">
+          <input type="checkbox" id="noiseless" />
+          <label for="noiseless">Gürültüsüz mod (SNR = ∞)</label>
+        </div>
+
+        <div class="dp-row">
+          <label>SNR (dB)</label>
+          <span class="v" id="snrVal">+5</span>
+        </div>
+        <input type="range" id="snr" min="-30" max="10" step="2" value="5" style="width:100%;margin-bottom:0.7rem;" />
+
+        <div style="height:1px;background:var(--border-glow);margin:0.3rem 0 0.55rem;"></div>
+
+        <div class="dp-toggle">
+          <input type="checkbox" id="clutterOn" checked />
+          <label for="clutterOn">Yer/yağmur clutter (sıfır-Doppler tepesi)</label>
+        </div>
+
+        <div class="dp-row">
+          <label>Clutter şiddeti (dB, hedef üstüne)</label>
+          <span class="v" id="cluVal">+10</span>
+        </div>
+        <input type="range" id="cluLvl" min="-20" max="30" step="1" value="10" style="width:100%;margin-bottom:0.4rem;" />
+
+        <div class="dp-toggle">
+          <input type="checkbox" id="mti" />
+          <label for="mti">MTI uygula (sabit clutter'ı bastır)</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== TEORİ ====== -->
+    <section class="dp-panel dp-theory glass-panel">
+      <h2>Doppler Radarın Sinyal İşleme Çerçevesi</h2>
+      <p>
+        Bir radar sistemi, bilinen bir <strong>taşıyıcı frekansta</strong> $f_c$ darbe ya da sürekli dalga (CW) iletmekte; hareketli hedeften saçılan eko ise hedefin <strong>radyal hızıyla</strong> doğru orantılı bir <em>Doppler kayması</em> $f_d$ ile geri dönmektedir. Alıcı tarafındaki sinyal işleme zinciri, bu küçük frekans kaymasını ölçerek hedefin radar bakış doğrultusundaki hızını belirlemektedir.
+      </p>
+
+      <h3>1) Doppler Kayması — Temel Bağıntı</h3>
+      <p>
+        Hedefin radyal hızı $v_r$ (radara yaklaşma yönü pozitif olarak alındığında), gidiş–dönüş yolundaki iki katlı kayma nedeniyle <em>2$\times$</em> çarpana yol açmaktadır:
+      </p>
+      <div class="formula-block">
+        $$ f_d \;=\; \frac{2\,v_r}{\lambda} \;=\; \frac{2\,v_r\,f_c}{c}, \qquad \lambda = \frac{c}{f_c} $$
+      </div>
+      <ul>
+        <li><strong>Yaklaşan</strong> hedef (radara doğru) durumunda $f_d > 0$; <strong>uzaklaşan</strong> hedef için $f_d < 0$ değeri elde edilir.</li>
+        <li>Radar bakış doğrultusu ile hedef hız vektörü arasındaki açı $\theta$ olmak üzere $v_r = |\vec{v}|\cos\theta$ olarak hesaplanır.</li>
+        <li>$\theta = 90°$ değerinde (teğet uçuş) $v_r = 0$ olur ve <em>Doppler kör noktası</em> oluşmaktadır; bu durumda hedef tepesi spektrumda DC frekansına denk düşer.</li>
+      </ul>
+
+      <h3>2) Sinyal Modeli</h3>
+      <p>İletilen taşıyıcı ile alınan eko için aşağıdaki idealize edilmiş sinyal modeli kullanılmaktadır:</p>
+      <div class="formula-block">
+        $$ s_{TX}(t) = \cos(2\pi f_c\,t), \qquad
+           s_{RX}(t) = A\,\cos\!\big(2\pi(f_c + f_d)(t - \tau)\big) + n(t) + c(t) $$
+      </div>
+      <ul>
+        <li>$\tau = 2R/c$ — gidiş–dönüş gecikmesi; bu süre içinde menzil bilgisi taşınır.</li>
+        <li>$n(t)$ — termal gürültü (AWGN); gücü <strong>SNR</strong> parametresi aracılığıyla denetlenmektedir.</li>
+        <li>$c(t)$ — <strong>clutter</strong>: yer, deniz yüzeyi, yağmur ya da binalar gibi <em>hareketsiz</em> saçıcılardan dönen güçlü ekolar; spektrumda $f \approx 0$ çevresinde yoğunlaşır.</li>
+      </ul>
+
+      <h3>3) Sinyal İşleme Zinciri</h3>
+      <div class="pipeline">
+        <div class="step"><div class="num">ADIM 1</div><div class="ttl">RF Karıştırma (Mixer)</div>
+          <div class="dsc">$s_{RX}(t)$ alıcıda taşıyıcı ile çarpılır → ara frekans (IF) veya I/Q baseband. Doppler farkı $f_d$ artık <em>baseband</em>'tedir.</div></div>
+        <div class="step"><div class="num">ADIM 2</div><div class="ttl">Aralık Kapısı (Range Gate)</div>
+          <div class="dsc">$\tau$ gecikmesine karşılık gelen örnek penceresi seçilir. Sadece o menzildeki hedef katkıları geçer.</div></div>
+        <div class="step"><div class="num">ADIM 3</div><div class="ttl">Puls-Puls Örnekleme</div>
+          <div class="dsc">Her PRI (= 1/PRF) sonunda <em>bir</em> kompleks örnek toplanır. Doppler işleme bu <em>slow-time</em> dizisinde yapılır.</div></div>
+        <div class="step"><div class="num">ADIM 4</div><div class="ttl">MTI / Yüksek-Geçiren</div>
+          <div class="dsc">Sabit clutter'ı bastırmak için $h[n]=\{1,-1\}$ tipi fark filtresi: $y[n]=x[n]-x[n-1]$. DC sıfırlanır.</div></div>
+        <div class="step"><div class="num">ADIM 5</div><div class="ttl">Pencere + FFT</div>
+          <div class="dsc">Hann/Hamming pencere → $N$-noktalı FFT. Bin çözünürlüğü $\Delta f = \text{PRF}/N$.</div></div>
+        <div class="step"><div class="num">ADIM 6</div><div class="ttl">Tepe Algılama (CFAR)</div>
+          <div class="dsc">Spektrumda en güçlü bin → $\hat{f}_d$. Hız: $\hat v_r = c\,\hat f_d / (2 f_c)$.</div></div>
+      </div>
+
+      <h3>4) Belirsizlik ve Çözünürlük Sınırları</h3>
+      <ul>
+        <li><strong>Belirsiz Doppler aralığı:</strong> darbeli radar, yavaş-zaman (slow-time) ekseninde PRF ile örnekleme yapmaktadır. Nyquist koşulu uyarınca Doppler kayması yalnızca $|f_d| < \text{PRF}/2$ aralığında doğru biçimde çözülmektedir. Bu aralığın dışına çıkan Doppler değerleri katlanmakta (aliasing) ve hatalı hız okumalarına neden olmaktadır.</li>
+        <li>Bu aralığa karşılık gelen belirsiz hız $v_{\max} = \dfrac{c\,\text{PRF}}{4 f_c}$ olarak hesaplanır ve üst panelde anlık olarak gösterilmektedir.</li>
+        <li><strong>Hız çözünürlüğü:</strong> $\Delta v = \dfrac{c}{2 f_c}\cdot\dfrac{\text{PRF}}{N}$ bağıntısı uyarınca, gözlem süresi (yani $N$) arttıkça çözünürlük iyileşmektedir.</li>
+        <li><strong>SNR ve tespit:</strong> spektrumdaki tepenin gürültü tabanından ayırt edilebilmesi için yeterli bütünleşme (integration) kazancı sağlanmalıdır. $N$ örnekli koherent toplama, SNR'ı $10\log_{10} N$ dB değerinde artırmaktadır.</li>
+      </ul>
+
+      <h3>5) Bu Simülasyonda Sunulanlar</h3>
+      <ol>
+        <li><strong>Sahne paneli:</strong> kuş bakışı görünüm sağlanmakta; uçağın hızı $|\vec v|$ ve yön açısı $\phi$ kullanıcı tarafından belirlenmektedir. Radar dalga halkalarıyla hedefi aydınlatır ve eko geri döner.</li>
+        <li><strong>$s_{TX}, s_{RX}$ paneli:</strong> iletilen taşıyıcı ve alınan eko zaman düzleminde gösterilmektedir. Doppler kayması küçük olduğundan görsel olarak doğrudan ayırt edilemez; bununla birlikte her PRI içinde biriken faz kayması Doppler işleme tarafından çıkarılmaktadır.</li>
+        <li><strong>Doppler spektrumu:</strong> yavaş-zaman dizisinin FFT'si alınmakta; hedef tepesi $f_d$ civarında, clutter mevcutsa $f = 0$ etrafında geniş bir tepe olarak görünür ve gürültü tabanı düzgün bir biçimde dağılır.</li>
+        <li><strong>Şelale (waterfall):</strong> spektrumun zaman içindeki değişimi sergilenmektedir. Hedef yönü değiştirildiğinde tepe çizgisinin nasıl kayıp $f = 0$ civarındaki "sıfır-Doppler" durumuna ulaştığı izlenebilmektedir.</li>
+      </ol>
+
+      <h3>6) Önerilen Deneyler</h3>
+      <ul>
+        <li>SNR değeri −15 dB'ye düşürülerek tepenin gürültü içine gömülüp gömülmediği gözlemlenebilir; ardından SNR = ∞ ile karşılaştırma yapılması önerilmektedir.</li>
+        <li>Yüksek clutter koşullarında MTI süzgeci sırasıyla etkin ve etkisiz hâle getirilerek DC tepesinin nasıl bastırıldığı incelenebilir.</li>
+        <li>Uçak, radarın tam yan tarafından geçecek biçimde yönlendirildiğinde $v_r$'nin işaret değişimi şelale gösteriminde takip edilebilir.</li>
+        <li>Taşıyıcı frekansı $f_c$ değeri 0.5 GHz'den 35 GHz'e taşındığında aynı hıza karşılık gelen $f_d$ değerinin nasıl ölçeklendiği gözlenmelidir ($\lambda$ küçülmektedir).</li>
+        <li>PRF düşürüldüğünde belirsiz hız değeri uçağın gerçek hızının altına indirilerek spektrum tepesinin katlanması doğrudan gözlemlenebilir.</li>
+      </ul>
+    </section>
+
+    <!-- ====== VİDEO REHBERİ ====== -->
+    <div id="videoSection" class="dp-panel glass-panel" style="margin-top:0.9rem; display:none;">
+      <h3 style="margin-bottom:0.7rem;">
+        <span style="color:var(--color-marker);">▶ Video Rehberi</span>
+        <span class="badge">nasıl kullanılır?</span>
+      </h3>
+      <div style="position:relative; width:100%; padding-bottom:56.25%; border-radius:var(--radius-sm); overflow:hidden; background:#000;">
+        <iframe
+          id="videoFrame"
+          src=""
+          style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          loading="lazy">
+        </iframe>
+      </div>
+      <p style="margin-top:0.55rem; font-size:0.78rem; color:var(--text-secondary); line-height:1.6;">
+        Simülasyonun nasıl kullanılacağını adım adım gösteren video rehberi.
+        Kontrolleri tanımak, Doppler kaymasını gözlemlemek ve deney senaryolarını
+        uygulamak için izlemenizi tavsiye ederiz.
+      </p>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    Sinyaller &amp; Sistemler Simülasyon Platformu · <svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler Modülü
+  </footer>
+
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/doppler.js"></script>
+  <script>
+    /* Video bölümünü videos.json'dan yükle */
+    (function () {
+      const SIM_KEY = 'doppler';
+      fetch('../videos.json')
+        .then(r => r.json())
+        .then(data => {
+          const url = (data[SIM_KEY] || '').trim();
+          if (!url) return;
+          // YouTube URL'ini embed formatına çevir
+          let embedUrl = url;
+          const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/);
+          if (ytMatch) embedUrl = `https://www.youtube.com/embed/${ytMatch[1]}`;
+          const dmMatch = url.match(/dailymotion\.com\/video\/([^?/]+)/);
+          if (dmMatch) embedUrl = `https://www.dailymotion.com/embed/video/${dmMatch[1]}`;
+          const frame = document.getElementById('videoFrame');
+          const section = document.getElementById('videoSection');
+          frame.src = embedUrl;
+          section.style.display = 'block';
+        })
+        .catch(() => { /* video.json yoksa sessizce geç */ });
+    })();
+  </script>
+</body>
+</html>

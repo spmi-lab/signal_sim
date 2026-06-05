@@ -1,0 +1,569 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hilbert-Huang Dönüşümü (HHT/EMD)</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* === HHT sayfasına özgü düzen === */
+
+    /* ÜST SIRA — 3 kontrol paneli */
+    .hht-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.7rem;
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+
+    /* ORTA — geniş ekran EMD grafikleri */
+    .hht-graphs {
+      max-width: 1500px;
+      margin: 0.7rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.7rem;
+    }
+    .hht-graphs .graph-container { padding: 0.6rem; }
+    .hht-graphs canvas {
+      width: 100%;
+      border-radius: var(--radius-sm);
+      background: var(--canvas-bg);
+      display: block;
+    }
+    #cvStack  { height: 520px; }
+    #cvRecon  { height: 220px; }
+    #cvSourceWave { width: 100%; height: 100px; border-radius: var(--radius-sm); background: var(--canvas-bg); display:block; }
+
+    /* Bileşen listesi */
+    .comp-list {
+      display: flex; flex-direction: column; gap: 0.25rem;
+      margin: 0.4rem 0 0.5rem;
+      max-height: 130px; overflow-y: auto;
+    }
+    .comp-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.32rem 0.55rem;
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      background: rgba(120,140,200,0.06);
+      font-family: 'Consolas', monospace; font-size: 0.74rem;
+      color: var(--text-primary);
+    }
+    .comp-item .rm {
+      cursor: pointer; color: #ff5577;
+      font-weight: bold; padding-left: 0.6rem;
+      user-select: none;
+    }
+    .comp-item .rm:hover { color: #ff8aa0; }
+
+    /* Dosya / mikrofon */
+    .file-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.4rem; }
+    .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
+    .file-input-wrapper input[type=file] { position: absolute; left:0; top:0; opacity:0; width:100%; height:100%; cursor:pointer; }
+    .file-label {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.4rem 0.8rem;
+      border:1px solid var(--accent-1); color:var(--accent-1);
+      background:rgba(57,255,133,0.05); border-radius:var(--radius-sm);
+      cursor:pointer; display:inline-block; transition:all var(--transition);
+    }
+    .file-label:hover { background:rgba(57,255,133,0.15); }
+    .mic-btn {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.4rem 0.8rem;
+      border:1px solid var(--color-marker); color:var(--color-marker);
+      background:rgba(255,79,154,0.05); border-radius:var(--radius-sm); cursor:pointer;
+      transition:all var(--transition);
+    }
+    .mic-btn:hover { background:rgba(255,79,154,0.15); }
+    .mic-btn.recording { background:rgba(255,79,154,0.3); animation:micP 1s ease-in-out infinite; }
+    @keyframes micP { 0%,100%{box-shadow:0 0 8px rgba(255,79,154,0.3);} 50%{box-shadow:0 0 20px rgba(255,79,154,0.6);} }
+
+    .status-msg { font-family:'Consolas',monospace; font-size:0.72rem; color:var(--accent-2); padding:0.2rem 0; }
+    .status-msg.ok { color:var(--accent-1); } .status-msg.err { color:#ff5577; }
+
+    .sr-row { display: flex; align-items: center; gap: 0.4rem; margin: 0.4rem 0; }
+    .sr-row label { font-size: 0.74rem; color: var(--text-secondary); white-space: nowrap; }
+    .sr-row select { flex: 1; }
+
+    /* Çalma butonları */
+    .play-row { display:flex; gap:0.4rem; flex-wrap:wrap; margin-top:0.5rem; }
+    .pbtn {
+      font-family:'Consolas',monospace; font-size:0.76rem; padding:0.38rem 0.75rem;
+      border-radius:var(--radius-sm); cursor:pointer; border:1px solid; transition:all var(--transition);
+    }
+    .pbtn:disabled { opacity:0.3; cursor:not-allowed; }
+    .pbtn.orig  { border-color:var(--color-x); color:var(--color-x); background:rgba(57,255,133,0.05); }
+    .pbtn.orig:hover  { background:rgba(57,255,133,0.15); }
+    .pbtn.recon { border-color:var(--color-y); color:var(--color-y); background:rgba(123,140,255,0.05); }
+    .pbtn.recon:hover { background:rgba(123,140,255,0.15); }
+    .pbtn.stop  { border-color:#ff5577; color:#ff5577; background:rgba(255,85,119,0.05); }
+    .pbtn.dl    { border-color:var(--color-y); color:var(--color-y); background:rgba(123,140,255,0.05); }
+
+    /* "Bu Sinyali Kullan" gibi ana butonlar */
+    .use-btn {
+      font-family:'Consolas',monospace; font-size:0.78rem; padding:0.45rem 0.9rem;
+      border-radius:var(--radius-sm); cursor:pointer;
+      border:1px solid var(--accent-2); color:var(--accent-2);
+      background:rgba(255,140,66,0.07);
+      transition:all var(--transition);
+      margin-top: 0.4rem;
+    }
+    .use-btn:hover { background:rgba(255,140,66,0.18); box-shadow: 0 0 10px rgba(255,140,66,0.18); }
+    .use-btn:disabled { opacity:0.3; cursor:not-allowed; }
+
+    /* İstatistik tablosu */
+    .stats-grid {
+      display:grid; grid-template-columns:auto 1fr; gap:0.15rem 0.6rem;
+      font-family:'Consolas',monospace; font-size:0.78rem; margin-top:0.5rem;
+    }
+    .stats-grid .lbl { color:var(--text-secondary); }
+    .stats-grid .val { color:var(--accent-1); font-weight:500; }
+
+    .help-text { font-size:0.7rem; color:var(--text-dim); line-height:1.5; margin-top:0.3rem; }
+
+    /* Modal — çizim penceresi */
+    .draw-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 200;
+    }
+    .draw-modal.active { display: flex; }
+    .draw-modal-content {
+      width: min(92vw, 900px);
+      background: var(--bg-panel);
+      border: 1px solid var(--border-glow-strong);
+      border-radius: var(--radius);
+      backdrop-filter: blur(var(--glass-blur));
+      -webkit-backdrop-filter: blur(var(--glass-blur));
+      padding: 1.2rem 1.4rem;
+      box-shadow: 0 0 40px rgba(100, 160, 255, 0.18);
+    }
+    .draw-modal h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-size: 0.95rem; font-weight: 700;
+      color: var(--accent-2);
+      margin-bottom: 0.6rem;
+    }
+    #cvDraw {
+      width: 100%; height: 280px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      cursor: crosshair;
+      display: block;
+      touch-action: none;
+    }
+    .draw-modal .actions {
+      display: flex; gap: 0.4rem; justify-content: flex-end;
+      margin-top: 0.8rem; flex-wrap: wrap;
+    }
+    .glass-btn-sm {
+      font-family:'Consolas',monospace; font-size:0.74rem;
+      padding:0.38rem 0.85rem;
+      border:1px solid var(--border-glow);
+      background: rgba(120,140,200,0.05);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .glass-btn-sm:hover { border-color: var(--accent-1); color: var(--accent-1); }
+    .glass-btn-sm.primary { border-color: var(--accent-2); color: var(--accent-2); }
+    .glass-btn-sm.primary:hover { background: rgba(255,140,66,0.15); }
+    .glass-btn-sm.danger { border-color: #ff5577; color: #ff5577; }
+    .glass-btn-sm.danger:hover { background: rgba(255,85,119,0.1); }
+
+    /* Teori bölümü */
+    .theory-card {
+      max-width: 1500px; margin: 1rem auto;
+      padding: 1.5rem 2rem;
+      position: relative; z-index: 2;
+    }
+    .theory-card h2 {
+      font-family:'Saira Condensed',sans-serif;
+      font-size:1rem; font-weight:700; margin-bottom:0.8rem;
+      background:linear-gradient(90deg,var(--accent-1),var(--color-y));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+    }
+    .theory-card h3 {
+      font-family:'Saira Condensed',sans-serif;
+      font-size:0.78rem; font-weight:700; letter-spacing:0.06em;
+      margin-top:1rem; margin-bottom:0.4rem;
+      color: var(--accent-2);
+    }
+    .theory-card p {
+      font-size:0.84rem; line-height:1.7; color:var(--text-secondary);
+      margin-bottom: 0.8rem;
+    }
+    .theory-card strong { color: var(--text-primary); }
+    .theory-card em { color: var(--accent-2); font-style: normal; }
+    .theory-card ul {
+      font-size: 0.82rem; line-height: 1.7;
+      color: var(--text-secondary);
+      margin-left: 1.2rem; margin-bottom: 0.8rem;
+    }
+    .theory-card li { margin-bottom: 0.3rem; }
+    .theory-card .ref-list { list-style: none; margin-left: 0; font-family: 'Consolas', monospace; font-size: 0.74rem; color: var(--text-dim); }
+    .theory-card .ref-list li { padding: 0.25rem 0; border-bottom: 1px dashed var(--border-glow); }
+    .theory-card .ref-list li:last-child { border-bottom: none; }
+    .theory-card .ref-list a { color: var(--color-y); text-decoration: none; }
+    .theory-card .ref-list a:hover { color: var(--accent-1); text-decoration: underline; }
+
+    .num-input-sm {
+      width: 70px;
+      font-family:'Consolas',monospace; font-size:0.78rem;
+      padding: 0.35rem 0.5rem;
+      background: var(--select-bg);
+      color: var(--text-primary);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+    }
+    .num-input-sm:focus { outline: none; border-color: var(--accent-1); }
+
+    @media(max-width:1100px) {
+      .hht-controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">ℋ</span> Hilbert-Huang Dönüşümü (HHT/EMD) <span class="title-icon">∗</span>
+    </h1>
+    <p class="site-subtitle">Empirical Mode Decomposition — Adaptif Sinyal Ayrıştırma</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o active" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <!-- ÜST SIRA — 3 panel -->
+  <div class="hht-controls">
+
+    <!-- Panel 1: Sentetik Sinyal -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span> Sentetik Sinyal — Bileşen Ekle</h3>
+
+      <div class="control-group">
+        <label>İşaret Tipi:</label>
+        <select id="compType" class="glass-select">
+          <option value="sine" selected>Sinüs</option>
+          <option value="square">Kare Dalga</option>
+          <option value="triangle">Üçgen Dalga</option>
+          <option value="sawtooth">Testere Dişi</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>Genlik A: <span id="aVal" class="val-display">1.0</span></label>
+        <input type="range" id="aSlider" min="0.1" max="3" step="0.1" value="1" />
+      </div>
+      <div class="control-group">
+        <label>Frekans F (Hz): <span id="fVal" class="val-display">5</span></label>
+        <input type="range" id="fSlider" min="1" max="60" step="1" value="5" />
+      </div>
+      <div class="control-group">
+        <label>Faz φ (rad): <span id="phVal" class="val-display">0.00</span></label>
+        <input type="range" id="phSlider" min="0" max="6.28" step="0.05" value="0" />
+      </div>
+
+      <button class="glass-btn-sm primary" id="addComp" style="margin-top:0.3rem;">+ Bileşen Ekle</button>
+
+      <div class="comp-list" id="compList"></div>
+
+      <button class="use-btn" id="useComposite">▶ Bu Sinyali Kullan (EMD Çalıştır)</button>
+
+      <div class="help-text">
+        <strong>Öneri:</strong> EMD'nin gücünü görmek için <em>iki sinüs üst üste</em> ekleyin
+        (örn. 5 Hz + 30 Hz). Liste boşken "Kullan" düğmesi varsayılan örneği yükler.
+      </div>
+    </div>
+
+    <!-- Panel 2: El ile Çizim -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#ff8c42;box-shadow:0 0 8px #ff8c42;"></span> El ile Çizim</h3>
+
+      <div class="control-group">
+        <label>Süre (s): <span id="drawDurVal" class="val-display">2.0</span></label>
+        <input type="range" id="drawDurSlider" min="0.5" max="3" step="0.1" value="2" />
+      </div>
+      <div class="control-group">
+        <label>Örnek Sayısı: <span id="drawSampVal" class="val-display">1000</span></label>
+        <input type="range" id="drawSampSlider" min="200" max="2000" step="50" value="1000" />
+      </div>
+
+      <button class="use-btn" id="openDraw" style="margin-top:0.6rem;">✏️ Çizim Penceresini Aç</button>
+
+      <div class="status-msg" id="drawStatus" style="margin-top:0.5rem;">
+        Modal'da fare/parmakla sinyali çizin. Çizim Fourier sayfasındaki gibi
+        boşlukları lineer enterpole eder.
+      </div>
+
+      <div class="help-text" style="margin-top:0.4rem;">
+        Çizdiğiniz tek dalga değil; isterseniz birden fazla "tepe" çizebilirsiniz —
+        EMD bunları farklı IMF'lere ayıracaktır.
+      </div>
+    </div>
+
+    <!-- Panel 3: Ses Kaynağı -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span> Dışarıdan Ses Kayıt</h3>
+
+      <div class="sr-row">
+        <label>Hedef Örnekleme:</label>
+        <select id="targetSR" class="glass-select">
+          <option value="2000">2 kHz (çok hızlı)</option>
+          <option value="4000" selected>4 kHz</option>
+          <option value="8000">8 kHz (telefon)</option>
+          <option value="16000">16 kHz</option>
+        </select>
+      </div>
+
+      <div class="file-row">
+        <div class="file-input-wrapper">
+          <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a" />
+          <span class="file-label">📁 Dosya Yükle</span>
+        </div>
+        <button class="mic-btn" id="micBtn">🎤 Kayıt</button>
+      </div>
+      <div class="status-msg" id="audioStatus">Dosya yükleyin ya da mikrofonla 2-3 sn kaydedin</div>
+
+      <canvas id="cvSourceWave"></canvas>
+
+      <div class="control-group" style="margin-top:0.4rem;">
+        <label>Kesim Başlangıcı (s): <span id="cutStartVal" class="val-display">0.00</span></label>
+        <input type="range" id="cutStart" min="0" max="10" step="0.01" value="0" disabled />
+      </div>
+      <div class="control-group">
+        <label>Parça Uzunluğu (s, max 3): <span id="cutLenVal" class="val-display">2.00</span></label>
+        <input type="range" id="cutLen" min="0.1" max="3" step="0.05" value="2" disabled />
+      </div>
+
+      <button class="use-btn" id="useAudio" disabled>▶ Bu Sesi Kullan (EMD Çalıştır)</button>
+
+      <div class="help-text" style="margin-top:0.4rem;">
+        EMD ağır olduğu için max <strong>3 sn</strong> önerilir.
+        Düşük örnekleme hızı çok daha hızlı çalıştırır.
+      </div>
+    </div>
+  </div>
+
+  <!-- ORTA — İstifli IMF Ayrışımı -->
+  <div class="hht-graphs">
+
+    <!-- İstifli IMF görünümü -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#ffd23f;">IMF İstifi — Orijinal → IMF₁ → IMF₂ → … → Residual</span>
+        <span class="instant-value" id="stackInfo">—</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$x(t) = \sum_{i=1}^{M}\,\mathrm{IMF}_i(t) + r(t)$</span>
+        <span class="drag-hint">← slider ile katman aç →</span>
+      </div>
+      <canvas id="cvStack"></canvas>
+    </div>
+
+    <!-- Kontrol bar — EMD ayarları & çalma (IMF istifi ile yeniden inşa arasında) -->
+    <div class="control-panel glass-panel" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.9rem;">
+      <div>
+        <h3 class="panel-title" style="margin-bottom:0.4rem;"><span class="signal-dot" style="background:#ffd23f;box-shadow:0 0 8px #ffd23f;"></span> EMD Ayarları</h3>
+        <div class="control-group" style="display:flex; align-items:center; gap:0.5rem;">
+          <label style="margin:0;">Max IMF:</label>
+          <input type="number" id="maxIMF" class="num-input-sm" min="1" max="15" value="6" />
+        </div>
+        <div class="control-group">
+          <label>Katman (İstif): <span id="layerVal" class="val-display">0</span></label>
+          <input type="range" id="layerSlider" min="0" max="7" step="1" value="0" />
+        </div>
+        <div class="help-text">Slider'ı kaydır → 0: sadece orijinal, 1: +IMF₁, 2: +IMF₂…</div>
+      </div>
+
+      <div>
+        <h3 class="panel-title" style="margin-bottom:0.4rem;"><span class="signal-dot" style="background:#7b8cff;box-shadow:0 0 8px #7b8cff;"></span> Yeniden İnşa</h3>
+        <div class="control-group">
+          <label>Kullanılan IMF Sayısı K: <span id="reconKVal" class="val-display">0</span></label>
+          <input type="range" id="reconKSlider" min="0" max="7" step="1" value="0" />
+        </div>
+        <div class="play-row">
+          <button class="pbtn orig"  id="playOrig"  disabled>▶ Orijinal</button>
+          <button class="pbtn recon" id="playRecon" disabled>▶ Yeniden İnşa</button>
+          <button class="pbtn stop"  id="stopAll">■ Dur</button>
+          <button class="pbtn dl"    id="dlRecon"  disabled>💾 WAV</button>
+        </div>
+      </div>
+
+      <div>
+        <h3 class="panel-title" style="margin-bottom:0.4rem;"><span class="signal-dot" style="background:#39ff85;box-shadow:0 0 8px #39ff85;"></span> İstatistikler</h3>
+        <div class="stats-grid">
+          <span class="lbl">IMF sayısı:</span><span class="val" id="statIMF">—</span>
+          <span class="lbl">Sinyal:</span><span class="val" id="statLen">—</span>
+          <span class="lbl">EMD süresi:</span><span class="val" id="statTime">—</span>
+          <span class="lbl">RMSE:</span><span class="val" id="statRMSE">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Yeniden inşa -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label" style="color:#7b8cff;">Kısmi Yeniden İnşa — orijinal (soluk) vs ∑ IMF + residual</span>
+        <span class="instant-value" id="reconInfo">—</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$\hat{x}_K(t) = r(t) + \sum_{i=1}^{K}\,\mathrm{IMF}_i(t)$</span>
+      </div>
+      <canvas id="cvRecon"></canvas>
+    </div>
+  </div>
+
+  <!-- TEORİ -->
+  <div class="theory-card glass-panel">
+    <h2>Hilbert-Huang Dönüşümü &amp; Empirical Mode Decomposition</h2>
+
+    <h3>1. EMD'ye Duyulan İhtiyaç</h3>
+    <p>
+      <strong>Fourier dönüşümü</strong> bir sinyali sabit frekanslı sinüzoidal taban fonksiyonlarının toplamı olarak ifade etmekte ve sinyalin <em>doğrusal ve durağan</em> olduğunu varsaymaktadır. <strong>Dalgacık (wavelet) dönüşümü</strong> bu varsayımları gevşetmekle birlikte hâlâ önceden seçilmiş bir taban fonksiyonu (Daubechies, Morlet vb.) gerektirmektedir. Buna karşılık <strong>Ampirik Mod Ayrıştırması (EMD)</strong> tabanı doğrudan verinin kendisinden türetir; önceden tanımlanmış bir baz fonksiyonuna ihtiyaç duyulmaz. Bu özelliğiyle EMD, <em>doğrusal olmayan ve durağan olmayan</em> sinyaller için geliştirilmiş olup sinyali doğal salınım modlarına, yani <strong>İçsel Kip Fonksiyonlarına (Intrinsic Mode Function, IMF)</strong>, ayrıştırmaktadır.
+    </p>
+
+    <h3>2. IMF (İçsel Kip Fonksiyonu) Tanımı</h3>
+    <p>Huang'ın 1998'deki orijinal tanımına göre bir IMF iki temel koşulu sağlamalıdır:</p>
+    <ul>
+      <li><strong>Koşul 1:</strong> yerel uç değerlerin (ekstremumların) sayısı ile sıfır geçişlerinin sayısı ya birbirine eşit olmalı ya da en fazla bir fark gösterebilir.</li>
+      <li><strong>Koşul 2:</strong> her zaman noktasında, yerel maksimumlardan geçirilen üst zarf $e_{\max}(t)$ ile yerel minimumlardan geçirilen alt zarf $e_{\min}(t)$'in ortalaması yaklaşık olarak sıfır olmalıdır: $\tfrac{e_{\max}(t) + e_{\min}(t)}{2} \approx 0$.</li>
+    </ul>
+    <p>Sezgisel açıdan bir IMF, dar bir banda yerleşmiş ve anlık genlik ile anlık frekansı iyi tanımlanmış bir salınım "modunu" temsil etmektedir.</p>
+
+    <h3>3. Sifting Algoritması (Eleme Süreci)</h3>
+    <p>EMD, sinyalin tüm IMF'lerini şu yinelemeli süreçle çıkarır:</p>
+    <ol style="margin-left:1.2rem; font-size:0.82rem; line-height:1.7; color:var(--text-secondary);">
+      <li>$h_0(t) = x(t)$ olarak başla.</li>
+      <li>Yerel <strong>maksimumları</strong> ve <strong>minimumları</strong> bul.</li>
+      <li>Maksimumlardan <em>cubic spline</em> ile üst zarf $e_{\max}(t)$, minimumlardan alt zarf $e_{\min}(t)$ kur.</li>
+      <li>Ortalamayı çıkar: $h_1(t) = h_0(t) - \tfrac{1}{2}\bigl(e_{\max}(t) + e_{\min}(t)\bigr)$.</li>
+      <li>$h_1$ IMF kriterlerini sağlıyor mu? Sağlıyorsa $\mathrm{IMF}_1 = h_1$. Sağlamıyorsa $h_0 \leftarrow h_1$ alıp 2. adıma dön.</li>
+      <li>Durdurma ölçütü (Huang): <em>standard deviation</em>
+        $\mathrm{SD} = \sum_t \frac{|h_{k-1}(t) - h_k(t)|^2}{h_{k-1}(t)^2 + \epsilon}$
+        belirli bir eşiğin (tipik 0.2–0.3) altına düştüğünde dur.</li>
+      <li>$r_1(t) = x(t) - \mathrm{IMF}_1$ residual'i hesapla, $x \leftarrow r_1$ alıp 1. adıma dön.</li>
+      <li>Residual artık 3'ten az ekstremuma sahip olduğunda (monoton ya da tek dalga) süreç biter.</li>
+    </ol>
+    <p>Sonunda $x(t) = \sum_{i=1}^{M} \mathrm{IMF}_i(t) + r(t)$ ayrışımı elde edilir. Yapısı gereği IMF₁ en yüksek frekans modunu, IMF_M ise en düşüğü taşır; residual sinyalin <em>trendini</em> verir.</p>
+
+    <h3>4. Hilbert Spektrumu (HHT'nin "H" Kısmı)</h3>
+    <p>
+      EMD sinyali IMF'lere ayırdıktan sonra her IMF'ye <strong>Hilbert dönüşümü</strong> uygulanır:
+      $\mathrm{IMF}_i(t)$ için analitik sinyal $z_i(t) = \mathrm{IMF}_i(t) + j\,\mathcal{H}[\mathrm{IMF}_i](t)$ kurulur. Buradan:
+    </p>
+    <ul>
+      <li><strong>Anlık genlik:</strong> $a_i(t) = |z_i(t)|$</li>
+      <li><strong>Anlık faz:</strong> $\phi_i(t) = \arg z_i(t)$</li>
+      <li><strong>Anlık frekans:</strong> $\omega_i(t) = \frac{d\phi_i}{dt}$</li>
+    </ul>
+    <p>
+      Tüm IMF'lerin $(t, \omega_i, a_i)$ üçlüleri birleştirildiğinde <em>Hilbert spektrumu</em> oluşur — zaman-frekans-enerji dağılımı.
+      Wavelet'in sabit baz fonksiyonundan farklı olarak, frekans çözünürlüğü Heisenberg ilkesiyle değil verinin yerel salınımıyla belirlenir.
+      <em>(Bu sayfada şimdilik yalnızca EMD ayrışımı gösteriliyor; Hilbert spektrumu sonraki sürümde eklenebilir.)</em>
+    </p>
+
+    <h3>5. Mod Karışması (Mode Mixing) ve Ensemble EMD (EEMD)</h3>
+    <p>
+      EMD'nin uygulamadaki en yaygın güçlüğü <strong>mod karışması</strong>dır: tek bir IMF içinde farklı zaman aralıklarında farklı frekans bileşenleri yer alabilmekte; ya da aynı frekans bileşeni birden çok IMF'ye dağılabilmektedir. Bu durum özellikle aralıklı (intermittent) sinyallerde, uç değer dağılımının düzensiz olduğu durumlarda ortaya çıkmaktadır. <strong>Ensemble EMD (EEMD)</strong>, sinyale çok sayıda bağımsız beyaz gürültü gerçeklemesi eklenip her biri üzerinde EMD uygulanması ve sonuçların ortalamasının alınması yoluyla bu sorunu çözmektedir (Wu &amp; Huang, 2009). <strong>CEEMDAN</strong> yöntemi ise gürültü ekleme stratejisini daha rafine bir biçimde geliştirmektedir.
+    </p>
+
+    <h3>📍 6. Uygulama Alanları</h3>
+    <ul>
+      <li><strong>Sismoloji &amp; Yapısal Mühendislik:</strong> deprem kayıtlarının ayrıştırılması, bina/köprü sağlık izleme, doğal titreşim modlarının çıkarılması (Huang &amp; Wu, 2008).</li>
+      <li><strong>Biyomedikal Sinyaller:</strong> EEG'de uyku evrelerinin ayrıştırılması, EKG'de QRS kompleksinin baseline'dan ayrılması, EMG sinyallerinin temizlenmesi, fMRI BOLD sinyali analizi.</li>
+      <li><strong>Mekanik Arıza Teşhisi:</strong> rulman ve dişli kutularındaki periyodik bozulmaların erken tespiti — rüzgar türbinleri, jet motorları, treyler dingilleri.</li>
+      <li><strong>Finansal Zaman Serileri:</strong> piyasa trendinin döngüsel bileşenlerden ayrılması, hisse senedi volatilite analizleri, döviz çiftleri için trend tespiti.</li>
+      <li><strong>Oşinografi &amp; İklim:</strong> okyanus dalgası ölçümleri, El Niño / ENSO sinyali, iklim serilerindeki trend &amp; mevsimsel bileşen ayrımı.</li>
+      <li><strong>Konuşma &amp; Ses İşleme:</strong> formant çıkarımı, gürültü bastırma, müzikte transient ile sürekli bileşenlerin ayrılması.</li>
+      <li><strong>Görüntü İşleme:</strong> 2D EMD ile doku-trend ayrımı, görüntü iyileştirme, segment ayrımı.</li>
+      <li><strong>Astronomi:</strong> güneş leke döngüleri, gama ışını patlamaları, pulsar ışık eğrisi analizi.</li>
+    </ul>
+
+    <h3>7. Bu Sayfadaki Uygulama</h3>
+    <p>
+      Bu sayfa, <strong>saf JavaScript</strong> ile gerçeklenen bir EMD uygulamasını barındırmaktadır. Sinyal kaynağı olarak üç seçenek sunulmaktadır:
+      (a) çoklu bileşenli sentetik sinyaller (örneğin 5 Hz + 30 Hz sinüzoidlerin toplamı — klasik EMD gösterimi);
+      (b) kullanıcı tarafından elle çizilmiş sinyaller;
+      (c) yüklenen ya da mikrofon aracılığıyla kaydedilen ses kayıtları (en fazla 3 s, anti-aliasing süzgeçli aşağı örnekleme uygulanır).
+      Eleme (sifting) süreci kübik spline zarfları üzerinden yürütülmekte; her IMF en fazla 12 yineleme ya da $\mathrm{SD} < 0{,}2$ koşuluyla çıkarılmaktadır.
+    </p>
+    <p>
+      <strong>Katman görüntüleyici (İstif):</strong> ilgili kaydırıcı hareket ettirildikçe üstten alta sırasıyla orijinal sinyal, IMF$_1$, IMF$_2$, … ve son olarak artık (residual) bileşeni açılmaktadır.
+      <strong>Yeniden inşa</strong> kaydırıcısı, kümülatif toplam $\hat{x}_K = r + \sum_{i=1}^{K} \mathrm{IMF}_i$ değerini görselleştirmektedir; $K = M$ değerine ulaşıldığında $\hat{x} = x$ olmakta ve elde edilen RMSE makine duyarlılığı mertebesinde kalmaktadır.
+      Hem özgün hem de yeniden inşa edilmiş sinyal sesli olarak çalınabilmekte; yeniden inşa edilmiş sinyal <em>.wav</em> biçiminde indirilebilmektedir.
+    </p>
+
+    <h3>Kaynakça</h3>
+    <ul class="ref-list">
+      <li>Huang, N. E., Shen, Z., Long, S. R., Wu, M. C., Shih, H. H., Zheng, Q., Yen, N.-C., Tung, C. C., Liu, H. H. (1998). "The empirical mode decomposition and the Hilbert spectrum for nonlinear and non-stationary time series analysis". <em>Proc. R. Soc. Lond. A</em>, 454, 903-995. — HHT'nin orijinal makalesi.</li>
+      <li>Huang, N. E., Wu, Z. (2008). "A review on Hilbert-Huang transform: Method and its applications to geophysical studies". <em>Rev. Geophys.</em>, 46, RG2006.</li>
+      <li>Wu, Z., Huang, N. E. (2009). "Ensemble empirical mode decomposition: A noise-assisted data analysis method". <em>Adv. Adapt. Data Anal.</em>, 1(1), 1-41. — EEMD.</li>
+      <li>Torres, M. E., Colominas, M. A., Schlotthauer, G., Flandrin, P. (2011). "A complete ensemble empirical mode decomposition with adaptive noise". <em>ICASSP 2011</em>. — CEEMDAN.</li>
+      <li>Flandrin, P., Rilling, G., Gonçalves, P. (2004). "Empirical mode decomposition as a filter bank". <em>IEEE Signal Proc. Lett.</em>, 11(2), 112-114. — EMD'nin diyadik filtre bankası özelliği.</li>
+      <li>Rilling, G., Flandrin, P., Gonçalves, P. (2003). "On empirical mode decomposition and its algorithms". <em>IEEE-EURASIP Workshop NSIP-03</em>.</li>
+      <li>Wikipedia: <a href="https://en.wikipedia.org/wiki/Hilbert%E2%80%93Huang_transform" target="_blank">Hilbert-Huang transform</a>; <a href="https://en.wikipedia.org/wiki/Hilbert_spectral_analysis" target="_blank">Hilbert spectral analysis</a>.</li>
+    </ul>
+  </div>
+
+  <!-- ÇİZİM MODAL -->
+  <div class="draw-modal" id="drawModal">
+    <div class="draw-modal-content">
+      <h3>El ile Sinyal Çizimi</h3>
+      <canvas id="cvDraw"></canvas>
+      <div class="actions">
+        <button class="glass-btn-sm" id="drawClear">Temizle</button>
+        <button class="glass-btn-sm" id="drawSmooth">Düzgünleştir</button>
+        <button class="glass-btn-sm danger" id="drawCancel">İptal</button>
+        <button class="glass-btn-sm primary" id="drawApply">✓ Uygula &amp; EMD Çalıştır</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer"><span>Sinyal İşleme Eğitim Simülasyonu — HHT/EMD Modülü</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/hht.js"></script>
+</body>
+</html>

@@ -1,0 +1,1008 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kesirli Fourier Dönüşümü (FrFT) — Optik &amp; 1D Simülasyon</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    .frft-wrap {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0 0.8rem;
+      position: relative; z-index: 2;
+    }
+
+    /* === Üst başlık bloğu === */
+    .section-card {
+      padding: 0.75rem 0.95rem 0.85rem;
+      margin-bottom: 0.7rem;
+    }
+    .section-card h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      letter-spacing: 0.04em;
+      color: var(--accent-1);
+      display: flex; align-items: center; gap: 0.4rem;
+      margin-bottom: 0.35rem;
+    }
+    .section-card h2 .badge {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.68rem;
+      padding: 0.16rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(255,140,66,0.12);
+      color: var(--accent-2);
+      border: 1px solid var(--accent-2);
+      letter-spacing: 0.05em;
+    }
+    .section-card .sub {
+      color: var(--text-secondary);
+      font-size: 0.78rem;
+      line-height: 1.45;
+      margin-bottom: 0.6rem;
+    }
+
+    /* === 2D Optik Sahne === */
+    .optical-stage {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.6rem;
+      align-items: stretch;
+    }
+    .stage-panel {
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      padding: 0.45rem 0.5rem 0.5rem;
+      display: flex; flex-direction: column;
+    }
+    .stage-panel h4 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      margin-bottom: 0.3rem;
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .stage-panel h4 .plane {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.66rem;
+      color: var(--accent-2);
+      text-transform: none;
+      letter-spacing: 0.02em;
+    }
+    .canvas-2d {
+      width: 100%;
+      height: 230px;
+      display: block;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(57,255,133,0.08), transparent 55%),
+        radial-gradient(ellipse at 80% 80%, rgba(255,140,66,0.07), transparent 50%),
+        linear-gradient(135deg, #0a0d2a 0%, #050717 60%, #03030d 100%);
+      border-radius: 4px;
+      cursor: crosshair;
+      touch-action: none;
+      border: 1px solid var(--border-glow);
+    }
+    body.light-theme .canvas-2d {
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(40,70,170,0.06), transparent 55%),
+        radial-gradient(ellipse at 80% 80%, rgba(180,80,30,0.05), transparent 50%),
+        linear-gradient(135deg, #eef2fa 0%, #fafbff 60%, #ffffff 100%);
+    }
+
+    /* === Optik şema === */
+    .optic-schematic {
+      margin-top: 0.6rem;
+      padding: 0.55rem 0.7rem;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+    }
+    #opticCanvas {
+      width: 100%;
+      height: 90px;
+      display: block;
+    }
+    .optic-controls {
+      display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;
+      margin-top: 0.4rem;
+    }
+    .optic-controls label {
+      font-size: 0.72rem; color: var(--text-secondary);
+      display: flex; flex-direction: column; flex: 1; min-width: 180px;
+    }
+    .optic-controls label .v {
+      font-family: 'Fira Code', monospace;
+      color: var(--accent-1);
+      font-size: 0.72rem;
+    }
+    .optic-controls input[type="range"] { width: 100%; }
+    .optic-controls .alpha-pill {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      padding: 0.25rem 0.55rem;
+      border-radius: 4px;
+      background: rgba(57,255,133,0.12);
+      color: var(--accent-1);
+      border: 1px solid var(--accent-1);
+      letter-spacing: 0.04em;
+    }
+
+    /* === 2D Kontroller === */
+    .draw-toolbar {
+      display: flex; gap: 0.3rem; flex-wrap: wrap;
+      margin-top: 0.4rem;
+      font-size: 0.72rem;
+    }
+    .draw-toolbar button {
+      font-family: 'Saira', sans-serif;
+      font-size: 0.7rem;
+      padding: 0.28rem 0.55rem;
+      border-radius: var(--radius-sm);
+      background: var(--select-bg);
+      border: 1px solid var(--border-glow);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .draw-toolbar button:hover {
+      border-color: var(--accent-2);
+      color: var(--accent-2);
+    }
+    .draw-toolbar select {
+      font-family: 'Saira', sans-serif;
+      font-size: 0.7rem;
+      padding: 0.24rem 0.45rem;
+      border-radius: var(--radius-sm);
+      background: var(--select-bg);
+      border: 1px solid var(--border-glow);
+      color: var(--text-primary);
+    }
+    .draw-toolbar .brush-label {
+      font-size: 0.68rem; color: var(--text-dim);
+      display: inline-flex; align-items: center; gap: 0.3rem;
+    }
+
+    /* === 1D Bölümü ===
+       Üst sıra: [Sinyal Oluşturma] [Kartezyen Pusula]
+       Orta sıra: [Re] [Im] [|·|]
+       Alt sıra: tam-genişlik α slider
+    */
+    .grid-1d-top {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 0.7rem;
+      margin-bottom: 0.6rem;
+    }
+    .grid-1d-mid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.7rem;
+      margin-bottom: 0.6rem;
+    }
+    .compass-card {
+      padding: 0.6rem 0.8rem;
+      display: flex; flex-direction: column;
+    }
+    .compass-card h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      margin-bottom: 0.35rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .compass-card h3 .pillv {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(255,140,66,0.12);
+      color: var(--accent-2);
+      border: 1px solid var(--accent-2);
+    }
+    .compass-card .alpha-rose {
+      /* Sabit boyut — daha önce flex:1 + min-height kullanılıyordu;
+         canvas.height attribute'u CSS height olarak yorumlanıp her
+         redraw'da layout büyüyordu. Şimdi width:100% + sabit height. */
+      width: 100%;
+      height: 320px;
+      display: block;
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+    }
+    .compass-info {
+      margin-top: 0.35rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      display: flex; justify-content: space-between; flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .compass-info strong { color: var(--accent-1); }
+    .signal-builder {
+      padding: 0.6rem 0.8rem;
+      display: flex; flex-direction: column;
+      gap: 0.4rem;
+    }
+    .signal-builder h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      margin-bottom: 0.15rem;
+    }
+    /* sp2-stili kompakt 2-sütun parametre grid'i */
+    .params-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem 0.55rem;
+    }
+    .params-grid .ctrl-row.full { grid-column: 1 / -1; }
+    .ctrl-row { display: flex; flex-direction: column; gap: 0.15rem; }
+    .ctrl-row label {
+      font-size: 0.72rem; color: var(--text-secondary);
+      letter-spacing: 0.03em;
+      display: flex; justify-content: space-between;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600;
+    }
+    .ctrl-row label .v {
+      font-family: 'Fira Code', monospace;
+      color: var(--accent-1); font-size: 0.72rem;
+      font-weight: 500; letter-spacing: 0;
+    }
+    .ctrl-row input[type="range"] { width: 100%; }
+    .ctrl-row select {
+      width: 100%;
+      padding: 0.32rem 0.5rem;
+      border-radius: 4px;
+      background: var(--select-bg);
+      border: 1px solid var(--border-glow);
+      color: var(--text-primary);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.74rem;
+      cursor: pointer;
+    }
+    .ctrl-row[data-hidden="1"] { display: none; }
+    .source-tabs {
+      display: flex; gap: 0.25rem; flex-wrap: wrap;
+      padding: 0.28rem; background: var(--select-bg);
+      border-radius: var(--radius-sm); border: 1px solid var(--border-glow);
+    }
+    .source-tab {
+      flex: 1; padding: 0.34rem 0.45rem;
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 600; font-size: 0.72rem;
+      letter-spacing: 0.04em;
+      border-radius: 5px;
+      background: transparent; border: 1px solid transparent;
+      color: var(--text-secondary); cursor: pointer;
+      transition: all var(--transition);
+      text-align: center;
+    }
+    .source-tab:hover { color: var(--accent-1); }
+    .source-tab.active {
+      background: rgba(57,255,133,0.12);
+      color: var(--accent-1);
+      border-color: var(--accent-1);
+    }
+    .builder-section {
+      padding-top: 0.3rem;
+      border-top: 1px dashed var(--border-glow);
+    }
+    .builder-section[data-hidden="1"] { display: none; }
+    .audio-status {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      margin-top: 0.25rem;
+    }
+    .draw1d-pad {
+      width: 100%; height: 90px;
+      background:
+        linear-gradient(180deg, rgba(123,140,255,0.07) 0%, transparent 50%, rgba(255,140,66,0.05) 100%),
+        linear-gradient(135deg, #0a0d2a 0%, #050717 100%);
+      border-radius: 4px;
+      border: 1px solid var(--border-glow);
+      cursor: crosshair; display: block;
+      touch-action: none;
+    }
+    body.light-theme .draw1d-pad {
+      background:
+        linear-gradient(180deg, rgba(40,70,170,0.06) 0%, transparent 50%, rgba(180,80,30,0.04) 100%),
+        linear-gradient(135deg, #eef2fa 0%, #ffffff 100%);
+    }
+
+    /* === 1D Plot panel === */
+    .plot-card {
+      padding: 0.5rem 0.65rem 0.5rem;
+      display: flex; flex-direction: column;
+    }
+    .plot-card h5 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.05em;
+      margin-bottom: 0.15rem;
+      display: flex; justify-content: space-between; align-items: baseline;
+    }
+    .plot-card h5 .axislabel {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.66rem; color: var(--text-dim);
+      text-transform: none;
+      letter-spacing: 0.02em;
+    }
+    .plot-canvas {
+      width: 100%; height: 175px;
+      display: block;
+    }
+    /* Sinyal oluşturma kartı içindeki giriş önizleme grafiği */
+    .input-preview {
+      width: 100%; height: 130px;
+      display: block;
+      margin-top: 0.3rem;
+      background: var(--canvas-bg);
+      border: 1px dashed var(--border-glow);
+      border-radius: 4px;
+    }
+
+    /* === Tam-genişlik α-Slider (alt çubuk) === */
+    .alpha-bar {
+      padding: 0.55rem 0.85rem 0.6rem;
+      margin-top: 0.2rem;
+      display: flex; flex-direction: column;
+      gap: 0.35rem;
+    }
+    .alpha-bar label.top {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-size: 0.85rem; color: var(--text-primary);
+      font-family: 'Saira Condensed', sans-serif;
+      letter-spacing: 0.04em;
+    }
+    .alpha-bar label.top .v {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.95rem;
+      color: var(--accent-2);
+    }
+    .alpha-bar input[type="range"] { width: 100%; }
+    .alpha-marks {
+      display: flex; justify-content: space-between;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.66rem; color: var(--text-dim);
+    }
+    .alpha-marks span { white-space: nowrap; }
+    .alpha-marks .hot { color: var(--accent-1); }
+
+    /* === Teori === */
+    .theory-section { margin-top: 2rem; }
+    .theory-section > h2 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.35rem;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .theory-section > h2::before {
+      content: ""; display: inline-block;
+      width: 4px; height: 1.2em;
+      background: linear-gradient(180deg, var(--accent-1), var(--color-y));
+      border-radius: 2px;
+    }
+    .theory-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 1rem;
+    }
+    .theory-card { padding: 1.1rem 1.2rem; }
+    .theory-card h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--accent-1);
+      margin-bottom: 0.5rem;
+      letter-spacing: 0.03em;
+    }
+    .theory-card h3.t-orange { color: var(--accent-2); }
+    .theory-card h3.t-indigo { color: var(--color-y); }
+    .theory-card p, .theory-card li {
+      font-size: 0.85rem;
+      line-height: 1.65;
+      color: var(--text-secondary);
+    }
+    .theory-card ul { margin-left: 1.2rem; margin-top: 0.4rem; }
+    .theory-card .math-block {
+      background: var(--canvas-bg);
+      border: 1px solid var(--border-glow);
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.7rem;
+      margin: 0.5rem 0;
+      overflow-x: auto;
+      font-size: 0.92rem;
+    }
+    .theory-card .pill {
+      display: inline-block;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      background: rgba(123, 140, 255, 0.14);
+      color: var(--color-y);
+      margin-right: 0.3rem;
+      letter-spacing: 0.04em;
+    }
+
+    @media (max-width: 1100px) {
+      .grid-1d-top { grid-template-columns: 1fr; }
+      .grid-1d-mid { grid-template-columns: 1fr; }
+      .optical-stage { grid-template-columns: 1fr; }
+    }
+
+    /* === Kaynakça === */
+    .refs-section {
+      margin-top: 1.5rem;
+      padding: 1rem 1.2rem;
+    }
+    .refs-section h3 {
+      font-family: 'Saira Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      color: var(--text-primary);
+      margin-bottom: 0.6rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .refs-section h3::before {
+      content: ""; display: inline-block;
+      width: 3px; height: 1em;
+      background: linear-gradient(180deg, var(--accent-1), var(--color-y));
+      border-radius: 2px;
+    }
+    .refs-list {
+      list-style: none;
+      counter-reset: ref;
+      padding-left: 0;
+    }
+    .refs-list li {
+      counter-increment: ref;
+      position: relative;
+      padding: 0.45rem 0 0.45rem 2.4rem;
+      font-size: 0.82rem;
+      line-height: 1.55;
+      color: var(--text-secondary);
+      border-bottom: 1px dashed var(--border-glow);
+    }
+    .refs-list li:last-child { border-bottom: 0; }
+    .refs-list li::before {
+      content: "[" counter(ref) "]";
+      position: absolute;
+      left: 0; top: 0.45rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.78rem;
+      color: var(--accent-2);
+      font-weight: 600;
+    }
+    .refs-list .author { color: var(--text-primary); font-weight: 600; }
+    .refs-list .title { color: var(--accent-1); font-style: italic; }
+    .refs-list .journal { color: var(--color-y); }
+    .refs-list a {
+      color: var(--accent-2);
+      text-decoration: none;
+      border-bottom: 1px dotted var(--accent-2);
+    }
+    .refs-list a:hover {
+      color: var(--color-marker);
+      border-bottom-style: solid;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Tema Değiştir">🌙</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">𝓕<sup>α</sup></span> Kesirli Fourier Dönüşümü (FrFT) <span class="title-icon">⊕</span>
+    </h1>
+    <p class="site-subtitle">İnce mercek optik analoji · 2D çizim &rarr; mercek düzlemleri · 1D sinyal &rarr; Re/Im/|·| (α ∈ [0,1])</p>
+  </header>
+
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o active" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+  </nav>
+
+  <div class="frft-wrap">
+
+    <!-- ====== 2D OPTİK SAHNE ====== -->
+    <section class="section-card glass-panel">
+      <h2>2D Optik Fractional Fourier <span class="badge">İnce mercek · F<sup>α</sup></span></h2>
+      <p class="sub">
+        Sol pencereye bir harf çizin. Orta panel $z = \alpha f$ mesafesindeki <strong>F<sup>α</sup>{f}</strong> görüntüsünü,
+        sağ panel ise odak düzlemini ($z=f$, $\alpha=1$) — klasik Fourier spektrumunu — gösterir. Slider 0→1 ara değerleri sürer.
+      </p>
+
+      <div class="optical-stage">
+        <!-- Giriş düzlemi: çizim -->
+        <div class="stage-panel">
+          <h4>Giriş düzlemi <span class="plane">$f(x,y)$</span></h4>
+          <canvas id="canvasDraw" class="canvas-2d"></canvas>
+          <div class="draw-toolbar">
+            <button id="clearDraw">⌫ Temizle</button>
+            <button id="presetA">A harfi</button>
+            <button id="presetF">F harfi</button>
+            <button id="presetSquare">▢ kare</button>
+            <button id="presetDots">·· iki nokta</button>
+            <span class="brush-label">Fırça
+              <select id="brushSize">
+                <option value="2">ince (2)</option>
+                <option value="4">orta (4)</option>
+                <option value="5" selected>standart (5)</option>
+                <option value="8">kalın (8)</option>
+                <option value="12">çok kalın (12)</option>
+                <option value="18">aşırı (18)</option>
+              </select>
+            </span>
+          </div>
+        </div>
+
+        <!-- Ara düzlem: α-FrFT -->
+        <div class="stage-panel">
+          <h4>Ara düzlem <span class="plane" id="midPlaneLabel">$z = \alpha\,f$, $\alpha = 0.50$</span></h4>
+          <canvas id="canvasMid" class="canvas-2d"></canvas>
+          <div class="draw-toolbar" style="justify-content:space-between;">
+            <span class="brush-label">Görüntüleme
+              <select id="midShow">
+                <option value="mag" selected>|F^α{f}|  (genlik)</option>
+                <option value="log">log |F^α{f}|</option>
+                <option value="re">Re{F^α{f}}</option>
+              </select>
+            </span>
+            <span class="brush-label">N
+              <select id="grid2dN">
+                <option value="32">32</option>
+                <option value="64">64</option>
+                <option value="128" selected>128</option>
+                <option value="256">256</option>
+                <option value="512">512 (yavaş)</option>
+              </select>
+            </span>
+          </div>
+        </div>
+
+        <!-- Odak düzlemi: |FFT| -->
+        <div class="stage-panel">
+          <h4>Odak düzlemi <span class="plane">$z = f$, $\alpha = 1$</span></h4>
+          <canvas id="canvasFocal" class="canvas-2d"></canvas>
+          <div class="draw-toolbar" style="justify-content:space-between;">
+            <span style="font-size:0.72rem;color:var(--text-dim);">
+              Klasik Fourier genlik spektrumu
+            </span>
+            <span class="brush-label" style="display:inline-flex;align-items:center;gap:0.4rem;">
+              log
+              <label class="toggle-switch" style="transform:scale(0.85);">
+                <input type="checkbox" id="focalLog" />
+                <span class="toggle-slider"></span>
+              </label>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Optik şema + α slider -->
+      <div class="optic-schematic">
+        <canvas id="opticCanvas"></canvas>
+        <div class="optic-controls">
+          <label>
+            <span>Mesafe $z / f$ (α değeri)
+              <span class="v" id="alpha2dV">0.50</span></span>
+            <input type="range" id="alpha2d" min="0" max="1" step="0.01" value="0.5">
+          </label>
+          <span class="alpha-pill" id="alpha2dPill">α = 0.50</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== 1D FrFT ====== -->
+    <section class="section-card glass-panel">
+      <h2>1D Sinyal · F<sup>α</sup>{x(t)} <span class="badge">Re · Im · |·|</span></h2>
+      <p class="sub">
+        Sinyal kaynağı seçin → α slider'ı (0→1) → Re/Im/|·| ekranlarında <strong>F<sup>α</sup>x</strong> ve sağdaki
+        pusulada (t, Ω) düzlemindeki dönüş açısı gerçek zamanlı güncellenir.
+      </p>
+
+      <!-- Üst sıra: Sinyal Oluşturma + Kartezyen Pusula -->
+      <div class="grid-1d-top">
+        <!-- Sol: signal builder (geniş) -->
+        <div class="signal-builder glass-panel">
+          <h3>Sinyal Oluşturma</h3>
+          <div class="source-tabs" id="sourceTabs">
+            <button class="source-tab active" data-src="basic">Temel</button>
+            <button class="source-tab" data-src="chirp">Chirp</button>
+            <button class="source-tab" data-src="draw">Çizim</button>
+            <button class="source-tab" data-src="audio">Müzik</button>
+          </div>
+
+          <!-- Basic -->
+          <div class="builder-section" id="srcBasic">
+            <div class="params-grid">
+              <div class="ctrl-row full">
+                <label>Sinyal tipi</label>
+                <select id="basicType">
+                  <option value="cos">Kosinüs · cos(2πFt)</option>
+                  <option value="sin">Sinüs · sin(2πFt)</option>
+                  <option value="rect">Dikdörtgen · rect(t/T)</option>
+                  <option value="tri">Üçgen · tri(t/T)</option>
+                  <option value="gauss" selected>Gauss · e^(-t²/2σ²)</option>
+                  <option value="sinc">Sinc · sinc(t/T)</option>
+                  <option value="dirac">Dirac · δ(t-t₀)</option>
+                  <option value="expDec">Üstel sönen · e^(-αt)u(t)</option>
+                  <option value="square">Kare dalga · sgn(sin·)</option>
+                </select>
+              </div>
+              <div class="ctrl-row" data-param="amp1d">
+                <label>Genlik A <span class="v" id="amp1dV">1.00</span></label>
+                <input type="range" id="amp1d" min="0.2" max="2" step="0.05" value="1">
+              </div>
+              <div class="ctrl-row" data-param="freq1d">
+                <label>F (Hz) <span class="v" id="freq1dV">2.00</span></label>
+                <input type="range" id="freq1d" min="0.1" max="8" step="0.05" value="2">
+              </div>
+              <div class="ctrl-row" data-param="shift1d">
+                <label>Kayma t₀ <span class="v" id="shift1dV">0.00</span></label>
+                <input type="range" id="shift1d" min="-10" max="10" step="0.05" value="0">
+              </div>
+              <div class="ctrl-row" data-param="width1d">
+                <label>Süre T <span class="v" id="width1dV">1.50</span></label>
+                <input type="range" id="width1d" min="0.2" max="10" step="0.05" value="1.5">
+              </div>
+              <div class="ctrl-row" data-param="sigma1d">
+                <label>σ <span class="v" id="sigma1dV">0.50</span></label>
+                <input type="range" id="sigma1d" min="0.1" max="5" step="0.05" value="0.5">
+              </div>
+              <div class="ctrl-row full">
+                <label>t aralığı başlangıç t<sub>min</sub> <span class="v" id="tmin1dV">-4.00</span></label>
+                <input type="range" id="tmin1d" min="-10" max="-0.5" step="0.1" value="-4">
+              </div>
+              <div class="ctrl-row full">
+                <label>t aralığı bitiş t<sub>max</sub> <span class="v" id="tmax1dV">+4.00</span></label>
+                <input type="range" id="tmax1d" min="0.5" max="10" step="0.1" value="4">
+              </div>
+            </div>
+          </div>
+
+          <!-- Chirp -->
+          <div class="builder-section" id="srcChirp" data-hidden="1">
+            <div class="params-grid">
+              <div class="ctrl-row">
+                <label>f₀ <span class="v" id="chirpF0V">1.00</span></label>
+                <input type="range" id="chirpF0" min="-4" max="4" step="0.1" value="1">
+              </div>
+              <div class="ctrl-row">
+                <label>k (Hz/s) <span class="v" id="chirpKV">2.00</span></label>
+                <input type="range" id="chirpK" min="-8" max="8" step="0.1" value="2">
+              </div>
+              <div class="ctrl-row">
+                <label>A <span class="v" id="chirpAV">1.00</span></label>
+                <input type="range" id="chirpA" min="0.2" max="2" step="0.05" value="1">
+              </div>
+              <div class="ctrl-row">
+                <label>σ (zarf) <span class="v" id="chirpSigV">1.20</span></label>
+                <input type="range" id="chirpSig" min="0.3" max="3" step="0.05" value="1.2">
+              </div>
+            </div>
+            <p style="font-size:0.7rem;color:var(--text-dim);margin-top:0.35rem;line-height:1.4;">
+              Chirp belirli bir α'da <em>impulsa</em> daralır — FrFT'nin özfonksiyon ailesi.
+            </p>
+          </div>
+
+          <!-- Drawing -->
+          <div class="builder-section" id="srcDraw" data-hidden="1">
+            <div class="draw-toolbar" style="margin-top:0.35rem;">
+              <button id="clearDraw1d">⌫ Temizle</button>
+              <button id="smoothDraw1d">⨉ Yumuşat</button>
+              <span style="font-size:0.66rem;color:var(--text-dim);margin-left:auto;align-self:center;">
+                aşağıdaki <strong>x(t)</strong> grafiğine fareyle çiziniz
+              </span>
+            </div>
+          </div>
+
+          <!-- Audio -->
+          <div class="builder-section" id="srcAudio" data-hidden="1">
+            <input type="file" id="audioFile" accept="audio/*" style="font-size:0.7rem;width:100%;" />
+            <div class="params-grid" style="margin-top:0.35rem;">
+              <div class="ctrl-row">
+                <label>Başl. (sn) <span class="v" id="audioStartV">0.00</span></label>
+                <input type="range" id="audioStart" min="0" max="1" step="0.001" value="0" disabled>
+              </div>
+              <div class="ctrl-row">
+                <label>Uzunluk (sn) <span class="v" id="audioLenV">0.50</span></label>
+                <input type="range" id="audioLen" min="0.05" max="3" step="0.01" value="0.5">
+              </div>
+            </div>
+            <div class="audio-status" id="audioStatus">— dosya yüklenmedi —</div>
+          </div>
+
+          <div style="margin-top:0.7rem; display:flex; gap:0.4rem;">
+            <button class="glass-btn" id="resetSignal" style="flex:1;">↺ Sıfırla</button>
+          </div>
+
+          <!-- Mini giriş önizleme (sinyalin kendisi) -->
+          <div style="margin-top:0.7rem;">
+            <div style="font-family:'Saira Condensed',sans-serif;font-size:0.75rem;color:var(--text-dim);letter-spacing:0.04em;margin-bottom:0.25rem;">
+              Giriş sinyali x(t)
+            </div>
+            <canvas id="canvasInput" class="input-preview"></canvas>
+          </div>
+        </div>
+
+        <!-- Sağ: kartezyen pusula (F^0 → F^1 dönme) -->
+        <div class="compass-card glass-panel">
+          <h3>
+            <span>Kartezyen Pusula · F<sup>0</sup>→F<sup>1</sup></span>
+            <span class="pillv" id="alpha1dPill">α = 0.50</span>
+          </h3>
+          <canvas id="alphaRose" class="alpha-rose"></canvas>
+          <div class="compass-info">
+            <span>φ = α·π/2 = <strong id="alphaPhiV">45.0°</strong></span>
+            <span>eksen ≈ <strong id="alphaMix">t·cos(φ) + Ω·sin(φ)</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orta sıra: 3 plot (Re, Im, |·|) yan yana -->
+      <div class="grid-1d-mid">
+        <div class="plot-card glass-panel">
+          <h5>F<sup>α</sup>·x (real)
+            <span class="axislabel">$\mathrm{Re}\{F^\alpha x\}$</span></h5>
+          <canvas id="canvasRe" class="plot-canvas"></canvas>
+        </div>
+        <div class="plot-card glass-panel">
+          <h5>F<sup>α</sup>·x (imag)
+            <span class="axislabel">$\mathrm{Im}\{F^\alpha x\}$</span></h5>
+          <canvas id="canvasIm" class="plot-canvas"></canvas>
+        </div>
+        <div class="plot-card glass-panel">
+          <h5>F<sup>α</sup>·x (abs)
+            <span class="axislabel">$|F^\alpha x|$</span></h5>
+          <canvas id="canvasMag" class="plot-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Alt: tam-genişlik α slider -->
+      <div class="alpha-bar glass-panel">
+        <label class="top">
+          <span>Fractional sıra α &nbsp;&nbsp;<span style="font-family:'Fira Code',monospace;font-size:0.8rem;color:var(--text-dim);">(0 → 1)</span></span>
+          <span class="v" id="alpha1dV">0.500</span>
+        </label>
+        <input type="range" id="alpha1d" min="0" max="1" step="0.005" value="0.5">
+        <div class="alpha-marks">
+          <span class="hot">α=0 · F<sup>0</sup>=I (zaman t)</span>
+          <span>α=¼</span>
+          <span>α=½</span>
+          <span>α=¾</span>
+          <span class="hot">α=1 · F<sup>1</sup>=𝓕 (frekans Ω)</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== TEORİ ====== -->
+    <section class="theory-section">
+      <h2>Fractional Fourier — Teori</h2>
+
+      <div class="theory-grid">
+        <div class="theory-card glass-panel">
+          <h3>Tanım — Açısal İntegral</h3>
+          <p>
+            Fraksiyonel Fourier Dönüşümü (FrFT), klasik Fourier dönüşümünün <strong>kesirli kuvveti</strong> olarak tanımlanmaktadır. $\alpha$ mertebeli FrFT, $\phi = \alpha\pi/2$ açısı altında aşağıdaki çekirdek aracılığıyla ifade edilmektedir:
+          </p>
+          <div class="math-block">
+            $$X_\alpha(u) = \int_{-\infty}^{\infty} K_\alpha(t,u)\,x(t)\,dt$$
+          </div>
+          <div class="math-block">
+            $$K_\alpha(t,u) = \sqrt{\tfrac{1-j\cot\phi}{2\pi}}\,
+              \exp\!\Bigl[j\bigl(\tfrac{t^2+u^2}{2}\cot\phi - tu\csc\phi\bigr)\Bigr]$$
+          </div>
+          <p>
+            <strong>Özel durumlar:</strong> $\alpha = 0$ için birim operatör (sinyalin kendisi), $\alpha = 1$ için klasik Fourier dönüşümü $X(\Omega)$, $\alpha = 2$ için zaman tersleme $x(-t)$ ve $\alpha = 3$ için ters Fourier dönüşümü elde edilmektedir. Operatör <em>4-periyodiktir</em>: $F^4 = I$.
+          </p>
+        </div>
+
+        <div class="theory-card glass-panel">
+          <h3 class="t-orange">Optik Yorum — Mercek Düzlemi</h3>
+          <p>
+            Lohmann (1993) tarafından, ince merceğin neden olduğu Fresnel kırınımının FrFT ile eşdeğer olduğu gösterilmiştir. Odak uzaklığı $f$ olan bir mercek ardından $z \in [0, f]$ uzaklığındaki gözlem düzlemi, $\alpha = z/f$ mertebeli iki boyutlu bir <strong>2D FrFT</strong> üretmektedir.
+          </p>
+          <ul>
+            <li><span class="pill">$\alpha = 0$</span> (mercek düzleminde): görüntünün kendisi elde edilir.</li>
+            <li><span class="pill">$\alpha < 1$</span> (ara mesafelerde): bulanık ara FrFT görüntüleri ortaya çıkar.</li>
+            <li><span class="pill">$\alpha = 1$</span> (odak düzleminde): Fourier genlik spektrumu $|F\{f\}|$ elde edilmektedir.</li>
+          </ul>
+          <p>
+            Bu sayfada 2B ayrılabilir FrFT kullanılmakta; tek boyutlu Ozaktas–Kutay <em>chirp–FFT–chirp</em> algoritması önce satırlara, ardından sütunlara art arda uygulanmaktadır.
+          </p>
+        </div>
+
+        <div class="theory-card glass-panel">
+          <h3 class="t-indigo">Zaman–Frekans Düzleminde Dönme</h3>
+          <p>
+            FrFT, Wigner–Ville dağılımını $\phi = \alpha\pi/2$ açısı kadar döndürmektedir:
+          </p>
+          <div class="math-block">
+            $$W_{X_\alpha}(u, v) = W_x\!\bigl(u\cos\phi - v\sin\phi,\ u\sin\phi + v\cos\phi\bigr).$$
+          </div>
+          <p>
+            Buna göre $\alpha = 0$ değerinde zaman ekseni, $\alpha = 1$ değerinde ise frekans ekseni elde edilmektedir. Ara değerler ise $t$–$\Omega$ düzleminde bir doğru boyunca <em>karma bir temsil</em> sağlar. Sağdaki pusula bu açıyı gerçek zamanlı olarak göstermektedir.
+          </p>
+          <p>
+            <strong>Özfonksiyonlar:</strong> Hermite–Gauss fonksiyonları FrFT'nin özfonksiyonlarını oluşturmaktadır. Bir <em>doğrusal chirp</em>, uygun bir $\alpha$ değerinde bir impulsa daralmakta; bu özellik chirp sıkıştırması yapan radar sistemlerinde FrFT'nin temel kullanım alanını oluşturmaktadır.
+          </p>
+        </div>
+
+        <div class="theory-card glass-panel">
+          <h3>Ozaktas–Kutay Hızlı Algoritması</h3>
+          <p>
+            Bu sayfada kullanılan ayrık FrFT, $|\alpha| \in [0.5, 1.5]$ aralığında <strong>chirp–FFT–chirp</strong> kompozisyonu olarak hesaplanmaktadır:
+          </p>
+          <div class="math-block">
+            $$X_\alpha[u] = A_\phi\,e^{j\pi u^2\cot\phi}
+              \cdot \mathcal{F}\!\bigl\{e^{j\pi t^2\cot\phi}\,x(t)\bigr\}
+              \cdot e^{j\pi u^2\cot\phi}\Big|_{\text{örneklenmiş}}.$$
+          </div>
+          <p>
+            $|\alpha| < 0.5$ durumunda $F^\alpha = F^{\alpha-1}F$ özdeşliği kullanılarak yeniden uygulama yapılmakta; $\alpha \to 0$ veya $\alpha \to 2$ limit durumlarında özdeşlik ya da ters yansıma analitik olarak alınmaktadır. Toplam hesap karmaşıklığı $\mathcal{O}(N \log N)$ düzeyindedir.
+          </p>
+        </div>
+
+        <div class="theory-card glass-panel">
+          <h3 class="t-orange">Uygulama Alanları</h3>
+          <ul>
+            <li><strong>Radar ve sonar:</strong> LFM chirp algılama, hedef–zemin ayrımı ve hareketli hedef tespiti (MTD) işlemlerinde kullanılır.</li>
+            <li><strong>Optik:</strong> ince mercek aracılığıyla yarı-Fourier dönüşümü, fazsız hologram ve kırınım analizleri bu yöntemle yapılır.</li>
+            <li><strong>Süzgeçleme:</strong> Wigner düzleminde eğik (oblique) bantlarda süzgeçleme uygulamalarında etkin biçimde kullanılır.</li>
+            <li><strong>Görüntü şifreleme:</strong> $\alpha$ parametresi anahtar görevi gördüğünden FrFT görüntü şifreleme amacıyla uygulanmaktadır.</li>
+            <li><strong>Sinyal sıkıştırma:</strong> chirp ailesindeki sinyaller için DCT'ye kıyasla daha sıkı temsil sağlar.</li>
+          </ul>
+        </div>
+
+        <div class="theory-card glass-panel">
+          <h3 class="t-indigo">Kullanım İpuçları</h3>
+          <ul>
+            <li>2B panelinde $\alpha \approx 0.5$ değerinde "yarı-Fourier" görünümü gözlemlenmektedir.</li>
+            <li>Chirp sekmesinde $k$ sabit tutulup $\alpha$ değeri kaydırıldığında, belirli bir $\alpha$ değerinde sanal bileşen sıfırlanırken reel bileşen bir <em>impulsa</em> daralmaktadır.</li>
+            <li>Ses dosyası yüklendiğinde sinyal uzunluğunun kısa tutulması önerilmektedir (yaklaşık 0,5 s); aksi takdirde FrFT hesabının karmaşıklığı önemli ölçüde artar.</li>
+            <li>Sağdaki kartezyen pusula α değişirken <em>(t, Ω)</em> ekseninin nasıl döndüğünü gösterir.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====== KAYNAKÇA ====== -->
+    <section class="refs-section glass-panel">
+      <h3>Kaynakça</h3>
+      <ol class="refs-list">
+        <li>
+          <span class="author">V. Namias</span>,
+          <span class="title">"The Fractional Order Fourier Transform and its Application to Quantum Mechanics"</span>,
+          <span class="journal">J. Inst. Math. Appl.</span>, vol. 25, no. 3, pp. 241–265, 1980.
+          <a href="https://doi.org/10.1093/imamat/25.3.241" target="_blank" rel="noopener">doi:10.1093/imamat/25.3.241</a>
+        </li>
+        <li>
+          <span class="author">A. C. McBride, F. H. Kerr</span>,
+          <span class="title">"On Namias's Fractional Fourier Transforms"</span>,
+          <span class="journal">IMA J. Appl. Math.</span>, vol. 39, no. 2, pp. 159–175, 1987.
+          <a href="https://doi.org/10.1093/imamat/39.2.159" target="_blank" rel="noopener">doi:10.1093/imamat/39.2.159</a>
+        </li>
+        <li>
+          <span class="author">A. W. Lohmann</span>,
+          <span class="title">"Image Rotation, Wigner Rotation, and the Fractional Fourier Transform"</span>,
+          <span class="journal">J. Opt. Soc. Am. A</span>, vol. 10, no. 10, pp. 2181–2186, 1993.
+          <a href="https://doi.org/10.1364/JOSAA.10.002181" target="_blank" rel="noopener">doi:10.1364/JOSAA.10.002181</a>
+        </li>
+        <li>
+          <span class="author">L. B. Almeida</span>,
+          <span class="title">"The Fractional Fourier Transform and Time–Frequency Representations"</span>,
+          <span class="journal">IEEE Trans. Signal Process.</span>, vol. 42, no. 11, pp. 3084–3091, 1994.
+          <a href="https://doi.org/10.1109/78.330368" target="_blank" rel="noopener">doi:10.1109/78.330368</a>
+        </li>
+        <li>
+          <span class="author">H. M. Ozaktas, O. Arıkan, M. A. Kutay, G. Bozdağı</span>,
+          <span class="title">"Digital Computation of the Fractional Fourier Transform"</span>,
+          <span class="journal">IEEE Trans. Signal Process.</span>, vol. 44, no. 9, pp. 2141–2150, 1996.
+          <a href="https://doi.org/10.1109/78.536672" target="_blank" rel="noopener">doi:10.1109/78.536672</a>
+          &nbsp;— bu sayfada kullanılan <em>chirp–FFT–chirp</em> algoritmasının kaynağı.
+        </li>
+        <li>
+          <span class="author">H. M. Ozaktas, Z. Zalevsky, M. A. Kutay</span>,
+          <span class="title">"The Fractional Fourier Transform with Applications in Optics and Signal Processing"</span>,
+          Wiley, 2001. ISBN: 978-0-471-96346-2.
+          &nbsp;— FrFT konusundaki standart referans kitabı.
+        </li>
+        <li>
+          <span class="author">S.-C. Pei, J.-J. Ding</span>,
+          <span class="title">"Closed-Form Discrete Fractional and Affine Fourier Transforms"</span>,
+          <span class="journal">IEEE Trans. Signal Process.</span>, vol. 48, no. 5, pp. 1338–1353, 2000.
+          <a href="https://doi.org/10.1109/78.839981" target="_blank" rel="noopener">doi:10.1109/78.839981</a>
+          &nbsp;— Hermite-Gauss özfonksiyon tabanlı DFrFT.
+        </li>
+        <li>
+          <span class="author">Ç. Candan, M. A. Kutay, H. M. Ozaktas</span>,
+          <span class="title">"The Discrete Fractional Fourier Transform"</span>,
+          <span class="journal">IEEE Trans. Signal Process.</span>, vol. 48, no. 5, pp. 1329–1337, 2000.
+          <a href="https://doi.org/10.1109/78.839980" target="_blank" rel="noopener">doi:10.1109/78.839980</a>
+        </li>
+        <li>
+          <span class="author">D. Mendlovic, H. M. Ozaktas</span>,
+          <span class="title">"Fractional Fourier Transforms and Their Optical Implementation: I &amp; II"</span>,
+          <span class="journal">J. Opt. Soc. Am. A</span>, vol. 10, no. 9, pp. 1875–1881 &amp; pp. 2522–2531, 1993.
+          <a href="https://doi.org/10.1364/JOSAA.10.001875" target="_blank" rel="noopener">doi:10.1364/JOSAA.10.001875</a>
+          &nbsp;— ince mercek ile FrFT optik eşdeğerliği.
+        </li>
+        <li>
+          <span class="author">A. Bultheel, H. Martínez-Sulbaran</span>,
+          <span class="title">"Computation of the Fractional Fourier Transform"</span>,
+          <span class="journal">Applied and Computational Harmonic Analysis</span>, vol. 16, no. 3, pp. 182–202, 2004.
+          <a href="https://doi.org/10.1016/j.acha.2004.02.001" target="_blank" rel="noopener">doi:10.1016/j.acha.2004.02.001</a>
+        </li>
+        <li>
+          <span class="author">Cooley, J. W., Tukey, J. W.</span>,
+          <span class="title">"An Algorithm for the Machine Calculation of Complex Fourier Series"</span>,
+          <span class="journal">Math. Comp.</span>, vol. 19, no. 90, pp. 297–301, 1965.
+          &nbsp;— FrFT içindeki FFT çekirdeği.
+        </li>
+      </ol>
+    </section>
+
+  </div>
+
+  <footer class="site-footer"><span>Sinyal İşleme Eğitim Simülasyonu — Fractional Fourier</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/fractional-fourier.js"></script>
+
+  <!-- spmi-privacy-note -->
+  <div class="privacy-note" style="max-width:900px;margin:1.2rem auto 1.6rem;padding:0.85rem 1.2rem;border:1px dashed rgba(120,140,200,0.35);border-radius:8px;font-family:'Saira',sans-serif;font-size:0.78rem;line-height:1.6;color:var(--text-secondary,#9aa3bf);text-align:center;position:relative;z-index:2;background:rgba(20,25,45,0.25);">
+    🔒 <strong>TR:</strong> Yüklediğiniz tüm dosyalar (ses, görüntü vb.) yalnızca tarayıcınızda işlenir; hiçbir sunucuya gönderilmez ve kaydedilmez.
+    <br/>
+    🔒 <strong>EN:</strong> All files you upload (audio, image, etc.) are processed only in your browser; nothing is sent to or stored on any server.
+  </div>
+</body>
+</html>
