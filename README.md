@@ -53,7 +53,7 @@ https://spmi-lab.github.io/signal_sim/tr/index.html
 Bu açık kaynak çalışma, lisans seviyesindeki **Sinyaller ve Sistemler**
 dersinin temel matematiksel yapı taşlarını — *konvolüsyon, Fourier
 serisi ve dönüşümü, Laplace dönüşümü, örnekleme teoremi, Z-dönüşümü,
-DTFT/DFT/FFT* — tarayıcıda anlık tepki veren **16 etkileşimli simülasyon**
+DTFT/DFT/FFT* — tarayıcıda anlık tepki veren **18 etkileşimli simülasyon**
 aracılığıyla görselleştirmektedir. Platform Türkçe ve İngilizce olmak üzere 
 iki dilde sunulmakta, tüm matematiksel ifadeler KaTeX ile dizgilenmiştir.
 
@@ -69,11 +69,12 @@ geliştirilebilir.
  
 ### 𝓕 Simülasyon Kataloğu
 
-#### ∫ Sürekli Zaman (5)
+#### ∫ Sürekli Zaman (6)
 - **Temel Sinyaller** — δ(t), u(t), eᵃᵗ, cos(Ωt)
 - **LTI Sistem Özellikleri** — Doğrusallık · Zamanla değişmezlik · Nedensellik · Kararlılık
 - **Sürekli Zamanda Konvolüsyon** — y(t) = ∫ x(τ)h(t−τ)dτ
 - **Fourier Serisi** — Periyodik sinyallerin harmonik ayrışımı
+- **Sürekli Zaman Fourier Dönüşümü (CTFT)** — Periyodik olmayan işaretler, rect↔sinc düalitesi, genlik/faz
 - **Laplace Dönüşümü** — 3B s-düzlemi, kutup-sıfır analizi
 
 #### Σ Ayrık Zaman (5)
@@ -83,13 +84,14 @@ geliştirilebilir.
 - **Ayrık Fourier Dönüşümü (DFT/FFT)** — Pencereleme, sızıntı, hız analizi
 - **Z-Dönüşümü** — 3B z-düzlemi, ROC, kutup-sıfır yerleşimi
 
-#### ★ Uygulama Simülasyonları (6)
+#### ★ Uygulama Simülasyonları (7)
 - **Radyo: Frekans Bölmeli Çoğullama** — AM/FM/QAM/OFDM çekirdeği
 - **Gerçek Zamanlı STFT** — 8 pencere fonksiyonu, overlap denetimi
 - **Ayrık Kosinüs Dönüşümü (DCT)** — JPEG'in matematik temeli
 - **Hilbert-Huang Dönüşümü (HHT/EMD)** — Anlık frekans analizi
 - **Doppler Radarı ile Hız Tespiti** — SNR, MTI filtreleme, FFT spektrumu
 - **Kesirli Fourier Dönüşümü (FrFT)** — İnce mercek optik analojisi
+- **Filtreler (Analog ve Sayısal)** — Butterworth/Chebyshev/FIR, genlik-faz tepkisi, kutup-sıfır, canlı süzme
 
 ### ▶ Kısa Tanıtım Videoları
 
@@ -158,7 +160,7 @@ Ayrıntılar için [`LICENSE`](LICENSE) dosyasına bakılabilir.
 This open-source work visualises the core mathematical building blocks
 of an undergraduate **Signals & Systems** course — *convolution,
 Fourier series and transform, Laplace transform, the sampling theorem,
-the Z-transform, and the DTFT/DFT/FFT* — through **sixteen interactive
+the Z-transform, and the DTFT/DFT/FFT* — through **eighteen interactive
 simulations** that respond instantly in the browser. Each simulation
 pairs the analytical expression of a transform with a control surface
 (sliders, parameter panels, live plots); direct interaction in the
@@ -179,11 +181,12 @@ derived from the building blocks provided here.
 
 ### 𝓕 Simulation Catalogue
 
-#### ∫ Continuous Time (5)
+#### ∫ Continuous Time (6)
 - **Basic Signals** — δ(t), u(t), eᵃᵗ, cos(Ωt)
 - **LTI System Properties** — Linearity · Time-Invariance · Causality · Stability
 - **Continuous-Time Convolution** — y(t) = ∫ x(τ)h(t−τ)dτ
 - **Fourier Series** — Harmonic decomposition of periodic signals
+- **Continuous-Time Fourier Transform (CTFT)** — Aperiodic signals, rect↔sinc duality, magnitude/phase
 - **Laplace Transform** — 3-D s-plane, pole-zero analysis
 
 #### Σ Discrete Time (5)
@@ -193,13 +196,14 @@ derived from the building blocks provided here.
 - **Discrete Fourier Transform (DFT/FFT)** — Windowing, leakage, performance
 - **Z-Transform** — 3-D z-plane, ROC, pole-zero placement
 
-#### ★ Applied Simulations (6)
+#### ★ Applied Simulations (7)
 - **Radio: Frequency-Division Multiplexing** — Core of AM/FM/QAM/OFDM
 - **Real Time STFT** — 8 window functions, overlap control
 - **Discrete Cosine Transform (DCT)** — Mathematical core of JPEG
 - **Hilbert-Huang Transform (HHT/EMD)** — Instantaneous frequency analysis
 - **Doppler Radar Velocity Detection** — SNR, MTI filtering, FFT spectrum
 - **Fractional Fourier Transform (FrFT)** — Thin-lens optical analogy
+- **Filters (Analog & Digital)** — Butterworth/Chebyshev/FIR, magnitude-phase response, pole-zero, live filtering
 
 ### ▶ Short Demonstration Videos
 

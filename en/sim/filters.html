@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Filters — Analog &amp; Digital Filter Designer</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== Filter layout ===== */
+    .filt-grid {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0 0.8rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      position: relative; z-index: 2;
+    }
+    .filt-grid .graph-container { padding: 0.5rem 0.7rem 0.6rem; }
+    .filt-grid canvas {
+      width: 100%; height: 210px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    .filt-grid .spans-wide { grid-column: 1 / span 2; }
+    .filt-grid .spans-wide canvas { height: 190px; }
+    .panel-mag { color: var(--color-h); }
+    .panel-pha { color: var(--color-y); }
+    .panel-pz  { color: #5ec8ff; }
+    .panel-imp { color: var(--color-h); }
+    .panel-live { color: var(--color-x); }
+    @media (max-width: 900px) {
+      .filt-grid { grid-template-columns: 1fr; }
+      .filt-grid .spans-wide { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">&#127769;</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon"><svg class="sim-ico sim-ico-filter sim-ico-lg" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--accent-2);"><path d="M2 7 L10 7 C13 7 13 19 22 19"/></svg></span> Filters — Analog &amp; Digital Filter Designer
+    </h1>
+    <p class="site-subtitle">$H(s)=\dfrac{B(s)}{A(s)}$ &middot; $H(e^{j\omega})$ &middot; Butterworth &middot; Chebyshev &middot; FIR</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">&#127968; Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">&#x223F; Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{&middot;} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">&#x222B; Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">&#x1D4D5; Fourier Series</a>
+    <a class="nav-tab group-c" href="ctft.html">&#x1D4D5; CTFT</a>
+    <a class="nav-tab group-c" href="laplace.html">&#x2112; Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">&#x03A3; Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">&#x21AF; Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">&#x1D4D5;* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">&#x23C3; DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">&#x1D4B5; Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">&#x1D49F; DCT</a>
+    <a class="nav-tab group-o" href="hht.html">&#x210B; HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">&#x1D4D5;<sup>&alpha;</sup> FrFT</a>
+    <a class="nav-tab group-o active" href="filters.html"><svg class="sim-ico sim-ico-filter" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7 L10 7 C13 7 13 19 22 19"/></svg> Filters</a>
+  </nav>
+
+  <!-- Controls -->
+  <div class="controls-wrapper">
+    <!-- Filter -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-h"></span> Filter</h3>
+
+      <div class="control-group">
+        <label>Domain:</label>
+        <select id="domain" class="glass-select">
+          <option value="digital" selected>Digital — H(e^{j&omega;}), z-plane</option>
+          <option value="analog">Analog — H(j&Omega;), s-plane</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Type:</label>
+        <select id="ftype" class="glass-select">
+          <option value="lp" selected>Low-pass (LP)</option>
+          <option value="hp">High-pass (HP)</option>
+          <option value="bp">Band-pass (BP)</option>
+          <option value="bs">Band-stop / notch (BS)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Family:</label>
+        <select id="family" class="glass-select">
+          <option value="butter" selected>Butterworth (maximally flat)</option>
+          <option value="cheby1">Chebyshev I (passband ripple)</option>
+          <option value="cheby2">Chebyshev II (stopband ripple)</option>
+          <option value="fir" id="familyFir">FIR (windowed sinc, linear phase)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Order N: <span id="orderVal" class="val-display">4</span></label>
+        <input type="range" id="orderSlider" min="1" max="8" step="1" value="4" />
+      </div>
+    </div>
+
+    <!-- Frequencies -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> Frequencies</h3>
+
+      <div class="control-group">
+        <label>Sampling rate f&#8347; (Hz): <span id="fsVal" class="val-display">100</span></label>
+        <input type="range" id="fsSlider" min="40" max="200" step="5" value="100" />
+      </div>
+
+      <div class="control-group" id="fcGroup">
+        <label>Cutoff f_c (Hz): <span id="fcVal" class="val-display">12.0</span></label>
+        <input type="range" id="fcSlider" min="1" max="95" step="0.5" value="12" />
+      </div>
+
+      <div id="bandGroup" style="display:none;">
+        <div class="control-group">
+          <label>Lower edge f&#8321; (Hz): <span id="f1Val" class="val-display">12.0</span></label>
+          <input type="range" id="f1Slider" min="1" max="90" step="0.5" value="12" />
+        </div>
+        <div class="control-group">
+          <label>Upper edge f&#8322; (Hz): <span id="f2Val" class="val-display">30.0</span></label>
+          <input type="range" id="f2Slider" min="2" max="98" step="0.5" value="30" />
+        </div>
+      </div>
+
+      <div class="control-group" id="rpGroup" style="display:none;">
+        <label>Passband ripple R_p (dB): <span id="rpVal" class="val-display">1.0</span></label>
+        <input type="range" id="rpSlider" min="0.1" max="6" step="0.1" value="1" />
+      </div>
+
+      <div class="control-group" id="rsGroup" style="display:none;">
+        <label>Stopband atten. R_s (dB): <span id="rsVal" class="val-display">40</span></label>
+        <input type="range" id="rsSlider" min="20" max="80" step="1" value="40" />
+      </div>
+
+      <div class="control-group" id="winGroup" style="display:none;">
+        <label>FIR window:</label>
+        <select id="window" class="glass-select">
+          <option value="rect">Rectangular</option>
+          <option value="hann">Hann</option>
+          <option value="hamming" selected>Hamming</option>
+          <option value="blackman">Blackman</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Display & Live -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-settings"></span> Display &amp; Live Demo</h3>
+
+      <div class="control-group">
+        <label>Second response panel:</label>
+        <select id="phaseMode" class="glass-select">
+          <option value="phase" selected>Phase &ang;H</option>
+          <option value="group">Group delay &tau;</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Live noise level: <span id="noiseVal" class="val-display">0.25</span></label>
+        <input type="range" id="noiseSlider" min="0" max="1" step="0.02" value="0.25" />
+      </div>
+
+      <div class="control-group">
+        <label>Grid Opacity: <span id="gridAlphaVal" class="val-display">0.16</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.5" step="0.01" value="0.16" />
+      </div>
+
+      <p class="freehand-info" style="margin-top:0.3rem;">A noisy two-tone signal (one tone in the passband, one in the stopband) is filtered live below.</p>
+    </div>
+  </div>
+
+  <div class="filt-grid">
+    <!-- Magnitude -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-mag">|H| — Magnitude response (dB)</span>
+        <span class="instant-value" id="designRO" style="margin-left:auto;">&mdash;</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$20\log_{10}|H|$ vs frequency &middot; shaded = passband</span>
+      </div>
+      <canvas id="cvMag"></canvas>
+    </div>
+
+    <!-- Phase / group delay -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-pha" id="phaseTitle">Phase response &ang;H(f)</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$\angle H$ or group delay $\tau(f)=-\,d\angle H/d\omega$</span>
+      </div>
+      <canvas id="cvPhase"></canvas>
+    </div>
+
+    <!-- Pole-Zero -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-pz" id="pzTitle">Pole–Zero (z-plane)</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">&times; poles &middot; &#9675; zeros &middot; stability: poles inside circle (z) / left half (s)</span>
+      </div>
+      <canvas id="cvPZ"></canvas>
+    </div>
+
+    <!-- Impulse response -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-imp" id="impTitle">Impulse response h[n]</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">response to a unit impulse $\delta$</span>
+      </div>
+      <canvas id="cvImpulse"></canvas>
+    </div>
+
+    <!-- Live time -->
+    <div class="graph-container glass-panel spans-wide">
+      <div class="graph-header">
+        <span class="graph-label panel-live">Live filtering — input vs. output (time)</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$y[n] = \text{filter}\{x[n]\}$ &middot; the stopband tone &amp; noise are removed</span>
+      </div>
+      <canvas id="cvLiveTime"></canvas>
+    </div>
+
+    <!-- Live spectrum -->
+    <div class="graph-container glass-panel spans-wide">
+      <div class="graph-header">
+        <span class="graph-label panel-live">Live filtering — spectrum before / after</span>
+        <span class="instant-value" id="liveRO" style="margin-left:auto;">&mdash;</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">FFT magnitude of input (faint) and output (bold) &middot; the filter shape is carved out</span>
+      </div>
+      <canvas id="cvLiveSpec"></canvas>
+    </div>
+  </div>
+
+  <!-- Education -->
+  <div class="edu-card glass-panel">
+    <h2 class="edu-title">Filters — frequency-selective LTI systems</h2>
+    <p class="edu-text">
+      A filter is an LTI system whose frequency response $H$ passes some frequency bands and attenuates others. An <strong>analog</strong> filter is described by the transfer function $H(s)=B(s)/A(s)$ in the Laplace domain; a <strong>digital</strong> filter by $H(z)=B(z)/A(z)$ in the $z$-domain. The design here starts from a normalised analog low-pass <em>prototype</em>, applies a low-pass&rarr;{LP, HP, BP, BS} frequency transform, and — in digital mode — maps the result to the $z$-plane with the pre-warped <strong>bilinear transform</strong> $s=\tfrac{2}{T}\tfrac{z-1}{z+1}$.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Approximation families:</strong>
+      <br><strong>Butterworth</strong> — maximally flat passband, monotonic; gentle roll-off.
+      <br><strong>Chebyshev I</strong> — equiripple in the passband, steeper roll-off (set the ripple $R_p$).
+      <br><strong>Chebyshev II</strong> — flat passband, equiripple stopband with transmission zeros (set the attenuation $R_s$).
+      <br><strong>FIR (windowed sinc)</strong> — exactly linear phase (constant group delay), unconditionally stable, only zeros.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>What to look for:</strong>
+      <em>Magnitude</em> — the $-3\,\mathrm{dB}$ line meets the curve at the cutoff; raising the order steepens the transition band.
+      <em>Pole–Zero</em> — an IIR digital filter is stable when all poles lie inside the unit circle; an analog filter when they lie in the left half-plane. Notches sit where zeros touch the unit circle / the $j\Omega$ axis.
+      <em>Phase / group delay</em> — IIR filters bend the phase, FIR filters keep it linear (a flat group delay = no waveform distortion).
+      <em>Live demo</em> — the bold output keeps the passband tone while the stopband tone and broadband noise collapse into the noise floor.
+    </p>
+
+    <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.2rem;font-size:0.95rem;letter-spacing:0.04em;">Where filters are used</h3>
+    <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+      <li><strong>Anti-aliasing &amp; reconstruction:</strong> band-limiting before sampling and smoothing after reconstruction (see the Sampling module).</li>
+      <li><strong>Audio &amp; communications:</strong> equalisers, channel selection, the low-pass demodulation filter in the Radio module.</li>
+      <li><strong>Biomedical &amp; instrumentation:</strong> 50/60 Hz notch (band-stop) removal, baseline-wander high-pass.</li>
+      <li><strong>Radar &amp; sensing:</strong> the MTI clutter filter in the Doppler module is a high-pass filter on slow-time.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Signal Processing Educational Simulation — Filters Module</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/filters.js"></script>
+</body>
+</html>

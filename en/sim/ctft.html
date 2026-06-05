@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Continuous-Time Fourier Transform (CTFT)</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== CTFT layout ===== */
+    .ctft-grid {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0 0.8rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      position: relative; z-index: 2;
+    }
+    .ctft-grid .graph-container { padding: 0.5rem 0.7rem 0.6rem; }
+    .ctft-grid canvas {
+      width: 100%; height: 230px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    .ctft-grid .spans-wide { grid-column: 1 / span 2; }
+    .ctft-grid #cvMag, .ctft-grid #cvPha { cursor: ew-resize; }
+    .draw-active { cursor: crosshair; }
+    .panel-xt  { color: var(--color-x); }
+    .panel-mag { color: var(--color-h); }
+    .panel-pha { color: var(--color-y); }
+    @media (max-width: 900px) {
+      .ctft-grid { grid-template-columns: 1fr; }
+      .ctft-grid .spans-wide { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Toggle Theme">&#127769;</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">&#x1D4D5;</span> Continuous-Time Fourier Transform (CTFT) <span class="title-icon">j&Omega;</span>
+    </h1>
+    <p class="site-subtitle">$X(j\Omega)=\int_{-\infty}^{\infty} x(t)\,e^{-j\Omega t}\,dt$ &middot; Aperiodic signals &middot; Magnitude &amp; Phase</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">&#127968; Home</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Continuous</span>
+    <a class="nav-tab group-c" href="basic-signals.html">&#x223F; Basic Signals</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{&middot;} System Properties</a>
+    <a class="nav-tab group-c" href="continuous.html">&#x222B; Conv. Continuous</a>
+    <a class="nav-tab group-c" href="fourier.html">&#x1D4D5; Fourier Series</a>
+    <a class="nav-tab group-c active" href="ctft.html">&#x1D4D5; CTFT</a>
+    <a class="nav-tab group-c" href="laplace.html">&#x2112; Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Discrete</span>
+    <a class="nav-tab group-d" href="discrete.html">&#x03A3; Conv. Discrete</a>
+    <a class="nav-tab group-d" href="sampling.html">&#x21AF; Sampling</a>
+    <a class="nav-tab group-d" href="dtft.html">&#x1D4D5;* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">&#x23C3; DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">&#x1D4B5; Z-Transform</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Other</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radio</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spectrum</a>
+    <a class="nav-tab group-o" href="dct.html">&#x1D49F; DCT</a>
+    <a class="nav-tab group-o" href="hht.html">&#x210B; HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">&#x1D4D5;<sup>&alpha;</sup> FrFT</a>
+    <a class="nav-tab group-o" href="filters.html"><svg class="sim-ico sim-ico-filter" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7 L10 7 C13 7 13 19 22 19"/></svg> Filters</a>
+  </nav>
+
+  <!-- Controls -->
+  <div class="controls-wrapper">
+    <!-- Signal -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> x(t) Signal</h3>
+
+      <div class="control-group">
+        <label>Signal:</label>
+        <select id="signalType" class="glass-select">
+          <option value="rect" selected>Rectangular pulse (rect)</option>
+          <option value="tri">Triangular pulse</option>
+          <option value="gauss">Gaussian $e^{-t^2/2\sigma^2}$</option>
+          <option value="expCausal">Causal exponential $e^{-at}u(t)$</option>
+          <option value="expTwo">Two-sided exponential $e^{-a|t|}$</option>
+          <option value="sinc">sinc pulse (&rarr; rect spectrum)</option>
+          <option value="cosPulse">Windowed cosine $\cos(\Omega_0 t)$</option>
+          <option value="gabor">Gabor $e^{-t^2/2\sigma^2}\cos(\Omega_0 t)$</option>
+          <option value="freehand">&#9999;&#65039; Freehand Drawing</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Amplitude A: <span id="ampVal" class="val-display">1.00</span></label>
+        <input type="range" id="ampSlider" min="0.1" max="3" step="0.05" value="1" />
+      </div>
+
+      <div class="control-group" id="widthGroup">
+        <label id="widthLabel">Width W: <span id="widthVal" class="val-display">2.00</span></label>
+        <input type="range" id="widthSlider" min="0.3" max="6" step="0.1" value="2" />
+      </div>
+
+      <div class="control-group" id="aGroup" style="display:none;">
+        <label>Decay a: <span id="aVal" class="val-display">1.00</span></label>
+        <input type="range" id="aSlider" min="0.2" max="4" step="0.05" value="1" />
+      </div>
+
+      <div class="control-group" id="omega0Group" style="display:none;">
+        <label id="omega0Label">Carrier &Omega;&#8320; (rad/s): <span id="omega0Val" class="val-display">8.0</span></label>
+        <input type="range" id="omega0Slider" min="1" max="18" step="0.5" value="8" />
+      </div>
+
+      <div class="control-group">
+        <label>Time shift t&#8320;: <span id="shiftVal" class="val-display">0.00</span></label>
+        <input type="range" id="shiftSlider" min="-4" max="4" step="0.1" value="0" />
+      </div>
+
+      <div class="freehand-controls" id="freehandControls" style="display:none;">
+        <p class="freehand-info">Draw x(t) on the left graph with the mouse.</p>
+        <button class="glass-btn" id="drawClear">Clear</button>
+        <button class="glass-btn" id="drawSmooth">Smooth</button>
+        <button class="glass-btn" id="drawNormalize">Normalize</button>
+      </div>
+    </div>
+
+    <!-- Range -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-h"></span> Range &amp; &Omega; Axis</h3>
+
+      <div class="control-group">
+        <label>Time window &plusmn;t: <span id="tHalfVal" class="val-display">8</span></label>
+        <input type="range" id="tHalfSlider" min="3" max="16" step="1" value="8" />
+      </div>
+
+      <div class="control-group">
+        <label>&Omega; axis &plusmn; (rad/s): <span id="omRangeVal" class="val-display">&plusmn;24</span></label>
+        <input type="range" id="omRangeSlider" min="6" max="60" step="1" value="24" />
+      </div>
+
+      <div class="periodic-row">
+        <span>Show phase panel:</span>
+        <label class="toggle-switch"><input type="checkbox" id="showPhase" checked /><span class="toggle-slider"></span></label>
+      </div>
+
+      <div class="periodic-row">
+        <span>Closed-form overlay:</span>
+        <label class="toggle-switch"><input type="checkbox" id="showAnalytic" checked /><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Display -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-settings"></span> Display</h3>
+
+      <div class="control-group">
+        <label>Magnitude display:</label>
+        <select id="magMode" class="glass-select">
+          <option value="linear" selected>Linear |X|</option>
+          <option value="db">dB (20&middot;log&#8321;&#8320;|X|)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Cursor &Omega; (rad/s): <span id="markerVal" class="val-display">0.00</span></label>
+        <input type="range" id="markerSlider" min="-24" max="24" step="0.1" value="0" />
+      </div>
+
+      <div class="control-group">
+        <label>Grid Opacity: <span id="gridAlphaVal" class="val-display">0.16</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.5" step="0.01" value="0.16" />
+      </div>
+    </div>
+  </div>
+
+  <div class="ctft-grid">
+    <!-- x(t) -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-xt">x(t) — Time domain</span>
+        <span class="drag-hint" id="xtHint">library signal selected</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$x(t)$</span>
+      </div>
+      <canvas id="cvXt"></canvas>
+    </div>
+
+    <!-- |X(jΩ)| -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-mag">|X(j&Omega;)| — Magnitude spectrum</span>
+        <span class="instant-value" id="magRO">|X(0)| = &mdash;</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$|X(j\Omega)|$ &middot; dashed = closed form</span>
+        <span class="drag-hint">drag to move the &Omega; cursor</span>
+      </div>
+      <canvas id="cvMag"></canvas>
+    </div>
+
+    <!-- phase -->
+    <div class="graph-container glass-panel spans-wide" id="phaseCard">
+      <div class="graph-header">
+        <span class="graph-label panel-pha">&ang;X(j&Omega;) — Phase spectrum (rad)</span>
+        <span class="instant-value" id="phaRO" style="color:var(--color-y);background:rgba(123,140,255,0.08);">&ang;X(&Omega;) = &mdash;</span>
+        <span class="dtft-marker-read" id="markerRO" style="margin-left:auto;font-family:'Fira Code',monospace;font-size:0.75rem;font-weight:600;color:var(--color-marker);background:rgba(255,79,154,0.08);padding:0.2rem 0.55rem;border-radius:4px;">&Omega; = 0.00 &middot; |X| = &mdash; &middot; &ang;X = &mdash;</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$\angle X(j\Omega)$ &middot; time shift $t_0$ adds the linear phase $-\Omega t_0$</span>
+      </div>
+      <canvas id="cvPha"></canvas>
+    </div>
+  </div>
+
+  <!-- Education -->
+  <div class="edu-card glass-panel">
+    <h2 class="edu-title">CTFT — Continuous-Time Fourier Transform</h2>
+    <p class="edu-text">
+      For an (aperiodic, absolutely integrable) signal $x(t)$, the Continuous-Time Fourier Transform and its inverse are
+      $$X(j\Omega)=\int_{-\infty}^{\infty} x(t)\,e^{-j\Omega t}\,dt,\qquad x(t)=\frac{1}{2\pi}\int_{-\infty}^{\infty} X(j\Omega)\,e^{j\Omega t}\,d\Omega.$$
+      The result is a <strong>continuous, generally complex</strong> function of $\Omega$, displayed here through its magnitude $|X(j\Omega)|$ and phase $\angle X(j\Omega)$. The transform is computed numerically (a Riemann sum of the analysis integral), and for the library signals the exact closed form is overlaid as a dashed reference.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Common pairs:</strong>
+      <br>$\mathrm{rect}_W(t)\;\leftrightarrow\;W\,\mathrm{sinc}(\Omega W/2)$
+      <br>$e^{-t^2/2\sigma^2}\;\leftrightarrow\;\sigma\sqrt{2\pi}\,e^{-\sigma^2\Omega^2/2}$ (Gaussian &rarr; Gaussian)
+      <br>$e^{-at}u(t)\;\leftrightarrow\;\dfrac{1}{a+j\Omega}$
+      <br>$e^{-a|t|}\;\leftrightarrow\;\dfrac{2a}{a^2+\Omega^2}$
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Properties to observe:</strong>
+      <em>Duality</em> — switch between the <code>rect</code> and <code>sinc</code> signals: a narrow pulse in time gives a wide spectrum and vice-versa.
+      <em>Time shift</em> — moving $t_0$ leaves $|X|$ unchanged but adds the linear phase $-\Omega t_0$.
+      <em>Modulation</em> — the windowed cosine and the Gabor signal shift the baseband spectrum to $\pm\Omega_0$.
+      <em>Scaling</em> — widening the pulse compresses the spectrum (the time&ndash;bandwidth product is conserved).
+    </p>
+
+    <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.2rem;font-size:0.95rem;letter-spacing:0.04em;">Relationship with the other transforms</h3>
+    <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+      <li><strong>Fourier series:</strong> as the period $T\to\infty$, the discrete spectral lines of a periodic signal merge into the continuous CTFT.</li>
+      <li><strong>Laplace transform:</strong> the CTFT is the Laplace transform evaluated on the imaginary axis, $X(j\Omega)=X(s)\big|_{s=j\Omega}$, when the region of convergence contains that axis.</li>
+      <li><strong>DTFT:</strong> sampling $x(t)$ produces the $2\pi$-periodic DTFT, the periodic replication of this spectrum at the sampling rate.</li>
+      <li><strong>Filtering:</strong> the frequency response $H(j\Omega)$ of an analog filter is exactly the CTFT of its impulse response $h(t)$.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Signal Processing Educational Simulation — CTFT Module</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/ctft.js"></script>
+</body>
+</html>

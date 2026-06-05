@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sürekli Zaman Fourier Dönüşümü (CTFT)</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== CTFT yerleşimi ===== */
+    .ctft-grid {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0 0.8rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      position: relative; z-index: 2;
+    }
+    .ctft-grid .graph-container { padding: 0.5rem 0.7rem 0.6rem; }
+    .ctft-grid canvas {
+      width: 100%; height: 230px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    .ctft-grid .spans-wide { grid-column: 1 / span 2; }
+    .ctft-grid #cvMag, .ctft-grid #cvPha { cursor: ew-resize; }
+    .draw-active { cursor: crosshair; }
+    .panel-xt  { color: var(--color-x); }
+    .panel-mag { color: var(--color-h); }
+    .panel-pha { color: var(--color-y); }
+    @media (max-width: 900px) {
+      .ctft-grid { grid-template-columns: 1fr; }
+      .ctft-grid .spans-wide { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Temayı Değiştir">&#127769;</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon">𝓕</span> Sürekli Zaman Fourier Dönüşümü (CTFT) <span class="title-icon">jΩ</span>
+    </h1>
+    <p class="site-subtitle">$X(j\Omega)=\int_{-\infty}^{\infty} x(t)\,e^{-j\Omega t}\,dt$ · Periyodik olmayan işaretler · Genlik ve Faz</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c active" href="ctft.html">𝓕 CTFT</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+    <a class="nav-tab group-o" href="filters.html"><svg class="sim-ico sim-ico-filter" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7 L10 7 C13 7 13 19 22 19"/></svg> Filtreler</a>
+  </nav>
+
+  <!-- Kontroller -->
+  <div class="controls-wrapper">
+    <!-- İşaret -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> x(t) İşareti</h3>
+
+      <div class="control-group">
+        <label>İşaret:</label>
+        <select id="signalType" class="glass-select">
+          <option value="rect" selected>Dikdörtgen darbe (rect)</option>
+          <option value="tri">Üçgen darbe</option>
+          <option value="gauss">Gauss $e^{-t^2/2\sigma^2}$</option>
+          <option value="expCausal">Nedensel üstel $e^{-at}u(t)$</option>
+          <option value="expTwo">İki taraflı üstel $e^{-a|t|}$</option>
+          <option value="sinc">sinc darbesi (&rarr; rect spektrum)</option>
+          <option value="cosPulse">Pencereli kosinüs $\cos(\Omega_0 t)$</option>
+          <option value="gabor">Gabor $e^{-t^2/2\sigma^2}\cos(\Omega_0 t)$</option>
+          <option value="freehand">&#9999;&#65039; Serbest Çizim</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Genlik A: <span id="ampVal" class="val-display">1.00</span></label>
+        <input type="range" id="ampSlider" min="0.1" max="3" step="0.05" value="1" />
+      </div>
+
+      <div class="control-group" id="widthGroup">
+        <label id="widthLabel">Genişlik W: <span id="widthVal" class="val-display">2.00</span></label>
+        <input type="range" id="widthSlider" min="0.3" max="6" step="0.1" value="2" />
+      </div>
+
+      <div class="control-group" id="aGroup" style="display:none;">
+        <label>Sönüm a: <span id="aVal" class="val-display">1.00</span></label>
+        <input type="range" id="aSlider" min="0.2" max="4" step="0.05" value="1" />
+      </div>
+
+      <div class="control-group" id="omega0Group" style="display:none;">
+        <label id="omega0Label">Taşıyıcı Ω₀ (rad/s): <span id="omega0Val" class="val-display">8.0</span></label>
+        <input type="range" id="omega0Slider" min="1" max="18" step="0.5" value="8" />
+      </div>
+
+      <div class="control-group">
+        <label>Zaman kayması t₀: <span id="shiftVal" class="val-display">0.00</span></label>
+        <input type="range" id="shiftSlider" min="-4" max="4" step="0.1" value="0" />
+      </div>
+
+      <div class="freehand-controls" id="freehandControls" style="display:none;">
+        <p class="freehand-info">x(t)'yi soldaki grafiğe fare ile çizin.</p>
+        <button class="glass-btn" id="drawClear">Temizle</button>
+        <button class="glass-btn" id="drawSmooth">Düzgünleştir</button>
+        <button class="glass-btn" id="drawNormalize">Normalize</button>
+      </div>
+    </div>
+
+    <!-- Aralık -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-h"></span> Aralık &amp; Ω Ekseni</h3>
+
+      <div class="control-group">
+        <label>Zaman penceresi ±t: <span id="tHalfVal" class="val-display">8</span></label>
+        <input type="range" id="tHalfSlider" min="3" max="16" step="1" value="8" />
+      </div>
+
+      <div class="control-group">
+        <label>Ω ekseni ± (rad/s): <span id="omRangeVal" class="val-display">±24</span></label>
+        <input type="range" id="omRangeSlider" min="6" max="60" step="1" value="24" />
+      </div>
+
+      <div class="periodic-row">
+        <span>Faz panelini göster:</span>
+        <label class="toggle-switch"><input type="checkbox" id="showPhase" checked /><span class="toggle-slider"></span></label>
+      </div>
+
+      <div class="periodic-row">
+        <span>Kapalı-form bindirme:</span>
+        <label class="toggle-switch"><input type="checkbox" id="showAnalytic" checked /><span class="toggle-slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Görünüm -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-settings"></span> Görünüm</h3>
+
+      <div class="control-group">
+        <label>Genlik gösterimi:</label>
+        <select id="magMode" class="glass-select">
+          <option value="linear" selected>Doğrusal |X|</option>
+          <option value="db">dB (20&middot;log&#8321;&#8320;|X|)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>İmleç Ω (rad/s): <span id="markerVal" class="val-display">0.00</span></label>
+        <input type="range" id="markerSlider" min="-24" max="24" step="0.1" value="0" />
+      </div>
+
+      <div class="control-group">
+        <label>Izgara Saydamlığı: <span id="gridAlphaVal" class="val-display">0.16</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.5" step="0.01" value="0.16" />
+      </div>
+    </div>
+  </div>
+
+  <div class="ctft-grid">
+    <!-- x(t) -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-xt">x(t) — Zaman bölgesi</span>
+        <span class="drag-hint" id="xtHint">kütüphaneden işaret seçili</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$x(t)$</span>
+      </div>
+      <canvas id="cvXt"></canvas>
+    </div>
+
+    <!-- |X(jΩ)| -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-mag">|X(jΩ)| — Genlik spektrumu</span>
+        <span class="instant-value" id="magRO">|X(0)| = &mdash;</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$|X(j\Omega)|$ · kesikli = kapalı form</span>
+        <span class="drag-hint">Ω imlecini sürükleyin</span>
+      </div>
+      <canvas id="cvMag"></canvas>
+    </div>
+
+    <!-- faz -->
+    <div class="graph-container glass-panel spans-wide" id="phaseCard">
+      <div class="graph-header">
+        <span class="graph-label panel-pha">∠X(jΩ) — Faz spektrumu (rad)</span>
+        <span class="instant-value" id="phaRO" style="color:var(--color-y);background:rgba(123,140,255,0.08);">∠X(Ω) = &mdash;</span>
+        <span class="dtft-marker-read" id="markerRO" style="margin-left:auto;font-family:'Fira Code',monospace;font-size:0.75rem;font-weight:600;color:var(--color-marker);background:rgba(255,79,154,0.08);padding:0.2rem 0.55rem;border-radius:4px;">Ω = 0.00 · |X| = &mdash; · ∠X = &mdash;</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$\angle X(j\Omega)$ · zaman kayması $t_0$ doğrusal faz $-\Omega t_0$ ekler</span>
+      </div>
+      <canvas id="cvPha"></canvas>
+    </div>
+  </div>
+
+  <!-- Eğitim -->
+  <div class="edu-card glass-panel">
+    <h2 class="edu-title">CTFT — Sürekli Zaman Fourier Dönüşümü</h2>
+    <p class="edu-text">
+      (Periyodik olmayan, mutlak integrallenebilir) bir $x(t)$ işareti için Sürekli Zaman Fourier Dönüşümü ve tersi
+      $$X(j\Omega)=\int_{-\infty}^{\infty} x(t)\,e^{-j\Omega t}\,dt,\qquad x(t)=\frac{1}{2\pi}\int_{-\infty}^{\infty} X(j\Omega)\,e^{j\Omega t}\,d\Omega$$
+      ile tanımlanır. Sonuç, $\Omega$ değişkeninin <strong>sürekli ve genel olarak karmaşık</strong> bir fonksiyonudur; burada genlik $|X(j\Omega)|$ ve faz $\angle X(j\Omega)$ olarak gösterilmektedir. Dönüşüm sayısal olarak (analiz integralinin Riemann toplamı ile) hesaplanır; kütüphane işaretleri için kesin kapalı-form ifadesi kesikli çizgi olarak üzerine bindirilmiştir.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Temel dönüşüm çiftleri:</strong>
+      <br>$\mathrm{rect}_W(t)\;\leftrightarrow\;W\,\mathrm{sinc}(\Omega W/2)$
+      <br>$e^{-t^2/2\sigma^2}\;\leftrightarrow\;\sigma\sqrt{2\pi}\,e^{-\sigma^2\Omega^2/2}$ (Gauss &rarr; Gauss)
+      <br>$e^{-at}u(t)\;\leftrightarrow\;\dfrac{1}{a+j\Omega}$
+      <br>$e^{-a|t|}\;\leftrightarrow\;\dfrac{2a}{a^2+\Omega^2}$
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Gözlemlenecek özellikler:</strong>
+      <em>Düalite</em> — <code>rect</code> ve <code>sinc</code> işaretleri arasında geçiş yapın: zamanda dar bir darbe frekansta geniş bir spektruma, geniş bir darbe ise dar bir spektruma karşılık gelir.
+      <em>Zaman kayması</em> — $t_0$ değiştiğinde $|X|$ değişmez, yalnızca $-\Omega t_0$ doğrusal fazı eklenir.
+      <em>Modülasyon</em> — pencereli kosinüs ve Gabor işaretleri taban-bant spektrumunu $\pm\Omega_0$ konumlarına kaydırır.
+      <em>Ölçekleme</em> — darbe genişledikçe spektrum daralır (zaman&ndash;bant genişliği çarpımı korunur).
+    </p>
+
+    <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.2rem;font-size:0.95rem;letter-spacing:0.04em;">Diğer dönüşümlerle ilişkisi</h3>
+    <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+      <li><strong>Fourier serisi:</strong> periyot $T\to\infty$ olduğunda periyodik işaretin ayrık spektral çizgileri birleşerek sürekli CTFT'yi oluşturur.</li>
+      <li><strong>Laplace dönüşümü:</strong> yakınsaklık bölgesi sanal ekseni içeriyorsa CTFT, Laplace dönüşümünün sanal eksen üzerindeki değeridir: $X(j\Omega)=X(s)\big|_{s=j\Omega}$.</li>
+      <li><strong>DTFT:</strong> $x(t)$'nin örneklenmesi, bu spektrumun örnekleme frekansında periyodik olarak tekrarlanmasıyla $2\pi$-periyodik DTFT'yi üretir.</li>
+      <li><strong>Süzgeçleme:</strong> bir analog filtrenin frekans tepkisi $H(j\Omega)$, tam olarak dürtü tepkisi $h(t)$'nin CTFT'sidir.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Sinyal İşleme Eğitim Simülasyonu — CTFT Modülü</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/ctft.js"></script>
+</body>
+</html>
