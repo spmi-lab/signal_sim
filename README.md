@@ -58,7 +58,7 @@ aracılığıyla görselleştirmektedir. Platform Türkçe ve İngilizce olmak �
 iki dilde sunulmakta, tüm matematiksel ifadeler KaTeX ile dizgilenmiştir.
 
 Platform geliştirmeye açıktır; mevcut altyapı üzerine yeni eklemeler
-yapılabilir ve buradaki yapı taşları kullanılarak yeni projeler
+yapılabilir ve buradaki kodlar kullanılarak yeni projeler
 geliştirilebilir.
 
 > **Önemli Not.** Kaynak kodun önemli bir bölümü büyük
@@ -123,7 +123,7 @@ Tarayıcıda `http://localhost:8000` adresi açılır. Dil tercihi
 
 ### Esinlenilen Çalışmalar
 
-Görsel-etkileşimli matematik anlatımı geleneğine ait şu çalışmadan
+Görsel-etkileşimli matematik anlatımı şu çalışmadan
 esinlenilmiştir:
 
 - **Jez Swanson — *An Interactive Introduction to Fourier Transforms***
