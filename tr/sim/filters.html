@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Filtreler — Analog ve Sayısal Süzgeç Tasarımı</title>
+  <link rel="stylesheet" href="../../style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@400;500;600;700&family=Saira+Condensed:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]});"></script>
+  <style>
+    /* ===== Filtre yerleşimi ===== */
+    .filt-grid {
+      max-width: 1500px;
+      margin: 0.6rem auto;
+      padding: 0 0.8rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      position: relative; z-index: 2;
+    }
+    .filt-grid .graph-container { padding: 0.5rem 0.7rem 0.6rem; }
+    .filt-grid canvas {
+      width: 100%; height: 210px;
+      background: var(--canvas-bg);
+      border-radius: var(--radius-sm);
+      display: block;
+    }
+    .filt-grid .spans-wide { grid-column: 1 / span 2; }
+    .filt-grid .spans-wide canvas { height: 190px; }
+    .panel-mag { color: var(--color-h); }
+    .panel-pha { color: var(--color-y); }
+    .panel-pz  { color: #5ec8ff; }
+    .panel-imp { color: var(--color-h); }
+    .panel-live { color: var(--color-x); }
+    @media (max-width: 900px) {
+      .filt-grid { grid-template-columns: 1fr; }
+      .filt-grid .spans-wide { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="bgCanvas"></canvas>
+  <button id="themeToggle" class="theme-toggle" title="Temayı Değiştir">&#127769;</button>
+
+  <header class="site-header">
+    <div class="header-glow"></div>
+    <h1 class="site-title">
+      <span class="title-icon"><svg class="sim-ico sim-ico-filter sim-ico-lg" viewBox="0 0 24 24" aria-hidden="true" style="color:var(--accent-2);"><path d="M2 7 L10 7 C13 7 13 19 22 19"/></svg></span> Filtreler — Analog ve Sayısal Süzgeç Tasarımı
+    </h1>
+    <p class="site-subtitle">$H(s)=\dfrac{B(s)}{A(s)}$ · $H(e^{j\omega})$ · Butterworth · Chebyshev · FIR</p>
+  </header>
+  <nav class="nav-tabs">
+    <a class="nav-tab nav-home" href="../index.html">🏠 Ana Sayfa</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-c">Sürekli</span>
+    <a class="nav-tab group-c" href="basic-signals.html">∿ Temel İşaretler</a>
+    <a class="nav-tab group-c" href="system-properties.html">T{·} Sistem Özellikleri</a>
+    <a class="nav-tab group-c" href="continuous.html">∫ Konv. Sürekli</a>
+    <a class="nav-tab group-c" href="fourier.html">𝓕 Fourier Serisi</a>
+    <a class="nav-tab group-c" href="ctft.html">𝓕 CTFT</a>
+    <a class="nav-tab group-c" href="laplace.html">ℒ Laplace</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-d">Ayrık</span>
+    <a class="nav-tab group-d" href="discrete.html">Σ Konv. Ayrık</a>
+    <a class="nav-tab group-d" href="sampling.html">↯ Örnekleme</a>
+    <a class="nav-tab group-d" href="dtft.html">𝓕* DTFT</a>
+    <a class="nav-tab group-d" href="dft_fft.html">⏃ DFT/FFT</a>
+    <a class="nav-tab group-d" href="z_transform.html">𝒵 Z-Dönüşümü</a>
+    <span class="nav-group-sep"></span>
+    <span class="nav-group-label group-o">Diğer</span>
+    <a class="nav-tab group-o" href="radio.html"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo</a>
+    <a class="nav-tab group-o" href="spectrogram2.html"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</a>
+    <a class="nav-tab group-o" href="dct.html">𝒟 DCT</a>
+    <a class="nav-tab group-o" href="hht.html">ℋ HHT</a>
+    <a class="nav-tab group-o" href="doppler.html"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler</a>
+    <a class="nav-tab group-o" href="fractional-fourier.html">𝓕<sup>α</sup> FrFT</a>
+    <a class="nav-tab group-o active" href="filters.html"><svg class="sim-ico sim-ico-filter" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7 L10 7 C13 7 13 19 22 19"/></svg> Filtreler</a>
+  </nav>
+
+  <!-- Kontroller -->
+  <div class="controls-wrapper">
+    <!-- Filtre -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-h"></span> Filtre</h3>
+
+      <div class="control-group">
+        <label>Bölge:</label>
+        <select id="domain" class="glass-select">
+          <option value="digital" selected>Sayısal — H(e^{jω}), z-düzlemi</option>
+          <option value="analog">Analog — H(jΩ), s-düzlemi</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Tip:</label>
+        <select id="ftype" class="glass-select">
+          <option value="lp" selected>Alçak-geçiren (LP)</option>
+          <option value="hp">Yüksek-geçiren (HP)</option>
+          <option value="bp">Bant-geçiren (BP)</option>
+          <option value="bs">Bant-durduran / çentik (BS)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Aile:</label>
+        <select id="family" class="glass-select">
+          <option value="butter" selected>Butterworth (maksimal düz)</option>
+          <option value="cheby1">Chebyshev I (geçiş bandı dalgalı)</option>
+          <option value="cheby2">Chebyshev II (durdurma bandı dalgalı)</option>
+          <option value="fir" id="familyFir">FIR (pencereli sinc, doğrusal faz)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Derece N: <span id="orderVal" class="val-display">4</span></label>
+        <input type="range" id="orderSlider" min="1" max="8" step="1" value="4" />
+      </div>
+    </div>
+
+    <!-- Frekanslar -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-x"></span> Frekanslar</h3>
+
+      <div class="control-group">
+        <label>Örnekleme hızı fₛ (Hz): <span id="fsVal" class="val-display">100</span></label>
+        <input type="range" id="fsSlider" min="40" max="200" step="5" value="100" />
+      </div>
+
+      <div class="control-group" id="fcGroup">
+        <label>Kesim f_c (Hz): <span id="fcVal" class="val-display">12.0</span></label>
+        <input type="range" id="fcSlider" min="1" max="95" step="0.5" value="12" />
+      </div>
+
+      <div id="bandGroup" style="display:none;">
+        <div class="control-group">
+          <label>Alt kenar f₁ (Hz): <span id="f1Val" class="val-display">12.0</span></label>
+          <input type="range" id="f1Slider" min="1" max="90" step="0.5" value="12" />
+        </div>
+        <div class="control-group">
+          <label>Üst kenar f₂ (Hz): <span id="f2Val" class="val-display">30.0</span></label>
+          <input type="range" id="f2Slider" min="2" max="98" step="0.5" value="30" />
+        </div>
+      </div>
+
+      <div class="control-group" id="rpGroup" style="display:none;">
+        <label>Geçiş bandı dalgalanması R_p (dB): <span id="rpVal" class="val-display">1.0</span></label>
+        <input type="range" id="rpSlider" min="0.1" max="6" step="0.1" value="1" />
+      </div>
+
+      <div class="control-group" id="rsGroup" style="display:none;">
+        <label>Durdurma bandı zayıflatması R_s (dB): <span id="rsVal" class="val-display">40</span></label>
+        <input type="range" id="rsSlider" min="20" max="80" step="1" value="40" />
+      </div>
+
+      <div class="control-group" id="winGroup" style="display:none;">
+        <label>FIR penceresi:</label>
+        <select id="window" class="glass-select">
+          <option value="rect">Dikdörtgen</option>
+          <option value="hann">Hann</option>
+          <option value="hamming" selected>Hamming</option>
+          <option value="blackman">Blackman</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Görünüm & Canlı -->
+    <div class="control-panel glass-panel">
+      <h3 class="panel-title"><span class="signal-dot dot-settings"></span> Görünüm &amp; Canlı Demo</h3>
+
+      <div class="control-group">
+        <label>İkinci tepki paneli:</label>
+        <select id="phaseMode" class="glass-select">
+          <option value="phase" selected>Faz ∠H</option>
+          <option value="group">Grup gecikmesi τ</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Canlı gürültü düzeyi: <span id="noiseVal" class="val-display">0.25</span></label>
+        <input type="range" id="noiseSlider" min="0" max="1" step="0.02" value="0.25" />
+      </div>
+
+      <div class="control-group">
+        <label>Izgara Saydamlığı: <span id="gridAlphaVal" class="val-display">0.16</span></label>
+        <input type="range" id="gridAlpha" min="0.02" max="0.5" step="0.01" value="0.16" />
+      </div>
+
+      <p class="freehand-info" style="margin-top:0.3rem;">Aşağıda gürültülü iki tonlu bir işaret (biri geçiş bandında, biri durdurma bandında) canlı olarak süzülür.</p>
+    </div>
+  </div>
+
+  <div class="filt-grid">
+    <!-- Genlik -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-mag">|H| — Genlik tepkisi (dB)</span>
+        <span class="instant-value" id="designRO" style="margin-left:auto;">&mdash;</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$20\log_{10}|H|$ frekansa göre · gölgeli = geçiş bandı</span>
+      </div>
+      <canvas id="cvMag"></canvas>
+    </div>
+
+    <!-- Faz / grup gecikmesi -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-pha" id="phaseTitle">Faz tepkisi ∠H(f)</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$\angle H$ ya da grup gecikmesi $\tau(f)=-\,d\angle H/d\omega$</span>
+      </div>
+      <canvas id="cvPhase"></canvas>
+    </div>
+
+    <!-- Kutup-Sıfır -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-pz" id="pzTitle">Kutup–Sıfır (z-düzlemi)</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">× kutup · ○ sıfır · kararlılık: kutuplar çember içinde (z) / sol yarıda (s)</span>
+      </div>
+      <canvas id="cvPZ"></canvas>
+    </div>
+
+    <!-- Dürtü tepkisi -->
+    <div class="graph-container glass-panel">
+      <div class="graph-header">
+        <span class="graph-label panel-imp" id="impTitle">Dürtü tepkisi h[n]</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">birim dürtü $\delta$'ya tepki</span>
+      </div>
+      <canvas id="cvImpulse"></canvas>
+    </div>
+
+    <!-- Canlı zaman -->
+    <div class="graph-container glass-panel spans-wide">
+      <div class="graph-header">
+        <span class="graph-label panel-live">Canlı süzme — giriş ve çıkış (zaman)</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">$y[n] = \text{filtre}\{x[n]\}$ · durdurma bandı tonu ve gürültü temizlenir</span>
+      </div>
+      <canvas id="cvLiveTime"></canvas>
+    </div>
+
+    <!-- Canlı spektrum -->
+    <div class="graph-container glass-panel spans-wide">
+      <div class="graph-header">
+        <span class="graph-label panel-live">Canlı süzme — öncesi / sonrası spektrum</span>
+        <span class="instant-value" id="liveRO" style="margin-left:auto;">&mdash;</span>
+      </div>
+      <div class="formula-bar">
+        <span class="formula-display">giriş (soluk) ve çıkış (kalın) FFT genliği · filtre şekli oyulur</span>
+      </div>
+      <canvas id="cvLiveSpec"></canvas>
+    </div>
+  </div>
+
+  <!-- Eğitim -->
+  <div class="edu-card glass-panel">
+    <h2 class="edu-title">Filtreler — frekans-seçici DZD sistemler</h2>
+    <p class="edu-text">
+      Filtre, frekans tepkisi $H$ bazı frekans bantlarını geçiren, diğerlerini zayıflatan bir DZD (LTI) sistemdir. <strong>Analog</strong> filtre, Laplace bölgesinde $H(s)=B(s)/A(s)$ transfer fonksiyonu ile; <strong>sayısal</strong> filtre ise $z$-bölgesinde $H(z)=B(z)/A(z)$ ile tanımlanır. Buradaki tasarım, normalize edilmiş bir analog alçak-geçiren <em>prototipten</em> başlar, alçak-geçiren&rarr;{LP, HP, BP, BS} frekans dönüşümü uygular ve — sayısal modda — sonucu ön-büküm (pre-warp) uygulanmış <strong>bilineer dönüşüm</strong> $s=\tfrac{2}{T}\tfrac{z-1}{z+1}$ ile $z$-düzlemine taşır.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Yaklaşım aileleri:</strong>
+      <br><strong>Butterworth</strong> — maksimal düz geçiş bandı, monoton; yumuşak geçiş.
+      <br><strong>Chebyshev I</strong> — geçiş bandında eşit-dalgalı, daha dik geçiş ($R_p$ dalgalanması).
+      <br><strong>Chebyshev II</strong> — düz geçiş bandı, durdurma bandında eşit-dalgalı ve iletim sıfırları ($R_s$ zayıflatması).
+      <br><strong>FIR (pencereli sinc)</strong> — tam doğrusal faz (sabit grup gecikmesi), koşulsuz kararlı, yalnızca sıfırlar.
+    </p>
+    <p class="edu-text" style="margin-top:0.6rem;">
+      <strong>Nelere bakmalı:</strong>
+      <em>Genlik</em> — $-3\,\mathrm{dB}$ çizgisi eğriyi kesim frekansında keser; derece arttıkça geçiş bandı dikleşir.
+      <em>Kutup–Sıfır</em> — sayısal IIR filtre, tüm kutuplar birim çember içindeyse; analog filtre ise kutuplar sol yarı-düzlemdeyse kararlıdır. Çentikler, sıfırların birim çembere / $j\Omega$ eksenine değdiği yerde oluşur.
+      <em>Faz / grup gecikmesi</em> — IIR filtreler fazı büker, FIR filtreler doğrusal tutar (düz grup gecikmesi = dalga biçimi bozulmaz).
+      <em>Canlı demo</em> — kalın çıkış, geçiş bandı tonunu korurken durdurma bandı tonu ile geniş bantlı gürültü gürültü tabanına çöker.
+    </p>
+
+    <h3 style="font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--accent-2);margin-top:1.2rem;font-size:0.95rem;letter-spacing:0.04em;">Filtreler nerede kullanılır</h3>
+    <ul style="font-size:0.82rem;line-height:1.7;color:var(--text-secondary);margin-left:1.3rem;">
+      <li><strong>Örtüşme önleme &amp; geri çatma:</strong> örneklemeden önce bant sınırlama, geri çatmadan sonra yumuşatma (bkz. Örnekleme modülü).</li>
+      <li><strong>Ses &amp; haberleşme:</strong> ekolayzer, kanal seçimi, Radyo modülündeki alçak-geçiren demodülasyon filtresi.</li>
+      <li><strong>Biyomedikal &amp; ölçüm:</strong> 50/60 Hz çentik (bant-durduran) giderme, taban kayması için yüksek-geçiren.</li>
+      <li><strong>Radar &amp; algılama:</strong> Doppler modülündeki MTI clutter filtresi, yavaş-zaman üzerinde bir yüksek-geçiren filtredir.</li>
+    </ul>
+  </div>
+
+  <footer class="site-footer"><span>Sinyal İşleme Eğitim Simülasyonu — Filtreler Modülü</span></footer>
+  <script src="../../theme.js"></script>
+  <script src="../../lang-switch.js"></script>
+  <script src="../../videos.js"></script>
+  <script src="../../sim-video.js"></script>
+  <script src="../../sim/filters.js"></script>
+</body>
+</html>

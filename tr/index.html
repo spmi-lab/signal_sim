@@ -605,7 +605,7 @@
           <div class="roadmap-card-icon icon-continuous">∫</div>
           <div>
             <h3>Sürekli Zaman Simülasyonları</h3>
-            <p class="roadmap-card-sub">Beş simülasyon: temel işaretler, sistem özellikleri, konvolüsyon, Fourier serileri ve Laplace dönüşümü.</p>
+            <p class="roadmap-card-sub">Altı simülasyon: temel işaretler, sistem özellikleri, konvolüsyon, Fourier serileri, sürekli zaman Fourier dönüşümü ve Laplace dönüşümü.</p>
           </div>
         </div>
         <div class="roadmap-scroll">
@@ -622,47 +622,12 @@
               </linearGradient>
             </defs>
             <path d="M 50 100 L 750 100" stroke="url(#lineC)" stroke-width="2" stroke-dasharray="4 6" opacity="0.5"/>
-
-            <g class="roadmap-node" onclick="location.href='sim/basic-signals.html'">
-              <circle class="node-pulse" cx="50" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="50" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="50" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="50" y="108" text-anchor="middle">1</text>
-              <text x="50" y="42" text-anchor="middle">Temel İşaretler</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/system-properties.html'">
-              <circle class="node-pulse" cx="225" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="225" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="225" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="225" y="108" text-anchor="middle">2</text>
-              <text x="225" y="42" text-anchor="middle">Sistem Özellikleri</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/continuous.html'">
-              <circle class="node-pulse" cx="400" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="400" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="400" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="400" y="108" text-anchor="middle">3</text>
-              <text x="400" y="42" text-anchor="middle">Konvolüsyon</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/fourier.html'">
-              <circle class="node-pulse" cx="575" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="575" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="575" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="575" y="108" text-anchor="middle">4</text>
-              <text x="575" y="42" text-anchor="middle">Fourier Serisi</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/laplace.html'">
-              <circle class="node-pulse" cx="750" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="750" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="750" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="750" y="108" text-anchor="middle">5</text>
-              <text x="750" y="42" text-anchor="middle">Laplace</text>
-            </g>
+            <g class="roadmap-node" onclick="location.href='sim/basic-signals.html'"><circle class="node-pulse" cx="50" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="50" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="50" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="50" y="108" text-anchor="middle">1</text><text x="50" y="42" text-anchor="middle">Temel İşaretler</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/system-properties.html'"><circle class="node-pulse" cx="190" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="190" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="190" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="190" y="108" text-anchor="middle">2</text><text x="190" y="42" text-anchor="middle">Sistem Özellikleri</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/continuous.html'"><circle class="node-pulse" cx="330" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="330" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="330" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="330" y="108" text-anchor="middle">3</text><text x="330" y="42" text-anchor="middle">Konvolüsyon</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/fourier.html'"><circle class="node-pulse" cx="470" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="470" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="470" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="470" y="108" text-anchor="middle">4</text><text x="470" y="42" text-anchor="middle">Fourier Serisi</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/ctft.html'"><circle class="node-pulse" cx="610" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="610" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="610" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="610" y="108" text-anchor="middle">5</text><text x="610" y="42" text-anchor="middle">CTFT</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/laplace.html'"><circle class="node-pulse" cx="750" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="750" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="750" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="750" y="108" text-anchor="middle">6</text><text x="750" y="42" text-anchor="middle">Laplace</text></g>
           </svg>
         </div>
         <div class="roadmap-legend">
@@ -693,47 +658,11 @@
               </linearGradient>
             </defs>
             <path d="M 50 100 L 750 100" stroke="url(#lineD)" stroke-width="2" stroke-dasharray="4 6" opacity="0.5"/>
-
-            <g class="roadmap-node" onclick="location.href='sim/discrete.html'">
-              <circle class="node-pulse" cx="50" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="50" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="50" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="50" y="108" text-anchor="middle">6</text>
-              <text x="50" y="42" text-anchor="middle">Konvolüsyon</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/sampling.html'">
-              <circle class="node-pulse" cx="225" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="225" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="225" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="225" y="108" text-anchor="middle">7</text>
-              <text x="225" y="42" text-anchor="middle">Örnekleme</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/dtft.html'">
-              <circle class="node-pulse" cx="400" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="400" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="400" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="400" y="108" text-anchor="middle">8</text>
-              <text x="400" y="42" text-anchor="middle">DTFT</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/dft_fft.html'">
-              <circle class="node-pulse" cx="575" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="575" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="575" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="575" y="108" text-anchor="middle">9</text>
-              <text x="575" y="42" text-anchor="middle">DFT / FFT</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/z_transform.html'">
-              <circle class="node-pulse" cx="750" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="750" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="750" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="750" y="108" text-anchor="middle">10</text>
-              <text x="750" y="42" text-anchor="middle">Z-Dönüşümü</text>
-            </g>
+            <g class="roadmap-node" onclick="location.href='sim/discrete.html'"><circle class="node-pulse" cx="50" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="50" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="50" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="50" y="108" text-anchor="middle">7</text><text x="50" y="42" text-anchor="middle">Konvolüsyon</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/sampling.html'"><circle class="node-pulse" cx="225" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="225" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="225" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="225" y="108" text-anchor="middle">8</text><text x="225" y="42" text-anchor="middle">Örnekleme</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/dtft.html'"><circle class="node-pulse" cx="400" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="400" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="400" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="400" y="108" text-anchor="middle">9</text><text x="400" y="42" text-anchor="middle">DTFT</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/dft_fft.html'"><circle class="node-pulse" cx="575" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="575" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="575" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="575" y="108" text-anchor="middle">10</text><text x="575" y="42" text-anchor="middle">DFT / FFT</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/z_transform.html'"><circle class="node-pulse" cx="750" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="750" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="750" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="750" y="108" text-anchor="middle">11</text><text x="750" y="42" text-anchor="middle">Z-Dönüşümü</text></g>
           </svg>
         </div>
         <div class="roadmap-legend">
@@ -747,7 +676,7 @@
           <div class="roadmap-card-icon icon-other">★</div>
           <div>
             <h3>Tamamlayıcı Uygulama Örnekleri</h3>
-            <p class="roadmap-card-sub">Altı uygulamalı simülasyon: genlik modülasyonu, zaman–frekans çözümlemesi, sıkıştırma, EMD, Doppler radar ve Fraksiyonel Fourier dönüşümü.</p>
+            <p class="roadmap-card-sub">Yedi uygulamalı simülasyon: genlik modülasyonu, zaman–frekans çözümlemesi, sıkıştırma, EMD, Doppler radar, Fraksiyonel Fourier dönüşümü ve analog/sayısal filtre tasarımı.</p>
           </div>
         </div>
         <div class="roadmap-scroll">
@@ -764,55 +693,13 @@
               </linearGradient>
             </defs>
             <path d="M 50 100 L 750 100" stroke="url(#lineO)" stroke-width="2" stroke-dasharray="4 6" opacity="0.5"/>
-
-            <g class="roadmap-node" onclick="location.href='sim/radio.html'">
-              <circle class="node-pulse" cx="50" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="50" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="50" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="50" y="108" text-anchor="middle">11</text>
-              <text x="50" y="42" text-anchor="middle">Radyo</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/spectrogram2.html'">
-              <circle class="node-pulse" cx="190" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="190" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="190" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="190" y="108" text-anchor="middle">12</text>
-              <text x="190" y="42" text-anchor="middle">2D Spektrum</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/dct.html'">
-              <circle class="node-pulse" cx="330" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="330" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="330" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="330" y="108" text-anchor="middle">13</text>
-              <text x="330" y="42" text-anchor="middle">DCT</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/hht.html'">
-              <circle class="node-pulse" cx="470" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="470" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="470" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="470" y="108" text-anchor="middle">14</text>
-              <text x="470" y="42" text-anchor="middle">HHT</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/doppler.html'">
-              <circle class="node-pulse" cx="610" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="610" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="610" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="610" y="108" text-anchor="middle">15</text>
-              <text x="610" y="42" text-anchor="middle">Doppler</text>
-            </g>
-            <g class="roadmap-node" onclick="location.href='sim/fractional-fourier.html'">
-              <circle class="node-pulse" cx="750" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/>
-              <circle class="node-bg" cx="750" cy="100" r="52" fill="url(#nodeGlow)" />
-              <circle class="node-main" cx="750" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/>
-              <path class="node-rim" />
-              <text class="node-num" x="750" y="108" text-anchor="middle">16</text>
-              <text x="750" y="42" text-anchor="middle">FrFT</text>
-            </g>
+            <g class="roadmap-node" onclick="location.href='sim/radio.html'"><circle class="node-pulse" cx="50" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="50" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="50" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="50" y="108" text-anchor="middle">12</text><text x="50" y="42" text-anchor="middle">Radyo</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/spectrogram2.html'"><circle class="node-pulse" cx="167" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="167" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="167" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="167" y="108" text-anchor="middle">13</text><text x="167" y="42" text-anchor="middle">2D Spektrum</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/dct.html'"><circle class="node-pulse" cx="283" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="283" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="283" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="283" y="108" text-anchor="middle">14</text><text x="283" y="42" text-anchor="middle">DCT</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/hht.html'"><circle class="node-pulse" cx="400" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="400" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="400" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="400" y="108" text-anchor="middle">15</text><text x="400" y="42" text-anchor="middle">HHT</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/doppler.html'"><circle class="node-pulse" cx="517" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="517" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="517" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="517" y="108" text-anchor="middle">16</text><text x="517" y="42" text-anchor="middle">Doppler</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/fractional-fourier.html'"><circle class="node-pulse" cx="633" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="633" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="633" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="633" y="108" text-anchor="middle">17</text><text x="633" y="42" text-anchor="middle">FrFT</text></g>
+            <g class="roadmap-node" onclick="location.href='sim/filters.html'"><circle class="node-pulse" cx="750" cy="100" r="36" fill="none" stroke="#ff8c42" stroke-width="2" opacity="0.55"/><circle class="node-bg" cx="750" cy="100" r="52" fill="url(#nodeGlow)"/><circle class="node-main" cx="750" cy="100" r="32" fill="var(--bg-deep)" stroke="#ff8c42" stroke-width="3"/><path class="node-rim"/><text class="node-num" x="750" y="108" text-anchor="middle">18</text><text x="750" y="42" text-anchor="middle">Filtreler</text></g>
           </svg>
         </div>
         <div class="roadmap-legend">
@@ -833,7 +720,7 @@
       <div class="module-group-header">
         <span class="module-group-badge badge-continuous">∫ Sürekli Zaman</span>
         <h2>Temel İşaretler, Sistem, Konvolüsyon, Fourier &amp; Laplace</h2>
-        <span class="module-group-count">5 simülasyon · $\Omega, F$</span>
+        <span class="module-group-count">6 simülasyon · $\Omega, F$</span>
       </div>
       <div class="modules-grid">
         <a href="sim/basic-signals.html" class="module-card glass-panel">
@@ -860,8 +747,14 @@
           <p class="module-desc">Periyodik sinyallerin $\Omega_0, 2\Omega_0, \ldots$ harmonik bileşenlerine ayrıştırılması incelenmektedir. Kare, üçgen ve testere dalgalarının Fourier serisi açılımı kullanılarak yeniden inşası gösterilmektedir.</p>
           <div class="module-footer"><span class="module-tag">İnteraktif</span><span class="module-cta">Aç ⚡</span></div>
         </a>
-        <a href="sim/laplace.html" class="module-card glass-panel">
+        <a href="sim/ctft.html" class="module-card glass-panel">
           <span class="module-num">SİM 05</span>
+          <h3 class="module-title">𝓕 Sürekli Zaman Fourier Dönüşümü (CTFT)</h3>
+          <p class="module-desc">Periyodik olmayan işaretlerin Fourier dönüşümü $X(j\Omega)=\int x(t)e^{-j\Omega t}\,dt$, genlik ve faz spektrumları üzerinden incelenir. rect&harr;sinc düalitesi, zaman kaymasının kazandırdığı doğrusal faz ve modülasyon/ölçekleme özellikleri gözlemlenir; sayısal dönüşümün üzerine kesin kapalı-form ifadesi bindirilir.</p>
+          <div class="module-footer"><span class="module-tag">Genlik+Faz</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/laplace.html" class="module-card glass-panel">
+          <span class="module-num">SİM 06</span>
           <h3 class="module-title">ℒ Laplace Dönüşümü</h3>
           <p class="module-desc">$X(s)=\int x(t)\,e^{-st}\,dt$ ile tanımlanan Laplace dönüşümü $s$-düzleminde üç boyutlu yüzey olarak görselleştirilmektedir. Kutup–sıfır yerleşimi ve $j\Omega$ ekseni üzerindeki Fourier ilişkisi birlikte incelenebilmektedir.</p>
           <div class="module-footer"><span class="module-tag">3D</span><span class="module-cta">Aç ⚡</span></div>
@@ -878,31 +771,31 @@
       </div>
       <div class="modules-grid">
         <a href="sim/discrete.html" class="module-card glass-panel">
-          <span class="module-num">SİM 06</span>
+          <span class="module-num">SİM 07</span>
           <h3 class="module-title">Σ Ayrık Zamanda Konvolüsyon</h3>
           <p class="module-desc">$y[n]=\sum_k x[k]\,h[n-k]$ ifadesi üzerinden ayrık zaman LTI sistem çıkışı hesaplanmaktadır. Kaydırıcı yardımıyla çakışma bölgesi ve çarpım–toplam işlemi adım adım izlenebilmektedir.</p>
           <div class="module-footer"><span class="module-tag">İnteraktif</span><span class="module-cta">Aç ⚡</span></div>
         </a>
         <a href="sim/sampling.html" class="module-card glass-panel">
-          <span class="module-num">SİM 07</span>
+          <span class="module-num">SİM 08</span>
           <h3 class="module-title">↯ Örnekleme ve Örtüşme (Aliasing)</h3>
           <p class="module-desc">$x_s(t)=x(t)\cdot p(t)$ örnekleme bağıntısı incelenmektedir: zaman düzleminde Dirac dizisiyle çarpım, frekans düzleminde aynı dizinin konvolüsyonuna karşılık gelir ve spektrum $F_s$ periyoduyla tekrarlanır. Nyquist koşulu ihlal edildiğinde örtüşme (aliasing) etkileşimli olarak vurgulanmaktadır.</p>
           <div class="module-footer"><span class="module-tag">Çizim+Önset</span><span class="module-cta">Aç ⚡</span></div>
         </a>
         <a href="sim/dtft.html" class="module-card glass-panel">
-          <span class="module-num">SİM 08</span>
+          <span class="module-num">SİM 09</span>
           <h3 class="module-title">𝓕* Ayrık Zaman Fourier Dönüşümü (DTFT)</h3>
           <p class="module-desc">$X(e^{j\omega})=\sum_n x[n]\,e^{-j\omega n}$ ile tanımlanan DTFT'nin $\omega$ ekseni üzerindeki sürekli ve $2\pi$-periyodik yapısı görselleştirilmektedir. Birim çember ile genlik ve faz panelleri senkron imleç üzerinden birlikte incelenebilmektedir.</p>
           <div class="module-footer"><span class="module-tag">Periyodiklik</span><span class="module-cta">Aç ⚡</span></div>
         </a>
         <a href="sim/dft_fft.html" class="module-card glass-panel">
-          <span class="module-num">SİM 09</span>
+          <span class="module-num">SİM 10</span>
           <h3 class="module-title">⏃ Ayrık Fourier Dönüşümü (DFT/FFT)</h3>
           <p class="module-desc">$X[k]=\sum_n x[n]\,e^{-j2\pi kn/N}$ ile DTFT'nin $\omega_k=2\pi k/N$ noktalarındaki örneklenmiş hali hesaplanmaktadır. Pencere fonksiyonu seçimi, sıfır doldurma, spektral sızıntı ve $\mathcal{O}(N^2)$ ile $\mathcal{O}(N\log N)$ karmaşıklıkların başarımı karşılaştırılabilmektedir.</p>
           <div class="module-footer"><span class="module-tag">Benchmark</span><span class="module-cta">Aç ⚡</span></div>
         </a>
         <a href="sim/z_transform.html" class="module-card glass-panel">
-          <span class="module-num">SİM 10</span>
+          <span class="module-num">SİM 11</span>
           <h3 class="module-title">𝒵 Z-Dönüşümü</h3>
           <p class="module-desc">$X(z)=\sum_n x[n]\,z^{-n}$ ile Z-dönüşümü $z$-düzleminde üç boyutlu yüzey olarak gösterilmektedir. Yakınsama bölgesi (ROC), kutup–sıfır yerleşimi ve birim çember üzerindeki DTFT ilişkisi birlikte ele alınmaktadır.</p>
           <div class="module-footer"><span class="module-tag">3D</span><span class="module-cta">Aç ⚡</span></div>
@@ -915,44 +808,50 @@
       <div class="module-group-header">
         <span class="module-group-badge" style="background:rgba(255,79,154,0.12); color:#ff4f9a; border:1px solid #ff4f9a;">★ Diğer</span>
         <h2>Tamamlayıcı Uygulama Örnekleri</h2>
-        <span class="module-group-count">6 simülasyon · modülasyon, STFT, sıkıştırma, EMD, Doppler, FrFT</span>
+        <span class="module-group-count">7 simülasyon · modülasyon, STFT, sıkıştırma, EMD, Doppler, FrFT, filtreler</span>
       </div>
       <div class="modules-grid">
         <a href="sim/radio.html" class="module-card glass-panel">
-          <span class="module-num">SİM 11</span>
+          <span class="module-num">SİM 12</span>
           <h3 class="module-title"><svg class="sim-ico sim-ico-radio" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 8 Q5 4 8 8 T14 8 T20 8"/><path d="M2 16 Q5 20 8 16 T14 16 T20 16"/></svg> Radyo — Modülasyon</h3>
           <p class="module-desc">Birden çok ses kanalı farklı taşıyıcı frekanslarında modüle edilmekte; alıcı tarafında yerel osilatör ve alçak geçiren süzgeç (LPF) kullanılarak hedef kanal yeniden elde edilmektedir. AM/FM/QAM/OFDM yöntemlerinin temel çalışma ilkesi bu çatı altında ele alınmaktadır.</p>
           <div class="module-footer"><span class="module-tag">Tuner</span><span class="module-cta">Aç ⚡</span></div>
         </a>
         <a href="sim/spectrogram2.html" class="module-card glass-panel">
-          <span class="module-num">SİM 12</span>
+          <span class="module-num">SİM 13</span>
           <h3 class="module-title"><svg class="sim-ico sim-ico-spectrum" viewBox="0 0 24 24" aria-hidden="true"><rect class="bar" x="3" y="9" width="4" height="6" rx="1"/><rect class="bar" x="10" y="3" width="4" height="18" rx="1"/><rect class="bar" x="17" y="9" width="4" height="6" rx="1"/></svg> 2D Spektrum</h3>
           <p class="module-desc">Kısa Zamanlı Fourier Dönüşümü (STFT) tabanlı iki boyutlu spektrum akışı (waterfall) sunulmaktadır. Sekiz farklı pencere fonksiyonu (Hann, Hamming, Blackman, Nuttall, Flat-top vb.) ve %0–%90 örtüşme oranı parametrik olarak ayarlanabilmektedir.</p>
           <div class="module-footer"><span class="module-tag">Pencere</span><span class="module-cta">Aç ⚡</span></div>
         </a>
         <a href="sim/dct.html" class="module-card glass-panel">
-          <span class="module-num">SİM 13</span>
+          <span class="module-num">SİM 14</span>
           <h3 class="module-title">𝒟 Ayrık Kosinüs Dönüşümü (DCT) — Sıkıştırma</h3>
           <p class="module-desc">Ayrık Kosinüs Dönüşümü (DCT) ile sinyal sıkıştırma incelenmektedir. Baskın katsayılar korunup düşük enerjili katsayılar elendiğinde geri-inşa edilen sinyalin orijinale yakınlığı ölçülmektedir. JPEG sıkıştırmasının temel matematiksel çekirdeğini oluşturmaktadır.</p>
           <div class="module-footer"><span class="module-tag">İnteraktif</span><span class="module-cta">Aç ⚡</span></div>
         </a>
         <a href="sim/hht.html" class="module-card glass-panel">
-          <span class="module-num">SİM 14</span>
+          <span class="module-num">SİM 15</span>
           <h3 class="module-title">ℋ Hilbert-Huang Dönüşümü (HHT)</h3>
           <p class="module-desc">Ampirik Mod Ayrıştırması (EMD) ile sinyal İçsel Kip Fonksiyonlarına (IMF) ayrıştırılmakta; ardından Hilbert dönüşümü uygulanarak anlık frekans ve enerji yoğunluğu hesaplanmaktadır. Doğrusal-olmayan ve durağan-olmayan sinyallerin çözümlenmesinde kullanılan bir yöntemdir.</p>
           <div class="module-footer"><span class="module-tag">EMD</span><span class="module-cta">Aç ⚡</span></div>
         </a>
         <a href="sim/doppler.html" class="module-card glass-panel">
-          <span class="module-num">SİM 15</span>
+          <span class="module-num">SİM 16</span>
           <h3 class="module-title"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler — Hız Tespiti</h3>
           <p class="module-desc">Kuş bakışı sahnede hareketli hedef yönlendirilmekte; radar darbe dizisi iletilip eko sinyali alınmakta ve eko üzerindeki Doppler kayması $f_d$ ölçülmektedir. SNR (−15…+9 dB ve ∞), düzensiz yansıma (clutter), MTI süzgeci, FFT spektrumu ve zaman–hız şelalesi etkileşimli biçimde incelenebilmektedir.</p>
           <div class="module-footer"><span class="module-tag">Radar</span><span class="module-cta">Aç ⚡</span></div>
         </a>
         <a href="sim/fractional-fourier.html" class="module-card glass-panel">
-          <span class="module-num">SİM 16</span>
+          <span class="module-num">SİM 17</span>
           <h3 class="module-title">𝓕<sup>α</sup> Kesirli Fourier Dönüşümü (FrFT)</h3>
           <p class="module-desc">İnce mercek optik analojisi temel alınmaktadır: kullanıcı tarafından çizilen desen, $\alpha=z/f$ parametresine bağlı olarak giriş, ara ve odak düzlemlerinde art arda Fraksiyonel Fourier Dönüşümleri (FrFT) ile dönüştürülmektedir. Tek boyutlu sinyal kütüphanesi, chirp üretimi, serbest çizim ve ses dosyası yükleme desteklenmekte; $\alpha$ kaydırıcısı ile $\mathrm{Re}/\mathrm{Im}/|\cdot|$ bileşenleri ve kartezyen $t$–$\Omega$ düzlemindeki dönüş gözlemlenebilmektedir.</p>
           <div class="module-footer"><span class="module-tag">2D+1D</span><span class="module-cta">Aç ⚡</span></div>
+        </a>
+        <a href="sim/filters.html" class="module-card glass-panel">
+          <span class="module-num">SİM 18</span>
+          <h3 class="module-title"><svg class="sim-ico sim-ico-filter" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7 L10 7 C13 7 13 19 22 19"/></svg> Filtreler — Analog ve Sayısal</h3>
+          <p class="module-desc">Etkileşimli analog/sayısal süzgeç tasarımcısı. Tip (LP/HP/BP/BS) ve aile (Butterworth, Chebyshev I/II veya pencereli-sinc FIR) seçilir; genlik (dB), faz/grup-gecikmesi, kutup–sıfır grafiği (s- veya z-düzlemi) ve dürtü tepkisi birlikte okunur. Gürültülü iki tonlu bir işaret, dalga biçimi ve spektrum üzerindeki etkisini göstermek için canlı olarak süzülür.</p>
+          <div class="module-footer"><span class="module-tag">Tasarımcı</span><span class="module-cta">Aç ⚡</span></div>
         </a>
       </div>
     </div>
@@ -969,6 +868,7 @@
         <a href="sim/system-properties.html" class="sim-chip group-c"><span class="icon">T{·}</span> LTI Sistem Özellikleri</a>
         <a href="sim/continuous.html" class="sim-chip group-c"><span class="icon">∫</span> Sürekli Zamanda Konvolüsyon</a>
         <a href="sim/fourier.html" class="sim-chip group-c"><span class="icon">𝓕</span> Fourier Serisi</a>
+        <a href="sim/ctft.html" class="sim-chip group-c"><span class="icon">𝓕</span> Sürekli Zaman Fourier Dönüşümü (CTFT)</a>
         <a href="sim/laplace.html" class="sim-chip group-c"><span class="icon">ℒ</span> Laplace 3D s-Düzlemi</a>
       </div>
       <span class="chip-group-label group-d">Ayrık</span>
@@ -987,6 +887,7 @@
         <a href="sim/hht.html" class="sim-chip group-o"><span class="icon">ℋ</span> Hilbert-Huang Dönüşümü (HHT/EMD)</a>
         <a href="sim/doppler.html" class="sim-chip group-o"><svg class="sim-ico sim-ico-doppler" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12 Q6 6 10 12 T18 12"/><path d="M2 12 Q4 18 6 12 T10 12 T14 12 T18 12 T22 12" opacity="0.7" stroke-dasharray="2 1.5"/></svg> Doppler Radar</a>
         <a href="sim/fractional-fourier.html" class="sim-chip group-o"><span class="icon">𝓕<sup>α</sup></span> Kesirli Fourier Dönüşümü (FrFT)</a>
+        <a href="sim/filters.html" class="sim-chip group-o"><svg class="sim-ico sim-ico-filter" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 7 L10 7 C13 7 13 19 22 19"/></svg> Filtreler</a>
       </div>
     </div>
   </section>
